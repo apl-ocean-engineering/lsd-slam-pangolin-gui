@@ -29,4 +29,5 @@ Supports raw PNG images. For example, you can down any dataset from [here](http:
 ./LSD -c ~/Mono_Logs/LSD_machine/cameraCalibration.cfg -f ~/Mono_Logs/LSD_machine/images/
 
 # 4. License
+
 LSD-SLAM is licensed under the GNU General Public License Version 3 (GPLv3), see http://www.gnu.org/licenses/gpl.html.
