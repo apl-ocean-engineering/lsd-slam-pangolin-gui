@@ -18,6 +18,45 @@ find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
 
+## Enable support for the Zed stereo camera
+option( USE_ZED_CAMERA "Use Zed Stereo camera" ON )
+if( USE_ZED_CAMERA )
+  add_definitions( -DUSE_ZED )
+
+  IF(WIN32) # Windows
+    SET(ZED_INCLUDE_DIRS $ENV{ZED_INCLUDE_DIRS})
+        if (CMAKE_CL_64) # 64 bits
+            SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_64})
+        else(CMAKE_CL_64) # 32 bits
+            message("32bits compilation is no more available with CUDA7.0")
+        endif(CMAKE_CL_64)
+    SET(ZED_LIBRARY_DIR $ENV{ZED_LIBRARY_DIR})
+    SET(OPENCV_DIR $ENV{OPENCV_DIR})
+    find_package(CUDA 7.0 REQUIRED)
+  ELSE() # Linux
+    find_package(ZED REQUIRED)
+    find_package(CUDA 6.5 REQUIRED)
+  ENDIF(WIN32)
+
+  # find_package(OpenCV 2.4 COMPONENTS core highgui imgproc REQUIRED)
+
+  #add_subdirectory( "${aplcam_SOURCE_DIR}/third_party/apriltags" )
+
+  set( ZED_CAMERA_INCLUDE_DIRS ${ZED_INCLUDE_DIRS}
+                              ${CUDA_INCLUDE_DIRS} )
+
+  set( ZED_CAMERA_LIBRARY_DIRS ${ZED_LIBRARY_DIR}
+                                ${CUDA_LIBRARY_DIRS})
+
+  link_directories( ${ZED_CAMERA_LIBRARY_DIRS} )
+
+  set( ZED_CAMERA_LIBRARIES ${ZED_LIBRARIES}
+                            ${CUDA_LIBRARIES}
+                            ${CUDA_npps_LIBRARY}
+                            ${CUDA_nppi_LIBRARY} )
+
+endif()
+
 # SSE flags
 add_definitions("-DENABLE_SSE")
 
@@ -69,6 +108,7 @@ include_directories(
   ${G2O_INCLUDE_DIR}
   ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
   ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
+  ${ZED_CAMERA_INCLUDE_DIRS}
 )
 
 # build shared library.
@@ -89,3 +129,11 @@ target_link_libraries(lsdslam
 # build image node
 add_executable(LSD LSD.cpp)
 target_link_libraries(LSD lsdslam ${Pangolin_LIBRARIES})
+
+if( USE_ZED_CAMERA )
+  add_executable(LSD_Zed LSD_Zed.cpp)
+
+  target_link_libraries(LSD_Zed lsdslam
+                            ${Pangolin_LIBRARIES}
+                            ${ZED_CAMERA_LIBRARIES} )
+endif()
