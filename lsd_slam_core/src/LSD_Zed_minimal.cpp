@@ -96,36 +96,9 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
         cv::Mat imageScaled( scaledSize, CV_8UC1 );
         cv::resize( imageGray, imageScaled, scaledSize );
 
-        cv::imshow( "imageScaled", imageScaled );
-
-        // assert(imageScaled.type() == CV_8U);
-        //
-        // if(runningIDX == 0)
-        // {
-        //     system->randomInit(imageScaled.data, fakeTimeStamp, runningIDX);
-        // }
-        // else
-        // {
-        //     system->trackFrame(imageScaled.data, runningIDX, hz == 0, fakeTimeStamp);
-        // }
-        //
-        // gui.pose.assignValue(system->getCurrentPoseEstimateScale());
-
         runningIDX++;
-        // fakeTimeStamp+=0.03;
 
-        // if(fullResetRequested)
-        // {
-        //     printf("FULL RESET!\n");
-        //     delete system;
-        //
-        //     system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
-        //     system->setVisualization(outputWrapper);
-        //
-        //     fullResetRequested = false;
-        //     runningIDX = 0;
-        // }
-
+        cv::imshow( "imageScaled", imageScaled );
         cv::waitKey( wait );
     }
 
@@ -199,7 +172,7 @@ int main( int argc, char** argv )
   numFrames = camera->getSVONumberOfFrames();
 
 
-  printf("Launching LSD thread\n");
+  // printf("Launching LSD thread\n");
 	boost::thread lsdThread(run, system, outputWrapper, K);
 
 	while(!pangolin::ShouldQuit())

@@ -136,4 +136,5 @@ if( USE_ZED_CAMERA )
   target_link_libraries(LSD_Zed lsdslam
                             ${Pangolin_LIBRARIES}
                             ${ZED_CAMERA_LIBRARIES} )
+
 endif()
