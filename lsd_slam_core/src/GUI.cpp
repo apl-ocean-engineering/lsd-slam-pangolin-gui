@@ -7,6 +7,9 @@
 
 #include "GUI.h"
 
+#include <pangolin/display/device/display_glut.h>
+
+
 GUI::GUI()
  : depthImg(0),
    depthImgBuffer(0)
