@@ -49,6 +49,8 @@ class GUI
 
         void drawImages();
 
+        void updateFrameNumber( int frameNumber );
+
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:
@@ -58,7 +60,9 @@ class GUI
 
         ThreadMutexObject<unsigned char * > depthImgBuffer;
 
+
         pangolin::Var<int> * gpuMem;
+        pangolin::Var<int> * frameNumber;
 
         pangolin::Var<std::string> * totalPoints;
 

@@ -70,15 +70,30 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
 
     useconds_t dt_msec = (1.0/hz) * 1e3;
 
-    int runningIDX=0;
+    int runningIdx = 0;
     float fakeTimeStamp = 0;
 
-    for(unsigned int i = 0; (numFrames < 0) || (i < numFrames); i++)
+    for(unsigned int i = 0; (numFrames < 0) || (i < numFrames); i++, runningIdx++)
     {
         if(lsdDone.getValue())
             break;
 
-        printf("Loop %d\n", runningIDX );
+        // printf("Loop %d\n", runningIDX );
+
+        gui.updateFrameNumber( i );
+
+        if(fullResetRequested)
+        {
+            printf("FULL RESET!\n");
+            delete system;
+
+            system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
+            system->setVisualization(outputWrapper);
+
+            fullResetRequested = false;
+            runningIdx = 0;
+        }
+
 
         // At present, just grab images
         if( camera->grab( sl::zed::SENSING_MODE::RAW, false, false ) ) {
@@ -99,31 +114,19 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
 
         assert(imageScaled.type() == CV_8U);
 
-        if(runningIDX == 0)
+        if(runningIdx == 0)
         {
-            system->randomInit(imageScaled.data, fakeTimeStamp, runningIDX);
+            system->randomInit(imageScaled.data, fakeTimeStamp, runningIdx);
         }
         else
         {
-            system->trackFrame(imageScaled.data, runningIDX, hz == 0, fakeTimeStamp);
+            system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
         }
 
         gui.pose.assignValue(system->getCurrentPoseEstimateScale());
 
-        runningIDX++;
         fakeTimeStamp+=0.03;
 
-        if(fullResetRequested)
-        {
-            printf("FULL RESET!\n");
-            delete system;
-
-            system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
-            system->setVisualization(outputWrapper);
-
-            fullResetRequested = false;
-            runningIDX = 0;
-        }
 
         boost::this_thread::sleep_for(boost::chrono::milliseconds(dt_msec));
     }

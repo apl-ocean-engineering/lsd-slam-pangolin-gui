@@ -36,6 +36,7 @@ GUI::GUI()
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
     gpuMem = new pangolin::Var<int>("ui.GPU memory free", 0);
+    frameNumber = new pangolin::Var<int>("ui.Frame number", 0);
 
     totalPoints = new pangolin::Var<std::string>("ui.Total points", "0");
 }
@@ -61,6 +62,7 @@ GUI::~GUI()
 
     delete totalPoints;
     delete gpuMem;
+    delete frameNumber;
 }
 
 void GUI::initImages()
@@ -288,4 +290,9 @@ void GUI::postCall()
     pangolin::FinishFrame();
 
     glFinish();
+}
+
+void GUI::updateFrameNumber( int fn )
+{
+  frameNumber->operator=(fn);
 }
