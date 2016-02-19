@@ -98,33 +98,33 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
 
         cv::imshow( "imageScaled", imageScaled );
 
-        // assert(imageScaled.type() == CV_8U);
-        //
-        // if(runningIDX == 0)
-        // {
-        //     system->randomInit(imageScaled.data, fakeTimeStamp, runningIDX);
-        // }
-        // else
-        // {
-        //     system->trackFrame(imageScaled.data, runningIDX, hz == 0, fakeTimeStamp);
-        // }
-        //
-        // gui.pose.assignValue(system->getCurrentPoseEstimateScale());
+        assert(imageScaled.type() == CV_8U);
+
+        if(runningIDX == 0)
+        {
+            system->randomInit(imageScaled.data, fakeTimeStamp, runningIDX);
+        }
+        else
+        {
+            system->trackFrame(imageScaled.data, runningIDX, hz == 0, fakeTimeStamp);
+        }
+
+        gui.pose.assignValue(system->getCurrentPoseEstimateScale());
 
         runningIDX++;
-        // fakeTimeStamp+=0.03;
+        fakeTimeStamp+=0.03;
 
-        // if(fullResetRequested)
-        // {
-        //     printf("FULL RESET!\n");
-        //     delete system;
-        //
-        //     system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
-        //     system->setVisualization(outputWrapper);
-        //
-        //     fullResetRequested = false;
-        //     runningIDX = 0;
-        // }
+        if(fullResetRequested)
+        {
+            printf("FULL RESET!\n");
+            delete system;
+
+            system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
+            system->setVisualization(outputWrapper);
+
+            fullResetRequested = false;
+            runningIDX = 0;
+        }
 
         cv::waitKey( wait );
     }
