@@ -6,7 +6,10 @@ semi-dense maps in real-time on a laptop. For more information see
 where you can also find the corresponding publications and Youtube videos, as well as some 
 example-input datasets, and the generated output as rosbag or .ply point cloud.
 
-This fork contains a version that relieves the user of the horrors of a ROS dependency and uses the much nicer lightweight [Pangolin](https://github.com/stevenlovegrove/Pangolin) framework instead. 
+This fork started from [Thomas Whelan's fork](https://github.com/mp3guy/lsd_slam) which "relieves the user of the horrors of a ROS dependency and uses the much nicer lightweight [Pangolin](https://github.com/stevenlovegrove/Pangolin) framework instead."
+
+It contains my experiments with LSD-SLAM.
+
 
 ### Related Papers
 
