@@ -80,9 +80,10 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
         sl::zed::Mat left = camera->retrieveImage(sl::zed::SIDE::LEFT);
         cv::Mat imageRGB( left.width, left.height, CV_8UC4, left.data );
 
-        // Convert to greyscale
-        cv::Mat imageGray( imageRGB.cols, imageRGB.rows, CV_8UC1 );
-        cv::cvtColor( imageRGB, imageGray, cv::COLOR_BGR2GRAY );
+        // Convert to greyscale, crop to multiples of 16 (hardcoded at present)
+        cv::Mat imageROI( imageRGB, cv::Rect(0, 0, h, w) );
+        cv::Mat imageGray( h, w, CV_8UC1 );
+        cv::cvtColor( imageROI, imageGray, cv::COLOR_BGRA2GRAY );
 
         // if(logReader)
         // {
@@ -210,8 +211,13 @@ int main( int argc, char** argv )
   {
     sl::zed::resolution resolution = camera->getImageSize();
 
+    h = (resolution.height / 16) * 16;
+    w = (resolution.width / 16) * 16;
+
+    printf("Cropping input image of %d x %d to multiples of 16: %d x %d\n", resolution.width, resolution.height, w, h );
+
     // Set up these two singletons
-  	Resolution::getInstance( resolution.width, resolution.height );
+  	Resolution::getInstance( h, w );
   }
 
 
