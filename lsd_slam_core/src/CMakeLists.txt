@@ -60,7 +60,8 @@ endif()
 # SSE flags
 add_definitions("-DENABLE_SSE")
 
-add_definitions("-DNDEBUG")
+## Disable all debugging
+#add_definitions("-DNDEBUG")
 
 # Also add some useful compiler flag
 set(CMAKE_CXX_FLAGS
