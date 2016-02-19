@@ -4,7 +4,7 @@ project(lsd_slam_core)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2.4 REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Pangolin 0.1 REQUIRED)
