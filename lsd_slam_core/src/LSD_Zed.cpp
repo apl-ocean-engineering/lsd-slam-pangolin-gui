@@ -41,6 +41,8 @@
 
 #include "GUI.h"
 
+const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
+
 // 1080 is not divisible by 16
 const cv::Size cropSize( 1920, 1072 );
 // Maintains same aspect ratio as 1920x1072, also both as divisible by 16
@@ -66,7 +68,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
       hz = 30;
     }
 
-    int wait = (1.0/hz) * 1000;
+    useconds_t dt_msec = (1.0/hz) * 1e3;
 
     int runningIDX=0;
     float fakeTimeStamp = 0;
@@ -81,22 +83,19 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
         // At present, just grab images
         if( camera->grab( sl::zed::SENSING_MODE::RAW, false, false ) ) {
           printf("Error reading data from camera\n" );
-          break;
+          continue;
         }
 
         sl::zed::Mat left = camera->retrieveImage(sl::zed::SIDE::LEFT);
-        cv::Mat imageRGB( left.height, left.width, CV_8UC4, left.data );
 
         // Convert to greyscale, crop to multiples of 16 (hardcoded at present)
-        cv::Mat imageROI( imageRGB, cv::Rect( cv::Point(0,0), cropSize) );
+        cv::Mat imageROI( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
         cv::Mat imageGray( cropSize, CV_8UC1 );
         cv::cvtColor( imageROI, imageGray, cv::COLOR_BGRA2GRAY );
 
         // Downscale (for now)
         cv::Mat imageScaled( scaledSize, CV_8UC1 );
         cv::resize( imageGray, imageScaled, scaledSize );
-
-        cv::imshow( "imageScaled", imageScaled );
 
         assert(imageScaled.type() == CV_8U);
 
@@ -126,7 +125,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
             runningIDX = 0;
         }
 
-        cv::waitKey( wait );
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(dt_msec));
     }
 
     lsdDone.assignValue(true);
@@ -144,8 +143,7 @@ int main( int argc, char** argv )
 	} else {
     printf("Using live Zed data\n");
 
-    const sl::zed::ZEDResolution_mode resolution = sl::zed::HD1080;
-    camera = new sl::zed::Camera( resolution );
+    camera = new sl::zed::Camera( zedResolution );
   }
 
   // get camera calibration in form of an undistorter object.

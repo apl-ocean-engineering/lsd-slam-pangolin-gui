@@ -60,6 +60,8 @@ endif()
 # SSE flags
 add_definitions("-DENABLE_SSE")
 
+add_definitions("-DNDEBUG")
+
 # Also add some useful compiler flag
 set(CMAKE_CXX_FLAGS
    "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++0x"
