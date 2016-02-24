@@ -35,6 +35,8 @@
 #include <dirent.h>
 #include <algorithm>
 
+#include <glog/logging.h>
+
 #include "util/Undistorter.h"
 
 #include "opencv2/opencv.hpp"
@@ -44,14 +46,15 @@
 const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
 
 // 1080 is not divisible by 16
-const cv::Size cropSize( 1920, 1072 );
+const cv::Size originalSize( 1920, 1080 );
+const cv::Size cropSize( (originalSize.width / 16) * 16, (originalSize.height / 16) * 16 );
 // Maintains same aspect ratio as 1920x1072, also both as divisible by 16
-const cv::Size scaledSize( 640, 352 );
+const cv::Size scaledSize( cropSize );
 const cv::Size slamSize( scaledSize );
 
 
 ThreadMutexObject<bool> lsdDone(false);
-GUI gui;
+GUI gui( scaledSize.width * 1.0 / scaledSize.height );
 
 int numFrames = 0;
 
@@ -94,25 +97,36 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
             runningIdx = 0;
         }
 
-
-        // At present, just grab images
         if( camera->grab( sl::zed::SENSING_MODE::RAW, false, false ) ) {
-          printf("Error reading data from camera\n" );
+          LOG(ERROR) << "Error reading data from camera";
           continue;
         }
 
         sl::zed::Mat left = camera->retrieveImage(sl::zed::SIDE::LEFT);
 
-        // Convert to greyscale, crop to multiples of 16 (hardcoded at present)
-        cv::Mat imageROI( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
         cv::Mat imageGray( cropSize, CV_8UC1 );
+        cv::Mat imageROI;
+        if( cropSize != originalSize ) {
+          // crop to multiples of 16 (a hardcoded size at present)
+          imageROI = cv::Mat( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
+        } else {
+          imageROI = sl::zed::slMat2cvMat(left);
+        }
+
+        // Convert to greyscale
         cv::cvtColor( imageROI, imageGray, cv::COLOR_BGRA2GRAY );
 
-        // Downscale (for now)
-        cv::Mat imageScaled( scaledSize, CV_8UC1 );
-        cv::resize( imageGray, imageScaled, scaledSize );
+        cv::Mat imageScaled;
+        if( scaledSize != cropSize ) {
+          // Shrink (for now)
+          cv::resize( imageGray, imageScaled, scaledSize );
+        } else {
+          imageScaled = imageGray;
+        }
 
-        assert(imageScaled.type() == CV_8U);
+        assert( imageScaled.type() == CV_8U );
+
+        gui.updateLiveImage( imageScaled.data );
 
         if(runningIdx == 0)
         {
@@ -136,6 +150,10 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
 
 int main( int argc, char** argv )
 {
+  // Initialize Google logging
+  google::InitGoogleLogging( argv[0] );
+  FLAGS_logtostderr = true;
+  FLAGS_minloglevel = 0;
 
   // open image files: first try to open as file.
 	std::string source;
@@ -156,17 +174,24 @@ int main( int argc, char** argv )
 
   sl::zed::ERRCODE err = camera->init( sl::zed::MODE::NONE, -1, true );
   if (err != sl::zed::SUCCESS) {
-    printf( "Unable to init the zed: %s\n", errcode2str(err).c_str() );
+    LOG(ERROR) << "Unable to init the zed: " << errcode2str(err);
     delete camera;
     exit(-1);
   }
 
   sl::zed::StereoParameters *params = camera->getParameters();
 
-  float fx = params->LeftCam.fx;
-	float fy = params->LeftCam.fy;
-	float cx = params->LeftCam.cx;
-	float cy = params->LeftCam.cy;
+  float xscale = slamSize.width * 1.0f / originalSize.width;
+  float yscale = slamSize.height * 1.0f / originalSize.height;
+
+  float fx = params->LeftCam.fx * xscale;
+	float fy = params->LeftCam.fy * yscale;
+	float cx = params->LeftCam.cx * xscale;
+	float cy = params->LeftCam.cy * yscale;
+
+  LOG(INFO) << "From Zed:  fx = " << params->LeftCam.fx << "; fy = " << params->LeftCam.fy << "; cx = " << params->LeftCam.cx << "; cy = " << params->LeftCam.cy;
+  LOG(INFO) << "Scaled:    fx = " << fx << "; fy = " << fy << "; cx = " << cx << "; cy = " << cy;
+
 
 	Sophus::Matrix3f K;
 	K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
@@ -178,12 +203,12 @@ int main( int argc, char** argv )
     sl::zed::resolution resolution = camera->getImageSize();
 
     // Intermediate sizes are set with const Size global (at top of file)
-    // Just a quick sanity check that  they're appropriate for this
+    // Just a quick sanity check that they're appropriate for this
     // camera resolution
     assert( resolution.width >= cropSize.width );
     assert( resolution.height >= cropSize.height );
 
-    // Set up these two singletons
+    // Set up this singletons
   	Resolution::getInstance( slamSize.width, slamSize.height );
   }
 

@@ -9,9 +9,13 @@
 
 #include <pangolin/display/device/display_glut.h>
 
+#include <glog/logging.h>
 
-GUI::GUI()
- : depthImg(0),
+
+GUI::GUI( float aspectRatio )
+ : liveImg(0),
+   depthImg(0),
+   liveImgBuffer(0),
    depthImgBuffer(0)
 {
     const int initialWidth = 800, initialHeight = 800;
@@ -27,11 +31,13 @@ GUI::GUI()
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
-    pangolin::Display("Image").SetAspect(640.0f / 480.0f);
+    pangolin::Display("LiveImage").SetAspect( aspectRatio);
+    pangolin::Display("DepthImage").SetAspect( aspectRatio );
 
     pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
                               .SetLayout(pangolin::LayoutEqualHorizontal)
-                              .AddDisplay(pangolin::Display("Image"));
+                              .AddDisplay(pangolin::Display("LiveImage"))
+                              .AddDisplay(pangolin::Display("DepthImage"));
 
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
@@ -48,6 +54,12 @@ GUI::~GUI()
 
     if(depthImgBuffer.getValue())
         delete [] depthImgBuffer.getValue();
+
+    if(liveImg)
+        delete liveImg;
+
+    if(liveImgBuffer.getValue())
+        delete [] liveImgBuffer.getValue();
 
     boost::mutex::scoped_lock lock(keyframes.getMutex());
 
@@ -68,16 +80,24 @@ GUI::~GUI()
 void GUI::initImages()
 {
     depthImg = new pangolin::GlTexture(Resolution::getInstance().width(), Resolution::getInstance().height(), GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-
     depthImgBuffer.assignValue(new unsigned char[Resolution::getInstance().numPixels() * 3]);
+
+    liveImg = new pangolin::GlTexture(Resolution::getInstance().width(), Resolution::getInstance().height(), GL_LUMINANCE8, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    liveImgBuffer.assignValue(new unsigned char[Resolution::getInstance().numPixels()]);
 }
 
-void GUI::updateImage(unsigned char * data)
+void GUI::updateDepthImage(unsigned char * data)
 {
     boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
-
     memcpy(depthImgBuffer.getReference(), data, Resolution::getInstance().numPixels() * 3);
+    lock.unlock();
+}
 
+// Expects CV_8UC1 data
+void GUI::updateLiveImage(unsigned char * data)
+{
+    boost::mutex::scoped_lock lock(liveImgBuffer.getMutex());
+    memcpy(liveImgBuffer.getReference(), data, Resolution::getInstance().numPixels() );
     lock.unlock();
 }
 
@@ -128,15 +148,19 @@ void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
 
 void GUI::drawImages()
 {
-    boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
-
+    boost::mutex::scoped_lock depthLock(depthImgBuffer.getMutex());
     depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
+    depthLock.unlock();
 
-    lock.unlock();
-
-    pangolin::Display("Image").Activate();
-
+    pangolin::Display("DepthImage").Activate();
     depthImg->RenderToViewport(true);
+
+    boost::mutex::scoped_lock liveLock(liveImgBuffer.getMutex());
+    liveImg->Upload(liveImgBuffer.getReference(), GL_LUMINANCE, GL_UNSIGNED_BYTE);
+    liveLock.unlock();
+
+    pangolin::Display("LiveImage").Activate();
+    liveImg->RenderToViewport(true);
 }
 
 void GUI::drawKeyframes()

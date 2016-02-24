@@ -33,7 +33,7 @@ PangolinOutput3DWrapper::~PangolinOutput3DWrapper()
 
 void PangolinOutput3DWrapper::updateImage(unsigned char * data)
 {
-    gui.updateImage(data);
+    gui.updateDepthImage(data);
 }
 
 void PangolinOutput3DWrapper::publishKeyframe(Frame* f)

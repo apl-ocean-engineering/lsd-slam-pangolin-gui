@@ -127,7 +127,8 @@ target_link_libraries(lsdslam
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
   csparse
-  cxsparse )
+  cxsparse
+  glog )
 
 # build image node
 add_executable(LSD LSD.cpp)

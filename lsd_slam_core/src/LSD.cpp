@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 std::vector<std::string> files;
 int w, h, w_inp, h_inp;
 ThreadMutexObject<bool> lsdDone(false);
-GUI gui;
+GUI gui( 640.0f/480.0f );
 RawLogReader * logReader = 0;
 int numFrames = 0;
 

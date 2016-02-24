@@ -270,7 +270,7 @@ void SlamSystem::finalize()
 
 void SlamSystem::constraintSearchThreadLoop()
 {
-	printf("Started  constraint search thread!\n");
+	printf("Started constraint search thread!\n");
 
 	boost::unique_lock<boost::mutex> lock(newKeyFrameMutex);
 	int failedToRetrack = 0;
