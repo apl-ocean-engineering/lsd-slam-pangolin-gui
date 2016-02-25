@@ -47,9 +47,8 @@ const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
 
 // 1080 is not divisible by 16
 const cv::Size originalSize( 1920, 1080 );
-const cv::Size cropSize( (originalSize.width / 16) * 16, (originalSize.height / 16) * 16 );
-// Maintains same aspect ratio as 1920x1072, also both as divisible by 16
-const cv::Size scaledSize( cropSize );
+const cv::Size cropSize( 1920, 1056 );
+const cv::Size scaledSize( cropSize.width / 2, cropSize.height / 2 );
 const cv::Size slamSize( scaledSize );
 
 
@@ -125,6 +124,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
         }
 
         assert( imageScaled.type() == CV_8U );
+        assert( (imageScaled.rows == slamSize.height) && (imageScaled.cols == slamSize.width) );
 
         gui.updateLiveImage( imageScaled.data );
 
