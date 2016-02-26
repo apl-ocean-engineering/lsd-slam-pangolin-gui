@@ -37,6 +37,8 @@
 
 #include <glog/logging.h>
 
+#include <tclap/CmdLine.h>
+
 #include "util/Undistorter.h"
 
 #include "opencv2/opencv.hpp"
@@ -58,6 +60,7 @@ GUI gui( scaledSize.width * 1.0 / scaledSize.height );
 int numFrames = 0;
 
 sl::zed::Camera *camera = NULL;
+enum { NO_STEREO, STEREO_ZED } doStereo = NO_STEREO;
 
 using namespace lsd_slam;
 
@@ -103,16 +106,11 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
 
         sl::zed::Mat left = camera->retrieveImage(sl::zed::SIDE::LEFT);
 
-        cv::Mat imageGray( cropSize, CV_8UC1 );
         cv::Mat imageROI;
-        if( cropSize != originalSize ) {
-          // crop to multiples of 16 (a hardcoded size at present)
-          imageROI = cv::Mat( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
-        } else {
-          imageROI = sl::zed::slMat2cvMat(left);
-        }
+        imageROI = cv::Mat( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
 
         // Convert to greyscale
+        cv::Mat imageGray( cropSize, CV_8UC1 );
         cv::cvtColor( imageROI, imageGray, cv::COLOR_BGRA2GRAY );
 
         cv::Mat imageScaled;
@@ -123,18 +121,37 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
           imageScaled = imageGray;
         }
 
-        assert( imageScaled.type() == CV_8U );
-        assert( (imageScaled.rows == slamSize.height) && (imageScaled.cols == slamSize.width) );
+        CHECK( imageScaled.type() == CV_8U );
+        CHECK( (imageScaled.rows == slamSize.height) && (imageScaled.cols == slamSize.width) );
 
         gui.updateLiveImage( imageScaled.data );
 
-        if(runningIdx == 0)
-        {
-            system->randomInit(imageScaled.data, fakeTimeStamp, runningIdx);
-        }
-        else
-        {
+        if( doStereo == STEREO_ZED ) {
+
+          // Fetch depth map as well
+          sl::zed::Mat depth = camera->retrieveMeasure( sl::zed::DEPTH );
+          cv::Mat depthCropped( sl::zed::slMat2cvMat(depth), cv::Rect( cv::Point(0,0), cropSize) );
+          cv::Mat depthScaled( scaledSize, CV_32FC1 );
+          cv::resize( depthCropped, depthScaled, scaledSize );
+
+          CHECK( depthScaled.type() == CV_32FC1 );
+          CHECK( (imageScaled.rows == depthScaled.rows) && (imageScaled.cols == depthScaled.cols) );
+
+          if(runningIdx == 0) {
+            system->gtDepthInit(imageScaled.data, (float *)depthScaled.data, fakeTimeStamp, runningIdx);
+          } else {
             system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
+          }
+
+        } else {
+          if(runningIdx == 0)
+          {
+            system->randomInit(imageScaled.data, fakeTimeStamp, runningIdx);
+          }
+          else
+          {
+              system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
+          }
         }
 
         gui.pose.assignValue(system->getCurrentPoseEstimateScale());
@@ -155,16 +172,33 @@ int main( int argc, char** argv )
   FLAGS_logtostderr = true;
   FLAGS_minloglevel = 0;
 
-  // open image files: first try to open as file.
-	std::string source;
-	if( Parse::arg(argc, argv, "-f", source) > 0)
-	{
-		printf("Loading SVO file %s\n", source.c_str() );
-    camera = new sl::zed::Camera( source );
-	} else {
-    printf("Using live Zed data\n");
+  try {
+    TCLAP::CmdLine cmd("LSD_Zed", ' ', "0.1");
 
-    camera = new sl::zed::Camera( zedResolution );
+    TCLAP::ValueArg<std::string> svoFileArg("i","input","Name of SVO file to read",false,"","SVO filename", cmd);
+    TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
+
+    cmd.parse(argc, argv );
+
+  	if( svoFileArg.isSet() > 0)
+  	{
+      LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
+      camera = new sl::zed::Camera( svoFileArg.getValue() );
+      numFrames = camera->getSVONumberOfFrames();
+  	} else {
+      LOG(INFO) << "Using live Zed data";
+      camera = new sl::zed::Camera( zedResolution );
+      numFrames = -1;
+    }
+
+    if( stereoSwitch.getValue() ) {
+      LOG(INFO) << "Using Stereolabs libraries";
+      doStereo = STEREO_ZED;
+    }
+
+  } catch (TCLAP::ArgException &e)  // catch any exceptions
+	{
+    LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
   }
 
   // get camera calibration in form of an undistorter object.
@@ -172,7 +206,12 @@ int main( int argc, char** argv )
 	// std::string calibFile;
 	//Undistorter* undistorter = 0;
 
-  sl::zed::ERRCODE err = camera->init( sl::zed::MODE::NONE, -1, true );
+  sl::zed::MODE zedMode = sl::zed::MODE::NONE;
+  if( doStereo == STEREO_ZED ) zedMode = sl::zed::MODE::QUALITY;
+
+  const int whichGpu = -1;
+  const bool verboseInit = true;
+  sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
   if (err != sl::zed::SUCCESS) {
     LOG(ERROR) << "Unable to init the zed: " << errcode2str(err);
     delete camera;
@@ -214,16 +253,11 @@ int main( int argc, char** argv )
 
 
 	gui.initImages();
-
 	Output3DWrapper* outputWrapper = new PangolinOutput3DWrapper( slamSize.width, slamSize.height, gui);
-
 
 	// make slam system
 	SlamSystem * system = new SlamSystem( slamSize.width, slamSize.height, K, doSlam);
 	system->setVisualization(outputWrapper);
-
-  numFrames = camera->getSVONumberOfFrames();
-
 
   printf("Launching LSD thread\n");
 	boost::thread lsdThread(run, system, outputWrapper, K);

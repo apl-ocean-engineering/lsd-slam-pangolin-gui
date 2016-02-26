@@ -2,14 +2,15 @@ cmake_minimum_required(VERSION 2.8.7)
 project(lsd_slam_core)
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(OpenCV 2.4 REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Pangolin 0.1 REQUIRED)
 find_package(G2O REQUIRED)
 find_package(SuiteParse REQUIRED) # Apparently needed by g2o
+find_package(TCLAP REQUIRED )
 
 # FabMap
 # uncomment this part to enable fabmap
@@ -112,6 +113,7 @@ include_directories(
   ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
   ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
   ${ZED_CAMERA_INCLUDE_DIRS}
+  ${TCLAP_INCLUDE_DIR}
 )
 
 # build shared library.
