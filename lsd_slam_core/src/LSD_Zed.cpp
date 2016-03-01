@@ -140,7 +140,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
           if(runningIdx == 0) {
             system->gtDepthInit(imageScaled.data, (float *)depthScaled.data, fakeTimeStamp, runningIdx);
           } else {
-            system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
+            system->trackStereoFrame(imageScaled.data, (float *)depthScaled.data, runningIdx, hz == 0, fakeTimeStamp);
           }
 
         } else {
@@ -150,7 +150,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
           }
           else
           {
-              system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
+            system->trackFrame(imageScaled.data, runningIdx, hz == 0, fakeTimeStamp);
           }
         }
 
@@ -192,7 +192,7 @@ int main( int argc, char** argv )
     }
 
     if( stereoSwitch.getValue() ) {
-      LOG(INFO) << "Using Stereolabs libraries";
+      LOG(INFO) << "Using stereo data from Stereolabs libraries";
       doStereo = STEREO_ZED;
     }
 
@@ -235,8 +235,6 @@ int main( int argc, char** argv )
 	Sophus::Matrix3f K;
 	K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
 	Intrinsics::getInstance(fx, fy, cx, cy);
-  //delete params;
-
 
   {
     sl::zed::resolution resolution = camera->getImageSize();

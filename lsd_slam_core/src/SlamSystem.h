@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -77,13 +77,17 @@ public:
 	void randomInit(uchar* image, double timeStamp, int id);
 	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
 
-	
+
 
 	// tracks a frame.
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
 	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp);
+	void trackStereoFrame(uchar* image, float *depth, unsigned int frameID, bool blockUntilMapped, double timestamp);
+
+	void trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped );
+
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
@@ -106,11 +110,11 @@ public:
 	bool doMappingIteration();
 
 	int findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent=true, bool useFABMAP=true, float closeCandidatesTH=1.0);
-	
+
 	bool optimizationIteration(int itsPerTry, float minChange);
-	
+
 	void publishKeyframeGraph();
-	
+
 	std::vector<FramePoseStruct*> getAllPoses();
 
 
@@ -210,7 +214,7 @@ private:
 	bool keepRunning; // used only on destruction to signal threads to finish.
 
 
-	
+
 	// optimization thread
 	bool newConstraintAdded;
 	boost::mutex newConstraintMutex;
@@ -226,8 +230,8 @@ private:
 	// GUARANTEED to give the same result each call, and to be compatible to each other.
 	// locked exclusively during the pose-update by Mapping.
 	boost::shared_mutex poseConsistencyMutex;
-	
-	
+
+
 
 	bool depthMapScreenshotFlag;
 	std::string depthMapScreenshotFilename;
@@ -235,7 +239,7 @@ private:
 
 	/** Merges the current keyframe optimization offset to all working entities. */
 	void mergeOptimizationOffset();
-	
+
 
 	void mappingThreadLoop();
 
@@ -273,7 +277,7 @@ private:
 	void optimizationThreadLoop();
 
 
-	
+
 };
 
 }
