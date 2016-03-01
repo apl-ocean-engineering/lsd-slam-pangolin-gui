@@ -90,46 +90,41 @@ void GUI::preCall()
 
 void GUI::addKeyframe(Keyframe * newFrame)
 {
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
+  boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
 
-    //Exists
-    if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
-    {
-        keyframes.getReference()[newFrame->id]->updatePoints(newFrame);
+  //Exists
+  if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
+  {
+      keyframes.getReference()[newFrame->id]->updatePoints(newFrame);
 
-        delete newFrame;
-    }
-    else
-    {
-        newFrame->initId = keyframes.getReference().size();
-        keyframes.getReference()[newFrame->id] = newFrame;
-    }
-
-    lock.unlock();
+      delete newFrame;
+  }
+  else
+  {
+      newFrame->initId = keyframes.getReference().size();
+      keyframes.getReference()[newFrame->id] = newFrame;
+  }
 }
 
 void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
 {
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
+  boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
 
-    for(int i = 0; i < num; i++)
-    {
-        if(keyframes.getReference().find(framePoseData[i].id) != keyframes.getReference().end())
-        {
-            memcpy(keyframes.getReference()[framePoseData[i].id]->camToWorld.data(), &framePoseData[i].camToWorld[0], sizeof(float) * 7);
-        }
-    }
-
-    lock.unlock();
+  for(int i = 0; i < num; i++)
+  {
+      if(keyframes.getReference().find(framePoseData[i].id) != keyframes.getReference().end())
+      {
+          memcpy(keyframes.getReference()[framePoseData[i].id]->camToWorld.data(), &framePoseData[i].camToWorld[0], sizeof(float) * 7);
+      }
+  }
 }
 
 void GUI::drawImages()
 {
-    boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
-
-    depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
-
-    lock.unlock();
+    {
+      boost::lock_guard<boost::mutex> lock(depthImgBuffer.getMutex());
+      depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
+    }
 
     pangolin::Display("Image").Activate();
 
@@ -138,7 +133,7 @@ void GUI::drawImages()
 
 void GUI::drawKeyframes()
 {
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
+    boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
 
     glEnable(GL_MULTISAMPLE);
     glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
@@ -158,8 +153,6 @@ void GUI::drawKeyframes()
     }
 
     glDisable(GL_MULTISAMPLE);
-
-    lock.unlock();
 }
 
 void GUI::drawFrustum()
