@@ -27,7 +27,7 @@
 class GUI
 {
     public:
-        GUI();
+        GUI( float aspectRatio );
 
         virtual ~GUI();
 
@@ -41,7 +41,8 @@ class GUI
 
         void addKeyframe(Keyframe * newFrame);
 
-        void updateImage(unsigned char * data);
+        void updateLiveImage(unsigned char * data);
+        void updateDepthImage(unsigned char * data);
 
         void updateKeyframePoses(GraphFramePose* framePoseData, int num);
 
@@ -49,16 +50,21 @@ class GUI
 
         void drawImages();
 
+        void updateFrameNumber( int frameNumber );
+
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:
         void drawGrid();
 
-        pangolin::GlTexture * depthImg;
+        pangolin::GlTexture *liveImg;
+        pangolin::GlTexture *depthImg;
 
+        ThreadMutexObject<unsigned char * > liveImgBuffer;
         ThreadMutexObject<unsigned char * > depthImgBuffer;
 
         pangolin::Var<int> * gpuMem;
+        pangolin::Var<int> * frameNumber;
 
         pangolin::Var<std::string> * totalPoints;
 

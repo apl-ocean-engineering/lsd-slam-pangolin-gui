@@ -46,7 +46,7 @@
 std::vector<std::string> files;
 int w, h, w_inp, h_inp;
 ThreadMutexObject<bool> lsdDone(false);
-GUI gui;
+GUI gui( 640.0f/480.0f );
 RawLogReader * logReader = 0;
 int numFrames = 0;
 
