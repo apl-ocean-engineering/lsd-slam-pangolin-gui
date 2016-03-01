@@ -39,6 +39,8 @@
 #include "util/Undistorter.h"
 #include "util/RawLogReader.h"
 
+#include "util/FileUtils.h"
+
 #include "opencv2/opencv.hpp"
 
 #include "GUI.h"
@@ -49,91 +51,6 @@ ThreadMutexObject<bool> lsdDone(false);
 GUI gui( 640.0f/480.0f );
 RawLogReader * logReader = 0;
 int numFrames = 0;
-
-std::string &ltrim(std::string &s) {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-        return s;
-}
-std::string &rtrim(std::string &s) {
-        s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-        return s;
-}
-std::string &trim(std::string &s) {
-        return ltrim(rtrim(s));
-}
-int getdir (std::string dir, std::vector<std::string> &files)
-{
-    DIR *dp;
-    struct dirent *dirp;
-    if((dp  = opendir(dir.c_str())) == NULL)
-    {
-        return -1;
-    }
-
-    while ((dirp = readdir(dp)) != NULL) {
-    	std::string name = std::string(dirp->d_name);
-
-    	if(name != "." && name != "..")
-    		files.push_back(name);
-    }
-    closedir(dp);
-
-
-    std::sort(files.begin(), files.end());
-
-    if(dir.at( dir.length() - 1 ) != '/') dir = dir+"/";
-	for(unsigned int i=0;i<files.size();i++)
-	{
-		if(files[i].at(0) != '/')
-			files[i] = dir + files[i];
-	}
-
-    return files.size();
-}
-
-int getFile (std::string source, std::vector<std::string> &files)
-{
-	std::ifstream f(source.c_str());
-
-	if(f.good() && f.is_open())
-	{
-		while(!f.eof())
-		{
-			std::string l;
-			std::getline(f,l);
-
-			l = trim(l);
-
-			if(l == "" || l[0] == '#')
-				continue;
-
-			files.push_back(l);
-		}
-
-		f.close();
-
-		size_t sp = source.find_last_of('/');
-		std::string prefix;
-		if(sp == std::string::npos)
-			prefix = "";
-		else
-			prefix = source.substr(0,sp);
-
-		for(unsigned int i=0;i<files.size();i++)
-		{
-			if(files[i].at(0) != '/')
-				files[i] = prefix + "/" + files[i];
-		}
-
-		return (int)files.size();
-	}
-	else
-	{
-		f.close();
-		return -1;
-	}
-
-}
 
 using namespace lsd_slam;
 
@@ -177,11 +94,11 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
             }
         }
 
-        assert(imageDist.type() == CV_8U);
+        CHECK(imageDist.type() == CV_8U);
 
         undistorter->undistort(imageDist, image);
 
-        assert(image.type() == CV_8U);
+        CHECK(image.type() == CV_8U);
 
         if(runningIDX == 0)
         {
@@ -193,6 +110,8 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
         }
 
         gui.pose.assignValue(system->getCurrentPoseEstimateScale());
+        gui.updateFrameNumber( runningIDX );
+        gui.updateLiveImage( image.data );
 
         runningIDX++;
         fakeTimeStamp+=0.03;
@@ -221,7 +140,7 @@ int main( int argc, char** argv )
   std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
   std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
 
-  LOG(INFO) << "Starting.";
+  LOG(INFO) << "Starting log.";
 
 	// get camera calibration in form of an undistorter object.
 	// if no undistortion is required, the undistorter will just pass images through.
