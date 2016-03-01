@@ -25,6 +25,8 @@
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <glog/logging.h>
+
 #include "util/settings.h"
 #include "DepthEstimation/DepthMapPixelHypothesis.h"
 #include "DataStructures/Frame.h"
@@ -1242,7 +1244,8 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 		cv::cvtColor(debugImageHypothesisPropagation, debugImageHypothesisPropagation, CV_GRAY2RGB);
 	}
 
-
+	if( new_keyframe->hasIDepthBeenSet() )
+		LOG(INFO) << "Creating new KeyFrame but it already has depth information";
 
 	SE3 oldToNew_SE3 = se3FromSim3(new_keyframe->pose->thisToParent_raw).inverse();
 
@@ -1517,7 +1520,7 @@ inline float DepthMap::doLineStereo(
 	float incx = pClose[0] - pFar[0];
 	float incy = pClose[1] - pFar[1];
 	float eplLength = sqrt(incx*incx+incy*incy);
-	if(!eplLength > 0 || std::isinf(eplLength)) return -4;
+	if(!(eplLength > 0) || std::isinf(eplLength)) return -4;
 
 	if(eplLength > MAX_EPL_LENGTH_CROP)
 	{

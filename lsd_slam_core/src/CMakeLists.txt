@@ -4,7 +4,7 @@ project(lsd_slam_core)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV 2.4 REQUIRED)
+find_package(OpenCV COMPONENTS core highgui imgproc imgcodecs calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Pangolin 0.1 REQUIRED)
@@ -38,10 +38,6 @@ if( USE_ZED_CAMERA )
     find_package(ZED REQUIRED)
     find_package(CUDA 6.5 REQUIRED)
   ENDIF(WIN32)
-
-  # find_package(OpenCV 2.4 COMPONENTS core highgui imgproc REQUIRED)
-
-  #add_subdirectory( "${aplcam_SOURCE_DIR}/third_party/apriltags" )
 
   set( ZED_CAMERA_INCLUDE_DIRS ${ZED_INCLUDE_DIRS}
                               ${CUDA_INCLUDE_DIRS} )
@@ -120,27 +116,31 @@ include_directories(
 add_library(lsdslam SHARED ${SOURCE_FILES})
 target_link_libraries(lsdslam
   ${FABMAP_LIB}
+  ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
-  ${G2O_SOLVER_CSPARSE}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
+  ${G2O_SOLVER_CSPARSE}
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
-  csparse
   cxsparse
   glog )
 
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  target_link_libraries( lsdslam
+                        csparse )
+ENDIF()
+
 # build image node
 add_executable(LSD LSD.cpp)
-target_link_libraries(LSD lsdslam ${Pangolin_LIBRARIES})
+target_link_libraries(LSD lsdslam )
 
 if( USE_ZED_CAMERA )
   add_executable(LSD_Zed LSD_Zed.cpp)
 
   target_link_libraries(LSD_Zed lsdslam
-                            ${Pangolin_LIBRARIES}
-                            ${ZED_CAMERA_LIBRARIES} )
+                        ${ZED_CAMERA_LIBRARIES} )
 
 endif()

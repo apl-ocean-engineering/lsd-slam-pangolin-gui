@@ -18,6 +18,8 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <boost/thread/shared_lock_guard.hpp>
+
 #include "SlamSystem.h"
 
 #include "DataStructures/Frame.h"
@@ -213,7 +215,6 @@ void SlamSystem::mappingThreadLoop()
 		{
 			boost::unique_lock<boost::mutex> lock(unmappedTrackedFramesMutex);
 			unmappedTrackedFramesSignal.timed_wait(lock,boost::posix_time::milliseconds(200));	// slight chance of deadlock otherwise
-			lock.unlock();
 		}
 
 		newFrameMappedMutex.lock();
@@ -453,10 +454,10 @@ void SlamSystem::discardCurrentKeyframe()
 	}
 	keyFrameGraph->allFramePosesMutex.unlock();
 
-
-	keyFrameGraph->idToKeyFrameMutex.lock();
-	keyFrameGraph->idToKeyFrame.erase(currentKeyFrame->id());
-	keyFrameGraph->idToKeyFrameMutex.unlock();
+	{
+		boost::shared_lock_guard< boost::shared_mutex > lock(keyFrameGraph->idToKeyFrameMutex);
+		keyFrameGraph->idToKeyFrame.erase(currentKeyFrame->id());
+	}
 
 }
 
@@ -493,6 +494,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	currentKeyFrame = newKeyframeCandidate;
 	currentKeyFrameMutex.unlock();
 }
+
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
 	if(enablePrintDebugInfo && printThreadingInfo)
@@ -837,21 +839,21 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 {
 	printf("Doing GT initialization!\n");
 
-	currentKeyFrameMutex.lock();
+	{
+		boost::lock_guard<boost::mutex> lock( currentKeyFrameMutex );
 
-	currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image));
-	currentKeyFrame->setDepthFromGroundTruth(depth);
+		currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image));
+		currentKeyFrame->setDepthFromGroundTruth(depth);
 
-	map->initializeFromGTDepth(currentKeyFrame.get());
-	keyFrameGraph->addFrame(currentKeyFrame.get());
-
-	currentKeyFrameMutex.unlock();
+		map->initializeFromGTDepth(currentKeyFrame.get());
+		keyFrameGraph->addFrame(currentKeyFrame.get());
+	}
 
 	if(doSlam)
 	{
-		keyFrameGraph->idToKeyFrameMutex.lock();
+		boost::lock_guard<boost::shared_mutex> lock( keyFrameGraph->idToKeyFrameMutex );
+
 		keyFrameGraph->idToKeyFrame.insert(std::make_pair(currentKeyFrame->id(), currentKeyFrame));
-		keyFrameGraph->idToKeyFrameMutex.unlock();
 	}
 	if(continuousPCOutput && outputWrapper != 0) outputWrapper->publishKeyframe(currentKeyFrame.get());
 
@@ -889,18 +891,32 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 
 }
 
-void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp)
+void SlamSystem::trackStereoFrame(uchar* image, float *depth, unsigned int frameID, bool blockUntilMapped, double timestamp)
+{
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	trackingNewFrame->setDepthFromGroundTruth( depth );
+	trackFrame( trackingNewFrame, blockUntilMapped );
+}
+
+void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp )
+{
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	trackFrame( trackingNewFrame, blockUntilMapped );
+}
+
+void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped )
 {
 	// Create new frame
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
 
 	if(!trackingIsGood)
 	{
 		relocalizer.updateCurrentFrame(trackingNewFrame);
 
-		unmappedTrackedFramesMutex.lock();
-		unmappedTrackedFramesSignal.notify_one();
-		unmappedTrackedFramesMutex.unlock();
+		{
+			boost::lock_guard< boost::mutex > lock( unmappedTrackedFramesMutex );
+			unmappedTrackedFramesSignal.notify_one();
+		}
 		return;
 	}
 
@@ -921,11 +937,11 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 		printf("TRACKING %d on %d\n", trackingNewFrame->id(), trackingReferencePose->frameID);
 
 
-	poseConsistencyMutex.lock_shared();
-	SE3 frameToReference_initialEstimate = se3FromSim3(
-			trackingReferencePose->getCamToWorld().inverse() * keyFrameGraph->allFramePoses.back()->getCamToWorld());
-	poseConsistencyMutex.unlock_shared();
-
+	SE3 frameToReference_initialEstimate;
+	{
+		boost::shared_lock_guard<boost::shared_mutex> lock( poseConsistencyMutex );
+		frameToReference_initialEstimate = se3FromSim3( trackingReferencePose->getCamToWorld().inverse() * keyFrameGraph->allFramePoses.back()->getCamToWorld());
+	}
 
 
 	struct timeval tv_start, tv_end;
@@ -988,7 +1004,9 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 	keyFrameGraph->addFrame(trackingNewFrame.get());
 
 
-	//Sim3 lastTrackedCamToWorld = mostCurrentTrackedFrame->getScaledCamToWorld();//  mostCurrentTrackedFrame->TrackingParent->getScaledCamToWorld() * sim3FromSE3(mostCurrentTrackedFrame->thisToParent_SE3TrackingResult, 1.0);
+	//Sim3 lastTrackedCamToWorld = mostCurrentTrackedFrame->getScaledCamToWorld();
+//  mostCurrentTrackedFrame->TrackingParent->getScaledCamToWorld() * sim3FromSE3(mostCurrentTrackedFrame->thisToParent_SE3TrackingResult, 1.0);
+
 	if (outputWrapper != 0)
 	{
 		outputWrapper->publishTrackedFrame(trackingNewFrame.get());
@@ -1021,12 +1039,12 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 		}
 	}
 
-
-	unmappedTrackedFramesMutex.lock();
-	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
-		unmappedTrackedFrames.push_back(trackingNewFrame);
-	unmappedTrackedFramesSignal.notify_one();
-	unmappedTrackedFramesMutex.unlock();
+	{
+		boost::lock_guard< boost::mutex > lock( unmappedTrackedFramesMutex );
+		if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
+				unmappedTrackedFrames.push_back(trackingNewFrame);
+		unmappedTrackedFramesSignal.notify_one();
+	}
 
 	// implement blocking
 	if(blockUntilMapped && trackingIsGood)
@@ -1037,7 +1055,6 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 			printf("TRACKING IS BLOCKING, waiting for %d frames to finish mapping.\n", (int)unmappedTrackedFrames.size());
 			newFrameMappedSignal.wait(lock);
 		}
-		lock.unlock();
 	}
 }
 
