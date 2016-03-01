@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	createNewKeyFrame = false;
 
 	map =  new DepthMap(w,h,K);
-	
+
 	newConstraintAdded = false;
 	haveUnmergedOptimizationOffset = false;
 
@@ -266,7 +266,7 @@ void SlamSystem::finalize()
 void SlamSystem::constraintSearchThreadLoop()
 {
 	printf("Started  constraint search thread!\n");
-	
+
 	boost::unique_lock<boost::mutex> lock(newKeyFrameMutex);
 	int failedToRetrack = 0;
 
@@ -891,7 +891,7 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp )
 {
 	// Create new frame
-	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
 
 	if(!trackingIsGood)
 	{
@@ -1607,7 +1607,7 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 
 	// Do the optimization. This can take quite some time!
 	int its = keyFrameGraph->optimize(itsPerTry);
-	
+
 
 	// save the optimization result.
 	poseConsistencyMutex.lock_shared();
