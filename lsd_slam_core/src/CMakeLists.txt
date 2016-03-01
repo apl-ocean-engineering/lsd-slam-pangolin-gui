@@ -121,7 +121,7 @@ target_link_libraries(lsdslam
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
   cxsparse
-  glog )
+  g3logger_shared )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries( lsdslam

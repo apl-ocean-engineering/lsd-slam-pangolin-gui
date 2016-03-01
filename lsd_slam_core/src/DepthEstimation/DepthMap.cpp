@@ -25,7 +25,7 @@
 #include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <glog/logging.h>
+#include <g3log/g3log.hpp>
 
 #include "util/settings.h"
 #include "DepthEstimation/DepthMapPixelHypothesis.h"

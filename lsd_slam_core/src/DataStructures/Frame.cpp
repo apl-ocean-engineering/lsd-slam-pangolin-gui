@@ -23,7 +23,7 @@
 #include "DepthEstimation/DepthMapPixelHypothesis.h"
 #include "Tracking/TrackingReference.h"
 
-#include <glog/logging.h>
+#include <g3log/g3log.hpp>
 
 
 namespace lsd_slam

@@ -13,7 +13,7 @@ It contains my experiments with LSD-SLAM.
 
 # 1. Quickstart / Minimal Setup
 
-Requires OpenCV 3.0 (with nonfree if you want FABMAP), TCLAP, glog, Boost, Eigen, Pangolin and g2o.
+Requires OpenCV 3.0 (with nonfree if you want FABMAP), TCLAP, [g3log](https://github.com/KjellKod/g3log),Boost, Eigen, Pangolin and g2o.
 
 # 2. Installation
 

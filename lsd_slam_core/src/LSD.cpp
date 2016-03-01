@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,9 @@
 #include <fstream>
 #include <dirent.h>
 #include <algorithm>
+
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
 
 #include "util/Undistorter.h"
 #include "util/RawLogReader.h"
@@ -212,6 +215,14 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
 
 int main( int argc, char** argv )
 {
+  auto worker = g3::LogWorker::createLogWorker();
+  auto handle = worker->addDefaultLogger(argv[0], ".");
+  g3::initializeLogging(worker.get());
+  std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
+  std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
+
+  LOG(INFO) << "Starting.";
+
 	// get camera calibration in form of an undistorter object.
 	// if no undistortion is required, the undistorter will just pass images through.
 	std::string calibFile;
