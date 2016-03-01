@@ -4,7 +4,8 @@ project(lsd_slam_core)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-find_package(OpenCV REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(OpenCV COMPONENTS core highgui imgproc imgcodecs calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Pangolin 0.1 REQUIRED)
@@ -17,6 +18,41 @@ find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 #include_directories(${PROJECT_SOURCE_DIR}/thirdparty/openFabMap/include)
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
+
+## Enable support for the Zed stereo camera
+option( USE_ZED_CAMERA "Use Zed Stereo camera" ON )
+if( USE_ZED_CAMERA )
+  add_definitions( -DUSE_ZED )
+
+  IF(WIN32) # Windows
+    SET(ZED_INCLUDE_DIRS $ENV{ZED_INCLUDE_DIRS})
+        if (CMAKE_CL_64) # 64 bits
+            SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_64})
+        else(CMAKE_CL_64) # 32 bits
+            message("32bits compilation is no more available with CUDA7.0")
+        endif(CMAKE_CL_64)
+    SET(ZED_LIBRARY_DIR $ENV{ZED_LIBRARY_DIR})
+    SET(OPENCV_DIR $ENV{OPENCV_DIR})
+    find_package(CUDA 7.0 REQUIRED)
+  ELSE() # Linux
+    find_package(ZED REQUIRED)
+    find_package(CUDA 6.5 REQUIRED)
+  ENDIF(WIN32)
+
+  set( ZED_CAMERA_INCLUDE_DIRS ${ZED_INCLUDE_DIRS}
+                              ${CUDA_INCLUDE_DIRS} )
+
+  set( ZED_CAMERA_LIBRARY_DIRS ${ZED_LIBRARY_DIR}
+                                ${CUDA_LIBRARY_DIRS})
+
+  link_directories( ${ZED_CAMERA_LIBRARY_DIRS} )
+
+  set( ZED_CAMERA_LIBRARIES ${ZED_LIBRARIES}
+                            ${CUDA_LIBRARIES}
+                            ${CUDA_npps_LIBRARY}
+                            ${CUDA_nppi_LIBRARY} )
+
+endif()
 
 # SSE flags
 add_definitions("-DENABLE_SSE")
@@ -75,17 +111,31 @@ include_directories(
 add_library(lsdslam SHARED ${SOURCE_FILES})
 target_link_libraries(lsdslam
   ${FABMAP_LIB}
+  ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
-  ${G2O_SOLVER_CSPARSE}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
+  ${G2O_SOLVER_CSPARSE}
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
-  csparse
-  cxsparse )
+  cxsparse
+  glog )
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  target_link_libraries( lsdslam
+                        csparse )
+ENDIF()
 
 # build image node
 add_executable(LSD LSD.cpp)
-target_link_libraries(LSD lsdslam ${Pangolin_LIBRARIES})
+target_link_libraries(LSD lsdslam )
+
+if( USE_ZED_CAMERA )
+  add_executable(LSD_Zed LSD_Zed.cpp)
+
+  target_link_libraries(LSD_Zed lsdslam
+                            ${ZED_CAMERA_LIBRARIES} )
+
+endif()

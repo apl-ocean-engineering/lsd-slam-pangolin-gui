@@ -23,6 +23,8 @@
 #include <iostream>
 #include <map>
 
+#include "settings.h"
+
 #define SEND_INTERVAL_MS 10000
 
 #ifndef DISABLE_STOPWATCH
