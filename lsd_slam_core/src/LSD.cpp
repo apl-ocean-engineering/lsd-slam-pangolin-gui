@@ -122,7 +122,7 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
             delete system;
 
             system = new SlamSystem(w, h, K, doSlam);
-            system->setVisualization(outputWrapper);
+            system->set3DOutputWrapper(outputWrapper);
 
             fullResetRequested = false;
             runningIDX = 0;
@@ -180,7 +180,7 @@ int main( int argc, char** argv )
 
 	// make slam system
 	SlamSystem * system = new SlamSystem(w, h, K, doSlam);
-	system->setVisualization(outputWrapper);
+	system->set3DOutputWrapper(outputWrapper);
 
 
 	// open image files: first try to open as file.
@@ -224,28 +224,28 @@ int main( int argc, char** argv )
 
 	while(!pangolin::ShouldQuit())
 	{
-	    if(lsdDone.getValue() && !system->finalized)
-	    {
-	        system->finalize();
-	    }
+    if(lsdDone.getValue() && !system->finalized)
+    {
+        system->finalize();
+    }
 
-	    gui.preCall();
+    gui.preCall();
 
-	    gui.drawKeyframes();
+    gui.drawKeyframes();
 
-	    gui.drawFrustum();
+    gui.drawFrustum();
 
-	    gui.drawImages();
+    gui.drawImages();
 
-	    gui.postCall();
+    gui.postCall();
 	}
 
 	lsdDone.assignValue(true);
 
 	lsdThread.join();
 
-	delete system;
-	delete undistorter;
-	delete outputWrapper;
-	return 0;
+  delete system;
+  delete undistorter;
+  delete outputWrapper;
+  return 0;
 }
