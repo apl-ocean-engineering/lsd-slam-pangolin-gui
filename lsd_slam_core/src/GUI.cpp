@@ -13,10 +13,10 @@
 
 
 GUI::GUI( float aspectRatio )
- : liveImg(0),
-   depthImg(0),
-   liveImgBuffer(0),
-   depthImgBuffer(0)
+ : liveImg(NULL),
+   depthImg(NULL),
+   liveImgBuffer(NULL),
+   depthImgBuffer(NULL)
 {
     const int initialWidth = 800, initialHeight = 800;
     pangolin::CreateGlutWindowAndBind("Main", initialWidth, initialHeight, GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
@@ -88,27 +88,20 @@ void GUI::initImages()
 
 void GUI::updateDepthImage(unsigned char * data)
 {
-    boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
-    memcpy(depthImgBuffer.getReference(), data, Resolution::getInstance().numPixels() * 3);
-    lock.unlock();
+  boost::lock_guard<boost::mutex> lock(depthImgBuffer.getMutex());
+  memcpy(depthImgBuffer.getReference(), data, Resolution::getInstance().numPixels() * 3);
 }
 
 // Expects CV_8UC1 data
 void GUI::updateLiveImage(unsigned char * data)
 {
-    boost::mutex::scoped_lock lock(liveImgBuffer.getMutex());
-    memcpy(liveImgBuffer.getReference(), data, Resolution::getInstance().numPixels() );
-    lock.unlock();
+  boost::lock_guard<boost::mutex> lock(liveImgBuffer.getMutex());
+  memcpy(liveImgBuffer.getReference(), data, Resolution::getInstance().numPixels() );
 }
 
-void GUI::preCall()
+void GUI::updateFrameNumber( int fn )
 {
-    glClearColor(0.05, 0.05, 0.3, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    pangolin::Display("cam").Activate(s_cam);
-
-    drawGrid();
+  frameNumber->operator=(fn);
 }
 
 void GUI::addKeyframe(Keyframe * newFrame)
@@ -142,6 +135,18 @@ void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
   }
 }
 
+//== Actual draw/render functions ==
+
+void GUI::preCall()
+{
+    glClearColor(0.05, 0.05, 0.3, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    pangolin::Display("cam").Activate(s_cam);
+
+    drawGrid();
+}
+
 void GUI::drawImages()
 {
     {
@@ -153,7 +158,7 @@ void GUI::drawImages()
     depthImg->RenderToViewport(true);
 
     {
-      boost::lock_guard<boost::mutex> liveLock(liveImgBuffer.getMutex());
+      boost::lock_guard<boost::mutex> lock(liveImgBuffer.getMutex());
       liveImg->Upload(liveImgBuffer.getReference(), GL_LUMINANCE, GL_UNSIGNED_BYTE);
     }
 
@@ -310,9 +315,4 @@ void GUI::postCall()
     pangolin::FinishFrame();
 
     glFinish();
-}
-
-void GUI::updateFrameNumber( int fn )
-{
-  frameNumber->operator=(fn);
 }

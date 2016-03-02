@@ -52,7 +52,7 @@ public:
 	// publishes a keyframe. if that frame already existis, it is overwritten, otherwise it is added.
 	virtual void publishKeyframe(Frame* kf) {};
 
-	virtual void updateImage(unsigned char * data) {};
+	virtual void updateDepthImage(unsigned char * data) {};
 
 	// published a tracked frame that did not become a keyframe (yet; i.e. has no depth data)
 	virtual void publishTrackedFrame(Frame* kf) {};
