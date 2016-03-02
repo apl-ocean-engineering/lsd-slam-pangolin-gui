@@ -20,9 +20,7 @@ protected:
   }
 
   float _value;
-
   const float _alpha;
-
 };
 
 struct MsAverage : public MovingAverage {
