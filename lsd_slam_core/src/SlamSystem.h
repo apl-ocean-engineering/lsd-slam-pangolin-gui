@@ -29,6 +29,7 @@
 #include "opencv2/core/core.hpp"
 
 #include "util/SophusUtil.h"
+#include "util/RollingAverage.h"
 
 #include "Tracking/Relocalizer.h"
 
@@ -103,7 +104,7 @@ public:
 	Sophus::Sim3f getCurrentPoseEstimateScale();
 
 	/** Sets the visualization where point clouds and camera poses will be sent to. */
-	void setVisualization(Output3DWrapper* outputWrapper);
+	void set3DOutputWrapper(Output3DWrapper* outputWrapper);
 
 	void requestDepthMapScreenshot(const std::string& filename);
 
@@ -117,11 +118,13 @@ public:
 
 	std::vector<FramePoseStruct*> getAllPoses();
 
+	struct PerformanceData {
+		PerformanceData( void ) {;}
 
+		CountRateAverage trackedFrames, optimizationIter, findConstraintIter, findReferences;
+		MsAverage        trackFrameMs,  optimizationMs,   findConstraintMs,   findReferencesMs;
+	} _perf;
 
-	float msTrackFrame, msOptimizationIteration, msFindConstraintsItaration, msFindReferences;
-	int nTrackFrame, nOptimizationIteration, nFindConstraintsItaration, nFindReferences;
-	float nAvgTrackFrame, nAvgOptimizationIteration, nAvgFindConstraintsItaration, nAvgFindReferences;
 	struct timeval lastHzUpdate;
 
 
