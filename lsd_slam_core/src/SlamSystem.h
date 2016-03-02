@@ -20,10 +20,11 @@
 
 #pragma once
 #include <vector>
-#include <boost/thread.hpp>
+#include <mutex>
+#include <thread>
+
 #include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/locks.hpp>
+
 #include "util/settings.h"
 #include "IOWrapper/Timestamp.h"
 #include "opencv2/core/core.hpp"
@@ -167,8 +168,8 @@ private:
 	float lastTrackingClosenessScore;
 
 	// for sequential operation. Set in Mapping, read in Tracking.
-	boost::condition_variable  newFrameMappedSignal;
-	boost::mutex newFrameMappedMutex;
+	std::condition_variable  newFrameMappedSignal;
+	std::mutex newFrameMappedMutex;
 
 
 
@@ -193,36 +194,36 @@ private:
 
 	// PUSHED in tracking, READ & CLEARED in mapping
 	std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
-	boost::mutex unmappedTrackedFramesMutex;
-	boost::condition_variable  unmappedTrackedFramesSignal;
+	std::mutex unmappedTrackedFramesMutex;
+	std::condition_variable  unmappedTrackedFramesSignal;
 
 
 	// PUSHED by Mapping, READ & CLEARED by constraintFinder
 	std::deque< Frame* > newKeyFrames;
-	boost::mutex newKeyFrameMutex;
-	boost::condition_variable newKeyFrameCreatedSignal;
+	std::mutex newKeyFrameMutex;
+	std::condition_variable newKeyFrameCreatedSignal;
 
 
 	// SET & READ EVERYWHERE
 	std::shared_ptr<Frame> currentKeyFrame;	// changed (and, for VO, maybe deleted)  only by Mapping thread within exclusive lock.
 	std::shared_ptr<Frame> trackingReferenceFrameSharedPT;	// only used in odometry-mode, to keep a keyframe alive until it is deleted. ONLY accessed whithin currentKeyFrameMutex lock.
-	boost::mutex currentKeyFrameMutex;
+	std::mutex currentKeyFrameMutex;
 
 
 
 	// threads
-	boost::thread thread_mapping;
-	boost::thread thread_constraint_search;
-	boost::thread thread_optimization;
+	std::thread thread_mapping;
+	std::thread thread_constraint_search;
+	std::thread thread_optimization;
 	bool keepRunning; // used only on destruction to signal threads to finish.
 
 
 
 	// optimization thread
 	bool newConstraintAdded;
-	boost::mutex newConstraintMutex;
-	boost::condition_variable newConstraintCreatedSignal;
-	boost::mutex g2oGraphAccessMutex;
+	std::mutex newConstraintMutex;
+	std::condition_variable newConstraintCreatedSignal;
+	std::mutex g2oGraphAccessMutex;
 
 
 
