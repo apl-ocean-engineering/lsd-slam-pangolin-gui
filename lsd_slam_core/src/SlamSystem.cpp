@@ -54,24 +54,15 @@ using namespace lsd_slam;
 
 
 
-SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
-: SLAMEnabled(enableSLAM), finalized(false), _perf(), relocalizer(w,h,K)
+SlamSystem::SlamSystem( const Configuration &conf, bool enableSLAM )
+: SLAMEnabled(enableSLAM), finalized(false), _perf(), relocalizer( conf ),
+	_conf( conf )
 {
-	if(w%16 != 0 || h%16!=0)
-	{
-		printf("image dimensions must be multiples of 16! Please crop your images / video accordingly.\n");
-		assert(false);
-	}
 
-	if( (w==0) || (h==0) )
-	{
-		printf("Height or width set to zero!\n");
-		assert(false);
-	}
 
-	this->width = w;
-	this->height = h;
-	this->K = K;
+	// this->width = w;
+	// this->height = h;
+	// this->K = K;
 	trackingIsGood = true;
 
 
@@ -80,13 +71,13 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	keyFrameGraph = new KeyFrameGraph();
 	createNewKeyFrame = false;
 
-	map =  new DepthMap(w,h,K);
+	map =  new DepthMap( conf );
 
 	newConstraintAdded = false;
 	haveUnmergedOptimizationOffset = false;
 
 
-	tracker = new SE3Tracker(w,h,K);
+	tracker = new SE3Tracker( _conf.slamImage );
 	// Do not use more than 4 levels for odometry tracking
 	for (int level = 4; level < PYRAMID_LEVELS; ++level)
 		tracker->settings.maxItsPerLvl[level] = 0;
@@ -96,9 +87,9 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 
 	if(SLAMEnabled)
 	{
-		trackableKeyFrameSearch = new TrackableKeyFrameSearch(keyFrameGraph,w,h,K);
-		constraintTracker = new Sim3Tracker(w,h,K);
-		constraintSE3Tracker = new SE3Tracker(w,h,K);
+		trackableKeyFrameSearch = new TrackableKeyFrameSearch(keyFrameGraph,conf);
+		constraintTracker = new Sim3Tracker( _conf.slamImage );
+		constraintSE3Tracker = new SE3Tracker( _conf.slamImage );
 		newKFTrackingReference = new TrackingReference();
 		candidateTrackingReference = new TrackingReference();
 	}
@@ -131,11 +122,12 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 
 }
 
+
 SlamSystem::~SlamSystem()
 {
 	keepRunning = false;
 
-	// make sure none is waiting for something.
+	// make sure no-one is waiting for something.
 	printf("... waiting for SlamSystem's threads to exit\n");
 	newFrameMappedSignal.notify_all();
 	unmappedTrackedFramesSignal.notify_all();
@@ -483,7 +475,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 		Eigen::Matrix<float, 20, 1> data;
 		data.setZero();
-		data[0] = runningStats.num_prop_attempts / ((float)width*height);
+		data[0] = runningStats.num_prop_attempts / ((float)_conf.slamImage.area());
 		data[1] = (runningStats.num_prop_created + runningStats.num_prop_merged) / (float)runningStats.num_prop_attempts;
 		data[2] = runningStats.num_prop_removed_colorDiff / (float)runningStats.num_prop_attempts;
 
@@ -679,7 +671,7 @@ void SlamSystem::debugDisplayDepthMap()
 			currentKeyFrame->numFramesTrackedOnThis, currentKeyFrame->numMappedOnThis, (int)unmappedTrackedFrames.size());
 
 	snprintf(buf2,200,"dens %2.0f%%; good %2.0f%%; scale %2.2f; res %2.1f/; usg %2.0f%%; Map: %d F, %d KF, %d E, %.1fm Pts",
-			100*currentKeyFrame->numPoints/(float)(width*height),
+			100*currentKeyFrame->numPoints/(float)(_conf.slamImage.area()),
 			100*tracking_lastGoodPerBad,
 			scale,
 			tracking_lastResidual,
@@ -846,7 +838,7 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 	{
 		std::lock_guard<std::mutex> lock( currentKeyFrameMutex );
 
-		currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image));
+		currentKeyFrame.reset(new Frame(id, _conf, timeStamp, image));
 		currentKeyFrame->setDepthFromGroundTruth(depth);
 
 		map->initializeFromGTDepth(currentKeyFrame.get());
@@ -874,7 +866,7 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 	{
 		std::lock_guard<std::mutex> lock(currentKeyFrameMutex);
 
-		currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image));
+		currentKeyFrame.reset(new Frame(id, _conf, timeStamp, image));
 		map->initializeRandomly(currentKeyFrame.get());
 		keyFrameGraph->addFrame(currentKeyFrame.get());
 	}
@@ -896,21 +888,21 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 
 void SlamSystem::trackStereoFrame(uchar* image, float *depth, unsigned int frameID, bool blockUntilMapped, double timestamp)
 {
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
 	trackingNewFrame->setDepthFromGroundTruth( depth );
 	trackFrame( trackingNewFrame, blockUntilMapped );
 }
 
 void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp )
 {
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
 	trackFrame( trackingNewFrame, blockUntilMapped );
 }
 
 void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped )
 {
 	// Create new frame
-	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
 
 	if(!trackingIsGood)
 	{
@@ -996,7 +988,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 		data[0] = tracker->lastResidual;
 
 		data[3] = tracker->lastGoodCount / (tracker->lastGoodCount + tracker->lastBadCount);
-		data[4] = 4*tracker->lastGoodCount / (width*height);
+		data[4] = 4*tracker->lastGoodCount / (float)_conf.slamImage.area();
 		data[5] = tracker->pointUsage;
 
 		data[6] = tracker->affineEstimation_a;

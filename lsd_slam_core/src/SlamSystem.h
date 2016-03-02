@@ -31,6 +31,7 @@
 
 #include "util/SophusUtil.h"
 #include "util/MovingAverage.h"
+#include "util/Configuration.h"
 
 #include "Tracking/Relocalizer.h"
 
@@ -62,19 +63,22 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	// settings. Constant from construction onward.
-	int width;
-	int height;
-	Eigen::Matrix3f K;
+	// int width;
+	// int height;
+	// Eigen::Matrix3f K;
 	const bool SLAMEnabled;
 
 	bool trackingIsGood;
 
 	bool finalized;
 
-	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true);
-	SlamSystem(const SlamSystem&) = delete;
+	SlamSystem( const Configuration &conf, bool enableSLAM = true);
+	SlamSystem( const SlamSystem&) = delete;
+
 	SlamSystem& operator=(const SlamSystem&) = delete;
 	~SlamSystem();
+
+
 
 	void randomInit(uchar* image, double timeStamp, int id);
 	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
@@ -128,6 +132,8 @@ public:
 
 	struct timeval lastHzUpdate;
 
+	Output3DWrapper *get3DOutputWrapper( void ) const { return outputWrapper; }
+	const Configuration &conf( void ) const           { return _conf; }
 
 private:
 
@@ -239,6 +245,8 @@ private:
 
 	bool depthMapScreenshotFlag;
 	std::string depthMapScreenshotFilename;
+
+	const Configuration &_conf;
 
 
 	/** Merges the current keyframe optimization offset to all working entities. */

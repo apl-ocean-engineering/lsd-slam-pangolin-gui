@@ -10,6 +10,7 @@
 #include "IOWrapper/Output3DWrapper.h"
 #include "Keyframe.h"
 #include "GUI.h"
+#include "util/Configuration.h"
 
 namespace lsd_slam
 {
@@ -27,7 +28,7 @@ struct GraphConstraint
 class PangolinOutput3DWrapper : public Output3DWrapper
 {
     public:
-        PangolinOutput3DWrapper(int width, int height, GUI & gui);
+        PangolinOutput3DWrapper( const Configuration &conf, GUI & gui);
         virtual ~PangolinOutput3DWrapper();
 
         virtual void publishKeyframeGraph(KeyFrameGraph* graph);
@@ -50,7 +51,8 @@ class PangolinOutput3DWrapper : public Output3DWrapper
         int publishLvl;
 
     private:
-        int _width, _height;
+        const Configuration &_conf;
+
         GUI & _gui;
 };
 }

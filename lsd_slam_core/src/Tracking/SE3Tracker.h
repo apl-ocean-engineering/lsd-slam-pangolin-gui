@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "util/settings.h"
 #include "util/EigenCoreInclude.h"
 #include "util/SophusUtil.h"
+#include "util/Configuration.h"
 #include "Tracking/LGSX.h"
 
 
@@ -38,13 +39,6 @@ class SE3Tracker
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-	int width, height;
-
-	// camera matrix
-	Eigen::Matrix3f K, KInv;
-	float fx,fy,cx,cy;
-	float fxi,fyi,cxi,cyi;
-
 	DenseDepthTrackerSettings settings;
 
 
@@ -56,7 +50,7 @@ public:
 	cv::Mat debugImageOldImageWarped;
 
 
-	SE3Tracker(int w, int h, Eigen::Matrix3f K);
+	SE3Tracker( const ImageSize &sz );
 	SE3Tracker(const SE3Tracker&) = delete;
 	SE3Tracker& operator=(const SE3Tracker&) = delete;
 	~SE3Tracker();
@@ -66,7 +60,7 @@ public:
 			TrackingReference* reference,
 			Frame* frame,
 			const SE3& frameToReference_initialEstimate);
-	
+
 
 	SE3 trackFrameOnPermaref(
 			Frame* reference,
@@ -93,6 +87,7 @@ public:
 	bool trackingWasGood;
 private:
 
+	const ImageSize &_imgSize;
 
 
 	float* buf_warped_residual;

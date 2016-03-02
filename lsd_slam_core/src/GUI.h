@@ -16,8 +16,6 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "util/Resolution.h"
-#include "util/Intrinsics.h"
 #include "IOWrapper/Pangolin/Keyframe.h"
 #include "util/ThreadMutexObject.h"
 #include "DataStructures/Frame.h"
@@ -27,7 +25,7 @@
 class GUI
 {
     public:
-        GUI( float aspectRatio );
+        GUI( const lsd_slam::Configuration &conf );
 
         virtual ~GUI();
 
@@ -55,6 +53,8 @@ class GUI
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:
+        const lsd_slam::Configuration &_conf;
+
         void drawGrid();
 
         pangolin::GlTexture *liveImg;

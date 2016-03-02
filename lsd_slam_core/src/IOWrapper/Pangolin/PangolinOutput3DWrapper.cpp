@@ -17,9 +17,8 @@
 namespace lsd_slam
 {
 
-PangolinOutput3DWrapper::PangolinOutput3DWrapper(int width, int height, GUI & gui)
- : _width(width),
-   _height(height),
+PangolinOutput3DWrapper::PangolinOutput3DWrapper( const Configuration &conf, GUI & gui)
+ : _conf( conf ),
    _gui(gui),
    publishLvl(0)
 {

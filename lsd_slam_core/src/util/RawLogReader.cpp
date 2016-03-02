@@ -7,15 +7,16 @@
 
 #include "RawLogReader.h"
 
-RawLogReader::RawLogReader(Bytef *& decompressionBuffer,
+RawLogReader::RawLogReader(const lsd_slam::ImageSize &sz,
+                           Bytef *& decompressionBuffer,
                            IplImage *& deCompImage,
                            std::string file)
  : timestamp(0),
    decompressionBuffer(decompressionBuffer),
    deCompImage(deCompImage),
    file(file),
-   width(Resolution::getInstance().width()),
-   height(Resolution::getInstance().height()),
+   width(sz.width),
+   height(sz.height),
    numPixels(width * height)
 {
     assert(boost::filesystem::exists(file.c_str()));

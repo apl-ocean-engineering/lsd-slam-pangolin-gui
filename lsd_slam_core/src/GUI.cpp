@@ -12,8 +12,9 @@
 #include <glog/logging.h>
 
 
-GUI::GUI( float aspectRatio )
- : liveImg(NULL),
+GUI::GUI( const lsd_slam::Configuration &conf )
+ : _conf( conf ),
+    liveImg(NULL),
    depthImg(NULL),
    liveImgBuffer(NULL),
    depthImgBuffer(NULL)
@@ -31,8 +32,8 @@ GUI::GUI( float aspectRatio )
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
-    pangolin::Display("LiveImage").SetAspect( aspectRatio);
-    pangolin::Display("DepthImage").SetAspect( aspectRatio );
+    pangolin::Display("LiveImage").SetAspect( _conf.slamImage.aspectRatio() );
+    pangolin::Display("DepthImage").SetAspect( _conf.slamImage.aspectRatio() );
 
     pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
                               .SetLayout(pangolin::LayoutEqualHorizontal)
@@ -79,24 +80,24 @@ GUI::~GUI()
 
 void GUI::initImages()
 {
-    depthImg = new pangolin::GlTexture(Resolution::getInstance().width(), Resolution::getInstance().height(), GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-    depthImgBuffer.assignValue(new unsigned char[Resolution::getInstance().numPixels() * 3]);
+    depthImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    depthImgBuffer.assignValue(new unsigned char[_conf.slamImage.area() * 3]);
 
-    liveImg = new pangolin::GlTexture(Resolution::getInstance().width(), Resolution::getInstance().height(), GL_LUMINANCE8, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-    liveImgBuffer.assignValue(new unsigned char[Resolution::getInstance().numPixels()]);
+    liveImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_LUMINANCE8, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    liveImgBuffer.assignValue(new unsigned char[_conf.slamImage.area()]);
 }
 
 void GUI::updateDepthImage(unsigned char * data)
 {
   boost::lock_guard<boost::mutex> lock(depthImgBuffer.getMutex());
-  memcpy(depthImgBuffer.getReference(), data, Resolution::getInstance().numPixels() * 3);
+  memcpy(depthImgBuffer.getReference(), data, _conf.slamImage.area() * 3);
 }
 
 // Expects CV_8UC1 data
 void GUI::updateLiveImage(unsigned char * data)
 {
   boost::lock_guard<boost::mutex> lock(liveImgBuffer.getMutex());
-  memcpy(liveImgBuffer.getReference(), data, Resolution::getInstance().numPixels() );
+  memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
 }
 
 void GUI::updateFrameNumber( int fn )
@@ -192,30 +193,33 @@ void GUI::drawKeyframes()
 
 void GUI::drawFrustum()
 {
-    glPushMatrix();
-    Sophus::Matrix4f m = pose.getValue().matrix();
-    glMultMatrixf((GLfloat*) m.data());
-    glColor3f(1, 0, 0);
-    glBegin(GL_LINES);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-    glEnd();
-    glPopMatrix();
-    glColor3f(1, 1, 1);
+  lsd_slam::Camera c( _conf.camera );
+  lsd_slam::ImageSize img( _conf.slamImage );
+
+  glPushMatrix();
+  Sophus::Matrix4f m = pose.getValue().matrix();
+  glMultMatrixf((GLfloat*) m.data());
+  glColor3f(1, 0, 0);
+  glBegin(GL_LINES);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+  glEnd();
+  glPopMatrix();
+  glColor3f(1, 1, 1);
 }
 
 void GUI::drawGrid()

@@ -8,8 +8,8 @@
 #ifndef RAWLOGREADER_H_
 #define RAWLOGREADER_H_
 
-#include "Resolution.h"
 #include "Stopwatch.h"
+#include "Configuration.h"
 
 #include <cassert>
 #include <zlib.h>
@@ -22,7 +22,8 @@
 class RawLogReader
 {
     public:
-        RawLogReader(Bytef *& decompressionBuffer,
+        RawLogReader(const lsd_slam::ImageSize &sz,
+                     Bytef *& decompressionBuffer,
                      IplImage *& deCompImage,
                      std::string file);
 
@@ -43,6 +44,7 @@ class RawLogReader
         unsigned char * rgb;
 
     private:
+
         Bytef *& decompressionBuffer;
         IplImage *& deCompImage;
         unsigned char * depthReadBuffer;

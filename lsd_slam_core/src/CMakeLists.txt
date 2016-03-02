@@ -74,7 +74,6 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/DataStructures/FrameMemory.cpp
   ${PROJECT_SOURCE_DIR}/SlamSystem.cpp
   ${PROJECT_SOURCE_DIR}/GUI.cpp
-  ${PROJECT_SOURCE_DIR}/LiveSLAMWrapper.cpp
   ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMap.cpp
   ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMapPixelHypothesis.cpp
   ${PROJECT_SOURCE_DIR}/util/globalFuncs.cpp

@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,15 +27,16 @@ namespace lsd_slam
 {
 
 
-Relocalizer::Relocalizer(int w, int h, Eigen::Matrix3f K)
+Relocalizer::Relocalizer( const Configuration &conf )
+	: _conf( conf )
 {
 	for(int i=0;i<RELOCALIZE_THREADS;i++)
 		running[i] = false;
 
-
-	this->w = w;
-	this->h = h;
-	this->K = K;
+	//
+	// this->w = w;
+	// this->h = h;
+	// this->K = K;
 
 	KFForReloc.clear();
 	nextRelocIDX = maxRelocIDX = 0;
@@ -152,7 +153,7 @@ void Relocalizer::threadLoop(int idx)
 {
 	if(!multiThreading && idx != 0) return;
 
-	SE3Tracker* tracker = new SE3Tracker(w,h,K);
+	SE3Tracker* tracker = new SE3Tracker(_conf.slamImage );
 
 	boost::unique_lock<boost::mutex> lock(exMutex);
 	while(continueRunning)

@@ -44,37 +44,36 @@
 #include "opencv2/opencv.hpp"
 
 #include "GUI.h"
+#include "util/Configuration.h"
 
 std::vector<std::string> files;
-int w, h, w_inp, h_inp;
+
 ThreadMutexObject<bool> lsdDone(false);
-GUI gui( 640.0f/480.0f );
 RawLogReader * logReader = 0;
 int numFrames = 0;
 
 using namespace lsd_slam;
 
-void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputWrapper, Sophus::Matrix3f K)
+void run(SlamSystem * system, Undistorter* undistorter, GUI *gui )
 {
     // get HZ
     double hz = 30;
 
-    cv::Mat image = cv::Mat(h, w, CV_8U);
+    cv::Mat image = cv::Mat(system->conf().slamImage.cvSize(), CV_8U);
     int runningIDX=0;
     float fakeTimeStamp = 0;
 
     for(unsigned int i = 0; i < numFrames; i++)
     {
-        if(lsdDone.getValue())
-            break;
+        if(lsdDone.getValue()) break;
 
-        cv::Mat imageDist = cv::Mat(h, w, CV_8U);
+        cv::Mat imageDist = cv::Mat( system->conf().inputImage.cvSize(), CV_8U);
 
         if(logReader)
         {
             logReader->getNext();
 
-            cv::Mat3b img(h, w, (cv::Vec3b *)logReader->rgb);
+            cv::Mat3b img( system->conf().inputImage.height, system->conf().inputImage.width, (cv::Vec3b *)logReader->rgb);
 
             cv::cvtColor(img, imageDist, CV_RGB2GRAY);
         }
@@ -82,14 +81,17 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
         {
             imageDist = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
 
-            if(imageDist.rows != h_inp || imageDist.cols != w_inp)
+            if(imageDist.rows != system->conf().inputImage.cvSize().height ||
+               imageDist.cols != system->conf().inputImage.cvSize().width )
             {
                 if(imageDist.rows * imageDist.cols == 0)
                     printf("failed to load image %s! skipping.\n", files[i].c_str());
                 else
                     printf("image %s has wrong dimensions - expecting %d x %d, found %d x %d. Skipping.\n",
                             files[i].c_str(),
-                            w,h,imageDist.cols, imageDist.rows);
+                            system->conf().inputImage.cvSize().width,
+                            system->conf().inputImage.cvSize().height,
+                            imageDist.cols, imageDist.rows);
                 continue;
             }
         }
@@ -109,20 +111,22 @@ void run(SlamSystem * system, Undistorter* undistorter, Output3DWrapper* outputW
             system->trackFrame(image.data, runningIDX, hz == 0, fakeTimeStamp);
         }
 
-        gui.pose.assignValue(system->getCurrentPoseEstimateScale());
-        gui.updateFrameNumber( runningIDX );
-        gui.updateLiveImage( image.data );
+        gui->pose.assignValue(system->getCurrentPoseEstimateScale());
+        gui->updateFrameNumber( runningIDX );
+        gui->updateLiveImage( image.data );
 
         runningIDX++;
         fakeTimeStamp+=0.03;
 
         if(fullResetRequested)
         {
-            printf("FULL RESET!\n");
+            SlamSystem *newSystem = new SlamSystem( system->conf(), system->SLAMEnabled );
+            newSystem->set3DOutputWrapper( system->get3DOutputWrapper() );
+
+            LOG(WARNING) << "FULL RESET!";
             delete system;
 
-            system = new SlamSystem(w, h, K, doSlam);
-            system->set3DOutputWrapper(outputWrapper);
+            system = newSystem;
 
             fullResetRequested = false;
             runningIDX = 0;
@@ -142,6 +146,9 @@ int main( int argc, char** argv )
 
   LOG(INFO) << "Starting log.";
 
+  Configuration conf;
+  GUI gui( conf );
+
 	// get camera calibration in form of an undistorter object.
 	// if no undistortion is required, the undistorter will just pass images through.
 	std::string calibFile;
@@ -158,29 +165,18 @@ int main( int argc, char** argv )
 		exit(0);
 	}
 
-	w = undistorter->getOutputWidth();
-	h = undistorter->getOutputHeight();
+  conf.inputImage = ImageSize( undistorter->getInputWidth(), undistorter->getInputHeight() );
+  conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );
+  conf.camera     = Camera( undistorter->getK() );
 
-	w_inp = undistorter->getInputWidth();
-	h_inp = undistorter->getInputHeight();
-
-	float fx = undistorter->getK().at<double>(0, 0);
-	float fy = undistorter->getK().at<double>(1, 1);
-	float cx = undistorter->getK().at<double>(2, 0);
-	float cy = undistorter->getK().at<double>(2, 1);
-	Sophus::Matrix3f K;
-	K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
-
-	Resolution::getInstance(w, h);
-	Intrinsics::getInstance(fx, fy, cx, cy);
 
 	gui.initImages();
 
-	Output3DWrapper* outputWrapper = new PangolinOutput3DWrapper(w, h, gui);
+	Output3DWrapper* outputWrapper = new PangolinOutput3DWrapper( conf, gui );
 
 	// make slam system
-	SlamSystem * system = new SlamSystem(w, h, K, doSlam);
-	system->set3DOutputWrapper(outputWrapper);
+	SlamSystem * system = new SlamSystem(conf, doSlam);
+	system->set3DOutputWrapper( outputWrapper );
 
 
 	// open image files: first try to open as file.
@@ -191,12 +187,13 @@ int main( int argc, char** argv )
 		exit(0);
 	}
 
-	Bytef * decompressionBuffer = new Bytef[Resolution::getInstance().numPixels() * 2];
+	Bytef * decompressionBuffer = new Bytef[conf.inputImage.area() * 2];
     IplImage * deCompImage = 0;
 
     if(source.substr(source.find_last_of(".") + 1) == "klg")
     {
-        logReader = new RawLogReader(decompressionBuffer,
+        logReader = new RawLogReader( conf.inputImage,
+                                      decompressionBuffer,
                                      deCompImage,
                                      source);
 
@@ -220,7 +217,7 @@ int main( int argc, char** argv )
         numFrames = (int)files.size();
     }
 
-	boost::thread lsdThread(run, system, undistorter, outputWrapper, K);
+	boost::thread lsdThread(run, system, undistorter, &gui );
 
 	while(!pangolin::ShouldQuit())
 	{

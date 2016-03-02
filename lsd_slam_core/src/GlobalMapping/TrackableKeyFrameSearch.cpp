@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -29,13 +29,13 @@ namespace lsd_slam
 {
 
 
-TrackableKeyFrameSearch::TrackableKeyFrameSearch(KeyFrameGraph* graph, int w, int h, Eigen::Matrix3f K)
+TrackableKeyFrameSearch::TrackableKeyFrameSearch(KeyFrameGraph* graph, const Configuration &conf )
 : graph(graph)
 {
-	tracker = new SE3Tracker(w,h,K);
+	tracker = new SE3Tracker( conf.slamImage );
 
-	fowX = 2 * atanf((float)((w / K(0,0)) / 2.0f));
-	fowY = 2 * atanf((float)((h / K(1,1)) / 2.0f));
+	fowX = 2 * atanf(float(conf.slamImage.width) * conf.camera.fxi / 2.0f );
+	fowY = 2 * atanf(float(conf.slamImage.height) * conf.camera.fyi / 2.0f );
 
 	msTrackPermaRef=0;
 	nTrackPermaRef=0;
@@ -211,13 +211,13 @@ Frame* TrackableKeyFrameSearch::findAppearanceBasedCandidate(Frame* keyframe)
 		printf("Error: called findAppearanceBasedCandidate(), but FabMap instance is not valid!\n");
 		return nullptr;
 	}
-	
+
 
 	int newID, loopID;
 	fabMap.compareAndAdd(keyframe, &newID, &loopID);
 	if (newID < 0)
 		return nullptr;
-	
+
 	fabmapIDToKeyframe.insert(std::make_pair(newID, keyframe));
 	if (loopID >= 0)
 		return fabmapIDToKeyframe.at(loopID);

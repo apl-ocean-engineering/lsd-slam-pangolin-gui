@@ -35,10 +35,11 @@ int privateFrameAllocCount = 0;
 
 
 
-Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K,
+Frame::Frame(int id, const Configuration &conf,
 							double timestamp, const unsigned char* image )
+	: _conf( conf )
 {
-	initialize(id, width, height, K, timestamp);
+	initialize(id, timestamp);
 
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
 	float* maxPt = data.image[0] + data.width[0]*data.height[0];
@@ -58,10 +59,12 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K,
 						<< ", now there are " << privateFrameAllocCount;
 }
 
-Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K,
+Frame::Frame(int id, const Configuration &conf,
 							double timestamp, const float* image )
+	: _conf( conf )
+
 {
-	initialize(id, width, height, K, timestamp);
+	initialize(id, timestamp);
 
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
 	memcpy(data.image[0], image, data.width[0]*data.height[0] * sizeof(float));
@@ -401,23 +404,23 @@ bool Frame::minimizeInMemory()
 	return false;
 }
 
-void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp)
+void Frame::initialize(int id, double timestamp)
 {
 	data.id = id;
 
 	pose = new FramePoseStruct(this);
 
-	data.K[0] = K;
-	data.fx[0] = K(0,0);
-	data.fy[0] = K(1,1);
-	data.cx[0] = K(0,2);
-	data.cy[0] = K(1,2);
-
-	data.KInv[0] = K.inverse();
-	data.fxInv[0] = data.KInv[0](0,0);
-	data.fyInv[0] = data.KInv[0](1,1);
-	data.cxInv[0] = data.KInv[0](0,2);
-	data.cyInv[0] = data.KInv[0](1,2);
+	data.camera[0] = _conf.camera;
+	// data.fx[0] = K(0,0);
+	// data.fy[0] = K(1,1);
+	// data.cx[0] = K(0,2);
+	// data.cy[0] = K(1,2);
+	//
+	// data.KInv[0] = K.inverse();
+	// data.fxInv[0] = data.KInv[0](0,0);
+	// data.fyInv[0] = data.KInv[0](1,1);
+	// data.cxInv[0] = data.KInv[0](0,2);
+	// data.cyInv[0] = data.KInv[0](1,2);
 
 	data.timestamp = timestamp;
 
@@ -431,8 +434,8 @@ void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, 
 
 	for (int level = 0; level < PYRAMID_LEVELS; ++ level)
 	{
-		data.width[level] = width >> level;
-		data.height[level] = height >> level;
+		data.width[level] = _conf.slamImage.width >> level;
+		data.height[level] = _conf.slamImage.height >> level;
 
 		data.imageValid[level] = false;
 		data.gradientsValid[level] = false;
@@ -451,18 +454,7 @@ void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, 
 
 		if (level > 0)
 		{
-			data.fx[level] = data.fx[level-1] * 0.5;
-			data.fy[level] = data.fy[level-1] * 0.5;
-			data.cx[level] = (data.cx[0] + 0.5) / ((int)1<<level) - 0.5;
-			data.cy[level] = (data.cy[0] + 0.5) / ((int)1<<level) - 0.5;
-
-			data.K[level]  << data.fx[level], 0.0, data.cx[level], 0.0, data.fy[level], data.cy[level], 0.0, 0.0, 1.0;	// synthetic
-			data.KInv[level] = (data.K[level]).inverse();
-
-			data.fxInv[level] = data.KInv[level](0,0);
-			data.fyInv[level] = data.KInv[level](1,1);
-			data.cxInv[level] = data.KInv[level](0,2);
-			data.cyInv[level] = data.KInv[level](1,2);
+			data.camera[level] = data.camera[0].scale( 1.0f / (int)(1<<level) );
 		}
 	}
 
