@@ -3,9 +3,9 @@
 #pragma once
 
 
-struct RollingAverage {
+struct MovingAverage {
 
-  RollingAverage( const float alpha = 0.1 )
+  MovingAverage( const float alpha = 0.1 )
     :  _value(0), _alpha( alpha )
   {;}
 
@@ -25,22 +25,22 @@ protected:
 
 };
 
-struct MsAverage : public RollingAverage {
+struct MsAverage : public MovingAverage {
 
-  MsAverage( const float alpha = 0.2 )
-    : RollingAverage( alpha )
+  MsAverage( const float alpha = 0.1 )
+    : MovingAverage( alpha )
   {;}
 
   void update( const struct timeval &tv_start, const struct timeval &tv_end )
   {
-    RollingAverage::update( (tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f );
+    MovingAverage::update( (tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f );
   }
 
 };
 
-struct CountRateAverage : public RollingAverage {
-  CountRateAverage( const float alpha = 0.1 )
-    : RollingAverage( alpha )
+struct CountRateAverage : public MovingAverage {
+  CountRateAverage( const float alpha = 0.2 )
+    : MovingAverage( alpha )
   {;}
 
   void increment( void )
@@ -48,7 +48,7 @@ struct CountRateAverage : public RollingAverage {
 
   void update( float dt )
   {
-    RollingAverage::update( _count / dt );
+    MovingAverage::update( _count / dt );
     _count = 0;
   }
 

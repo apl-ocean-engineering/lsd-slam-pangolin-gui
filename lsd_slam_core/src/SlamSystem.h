@@ -29,7 +29,7 @@
 #include "opencv2/core/core.hpp"
 
 #include "util/SophusUtil.h"
-#include "util/RollingAverage.h"
+#include "util/MovingAverage.h"
 
 #include "Tracking/Relocalizer.h"
 
