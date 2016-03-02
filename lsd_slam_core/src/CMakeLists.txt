@@ -20,7 +20,7 @@ find_package(TCLAP REQUIRED )
 #set(FABMAP_LIB openFABMAP )
 
 ## Enable support for the Zed stereo camera
-option( USE_ZED_CAMERA "Use Zed Stereo camera" ON )
+option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
 if( USE_ZED_CAMERA )
   add_definitions( -DUSE_ZED )
 
