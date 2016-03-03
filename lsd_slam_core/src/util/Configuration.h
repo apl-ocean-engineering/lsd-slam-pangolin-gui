@@ -31,8 +31,8 @@ struct SlamImageSize : public ImageSize {
   SlamImageSize( int w, int h )
     : ImageSize( w, h )
   {
-    CHECK(w%16 != 0 || h%16!=0) << "SLAM image dimensions must be multiples of 16! Please crop your images / video accordingly.";
-    CHECK( (w==0) || (h==0) ) << "Height or width set to zero!";
+    CHECK(w%16 == 0 && h%16 == 0) << "SLAM image dimensions must be multiples of 16! Please crop your images / video accordingly.";
+    CHECK(     w!=0 && h!=0 ) << "Height or width set to zero!";
   }
 };
 
