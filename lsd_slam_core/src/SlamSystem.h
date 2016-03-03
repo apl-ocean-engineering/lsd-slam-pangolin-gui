@@ -32,6 +32,7 @@
 #include "util/SophusUtil.h"
 #include "util/MovingAverage.h"
 #include "util/Configuration.h"
+#include "util/Timer.h"
 
 #include "Tracking/Relocalizer.h"
 
@@ -130,7 +131,7 @@ public:
 		MsAverage        trackFrameMs,  optimizationMs,   findConstraintMs,   findReferencesMs;
 	} _perf;
 
-	struct timeval lastHzUpdate;
+	Timer timeLastUpdate;
 
 	Output3DWrapper *get3DOutputWrapper( void ) const { return outputWrapper; }
 	const Configuration &conf( void ) const           { return _conf; }

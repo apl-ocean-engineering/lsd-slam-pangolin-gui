@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Timer.h"
 
 struct MovingAverage {
 
@@ -29,6 +30,13 @@ struct MsAverage : public MovingAverage {
     : MovingAverage( alpha )
   {;}
 
+  void update( const Timer &timer )
+  {
+    MovingAverage::update( timer.stop() * 1000.0f );
+  }
+
+protected:
+  // Deprecated
   void update( const struct timeval &tv_start, const struct timeval &tv_end )
   {
     MovingAverage::update( (tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f );

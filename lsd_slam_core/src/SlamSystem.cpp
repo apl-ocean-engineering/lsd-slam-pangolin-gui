@@ -118,8 +118,7 @@ SlamSystem::SlamSystem( const Configuration &conf, bool enableSLAM )
 		thread_optimization = std::thread(&SlamSystem::optimizationThreadLoop, this);
 	}
 
-	gettimeofday(&lastHzUpdate, NULL);
-
+	timeLastUpdate.start();
 }
 
 
@@ -313,13 +312,12 @@ void SlamSystem::constraintSearchThreadLoop()
 			newKeyFrames.pop_front();
 			lock.unlock();
 
-			struct timeval tv_start, tv_end;
-			gettimeofday(&tv_start, NULL);
+			Timer timer;
 
 			findConstraintsForNewKeyFrames(newKF, true, true, 1.0);
 			failedToRetrack=0;
-			gettimeofday(&tv_end, NULL);
-			_perf.findConstraintMs.update( tv_start, tv_end );
+
+			_perf.findConstraintMs.update( timer );
 			_perf.findConstraintIter.increment();
 
 			FrameMemory::getInstance().pruneActiveFrames();
@@ -509,11 +507,9 @@ void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
 	std::shared_ptr<Frame> newKeyframeCandidate = latestTrackedFrame;
 	if(doKFReActivation && SLAMEnabled)
 	{
-		struct timeval tv_start, tv_end;
-		gettimeofday(&tv_start, NULL);
+		Timer timer;
 		newReferenceKF = trackableKeyFrameSearch->findRePositionCandidate(newKeyframeCandidate.get(), maxScore);
-		gettimeofday(&tv_end, NULL);
-		_perf.findReferencesMs.update( tv_start, tv_end );
+		_perf.findReferencesMs.update( timer );
 		_perf.findReferences.increment();
 	}
 
@@ -616,9 +612,8 @@ bool SlamSystem::updateKeyframe()
 void SlamSystem::addTimingSamples()
 {
 	map->addTimingSample();
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	float sPassed = ((now.tv_sec-lastHzUpdate.tv_sec) + (now.tv_usec-lastHzUpdate.tv_usec)/1000000.0f);
+
+	float sPassed = timeLastUpdate.reset();
 	if(sPassed > 1.0f)
 	{
 		_perf.trackedFrames.update( sPassed );
@@ -633,7 +628,6 @@ void SlamSystem::addTimingSamples()
 		_perf.findConstraintIter.update( sPassed );
 		_perf.optimizationIter.update(  sPassed );
 
-		lastHzUpdate = now;
 
 
 		if(enablePrintDebugInfo && printOverallTiming)
@@ -939,18 +933,14 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 	}
 
 
-	struct timeval tv_start, tv_end;
-	gettimeofday(&tv_start, NULL);
+	Timer timer;
 
 	SE3 newRefToFrame_poseUpdate = tracker->trackFrame(
 			trackingReference,
 			trackingNewFrame.get(),
 			frameToReference_initialEstimate);
 
-
-	gettimeofday(&tv_end, NULL);
-
-	_perf.trackFrameMs.update( tv_start, tv_end );
+	_perf.trackFrameMs.update( timer );
 
 	tracking_lastResidual = tracker->lastResidual;
 	tracking_lastUsage = tracker->pointUsage;
@@ -1602,10 +1592,8 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 
 bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 {
-	struct timeval tv_start, tv_end;
-	gettimeofday(&tv_start, NULL);
 
-
+	Timer timer;
 
 	g2oGraphAccessMutex.lock();
 
@@ -1672,9 +1660,8 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 				maxChange > minChange && its == itsPerTry ? "continue optimizing":"Waiting for addition to graph.");
 
 
-	gettimeofday(&tv_end, NULL);
 
-	_perf.optimizationMs.update( tv_start, tv_end );
+	_perf.optimizationMs.update( timer );
 
 	return maxChange > minChange && its == itsPerTry;
 }
