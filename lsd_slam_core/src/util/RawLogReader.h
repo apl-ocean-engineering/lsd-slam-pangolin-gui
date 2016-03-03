@@ -8,7 +8,6 @@
 #ifndef RAWLOGREADER_H_
 #define RAWLOGREADER_H_
 
-#include "Stopwatch.h"
 #include "Configuration.h"
 
 #include <cassert>
