@@ -4,7 +4,7 @@ project(lsd_slam_core)
 # set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV COMPONENTS core highgui imgproc imgcodecs calib3d REQUIRED)
+find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Pangolin 0.1 REQUIRED)
@@ -13,6 +13,7 @@ find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 find_package(TCLAP REQUIRED )
 
 # g3log
+set( ADD_FATAL_EXAMPLE OFF )
 add_subdirectory( ${PROJECT_SOURCE_DIR}/thirdparty/g3log )
 set( G3LOG_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/g3log/src)
 set( G3LOG_LIB g3logger_shared )
@@ -50,6 +51,9 @@ if( USE_ZED_CAMERA )
   set( ZED_CAMERA_LIBRARY_DIRS ${ZED_LIBRARY_DIR}
                                 ${CUDA_LIBRARY_DIRS})
 
+  set( ZED_SRCS
+        ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterZED.cpp )
+
   link_directories( ${ZED_CAMERA_LIBRARY_DIRS} )
 
   set( ZED_CAMERA_LIBRARIES ${ZED_LIBRARIES}
@@ -72,8 +76,13 @@ set(CMAKE_CXX_FLAGS
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
+set(GUI_SRCS
+  ${PROJECT_SOURCE_DIR}/IOWrapper/OpenCV/ImageDisplay_OpenCV.cpp
+  ${PROJECT_SOURCE_DIR}/IOWrapper/Pangolin/PangolinOutput3DWrapper.cpp
+)
+
 # Set source files
-set(lsd_SOURCE_FILES
+set(lsdslam_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/DataStructures/Frame.cpp
   ${PROJECT_SOURCE_DIR}/DataStructures/FramePoseStruct.cpp
   ${PROJECT_SOURCE_DIR}/DataStructures/FrameMemory.cpp
@@ -86,6 +95,8 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/util/settings.cpp
   ${PROJECT_SOURCE_DIR}/util/Undistorter.cpp
   ${PROJECT_SOURCE_DIR}/util/RawLogReader.cpp
+  ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
+  ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
   ${PROJECT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
   ${PROJECT_SOURCE_DIR}/Tracking/Relocalizer.cpp
   ${PROJECT_SOURCE_DIR}/Tracking/SE3Tracker.cpp
@@ -95,12 +106,10 @@ set(lsd_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/GlobalMapping/KeyFrameGraph.cpp
   ${PROJECT_SOURCE_DIR}/GlobalMapping/g2oTypeSim3Sophus.cpp
   ${PROJECT_SOURCE_DIR}/GlobalMapping/TrackableKeyFrameSearch.cpp
+  ${ZED_SRCS}
+  ${GUI_SRCS}
 )
-set(SOURCE_FILES
-  ${lsd_SOURCE_FILES}
-  ${PROJECT_SOURCE_DIR}/IOWrapper/OpenCV/ImageDisplay_OpenCV.cpp
-  ${PROJECT_SOURCE_DIR}/IOWrapper/Pangolin/PangolinOutput3DWrapper.cpp
-)
+
 
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
@@ -118,12 +127,13 @@ include_directories(
 )
 
 # build shared library.
-add_library(lsdslam SHARED ${SOURCE_FILES})
+add_library(lsdslam SHARED ${lsdslam_SOURCE_FILES})
 target_link_libraries(lsdslam
   ${FABMAP_LIB}
   ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
+                   ${ZED_CAMERA_LIBRARIES} 
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
@@ -145,7 +155,6 @@ target_link_libraries(LSD lsdslam )
 if( USE_ZED_CAMERA )
   add_executable(LSD_Zed LSD_Zed.cpp)
 
-  target_link_libraries(LSD_Zed lsdslam
-                        ${ZED_CAMERA_LIBRARIES} )
+  target_link_libraries(LSD_Zed lsdslam )
 
 endif()

@@ -20,8 +20,6 @@
 
 #include <zed/Camera.hpp>
 
-#include "LiveSLAMWrapper.h"
-
 #include <boost/thread.hpp>
 #include "util/settings.h"
 #include "util/Parse.h"
@@ -35,7 +33,9 @@
 #include <dirent.h>
 #include <algorithm>
 
-#include <glog/logging.h>
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
+
 
 #include <tclap/CmdLine.h>
 
@@ -48,14 +48,8 @@
 const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
 
 // 1080 is not divisible by 16
-const cv::Size originalSize( 1920, 1080 );
-const cv::Size cropSize( 1920, 1056 );
-const cv::Size scaledSize( cropSize.width / 2, cropSize.height / 2 );
-const cv::Size slamSize( scaledSize );
-
 
 ThreadMutexObject<bool> lsdDone(false);
-GUI gui( scaledSize.width * 1.0 / scaledSize.height );
 
 int numFrames = 0;
 
@@ -64,8 +58,11 @@ enum { NO_STEREO, STEREO_ZED } doStereo = NO_STEREO;
 
 using namespace lsd_slam;
 
-void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K)
+void run(SlamSystem * system, Undistorter* undistorter, GUI *gui )
 {
+    CHECK( system );
+    CHECK( undistorter );
+
     // get HZ
     double hz = camera->getCurrentFPS();
     if( hz < 0 ) {
@@ -83,65 +80,50 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
         if(lsdDone.getValue())
             break;
 
-        // printf("Loop %d\n", runningIDX );
-
-        gui.updateFrameNumber( i );
+        if( gui ) gui->updateFrameNumber( i );
 
         if(fullResetRequested)
         {
-            printf("FULL RESET!\n");
+            SlamSystem *newSystem = new SlamSystem( system->conf(), system->SLAMEnabled );
+            newSystem->set3DOutputWrapper( system->get3DOutputWrapper() );
+
+            LOG(WARNING) << "FULL RESET!";
             delete system;
 
-            system = new SlamSystem(slamSize.width, slamSize.height, K, doSlam);
-            system->setVisualization(outputWrapper);
+            system = newSystem;
 
             fullResetRequested = false;
             runningIdx = 0;
         }
 
         if( camera->grab( sl::zed::SENSING_MODE::RAW, false, false ) ) {
-          LOG(ERROR) << "Error reading data from camera";
+          LOG(WARNING) << "Error reading data from camera";
           continue;
         }
 
         sl::zed::Mat left = camera->retrieveImage(sl::zed::SIDE::LEFT);
 
-        cv::Mat imageROI;
-        imageROI = cv::Mat( sl::zed::slMat2cvMat(left), cv::Rect( cv::Point(0,0), cropSize) );
+        cv::Mat imageScaled( system->conf().slamImage.cvSize(), CV_8UC1 );
+        undistorter->undistort( sl::zed::slMat2cvMat(left), imageScaled );
 
-        // Convert to greyscale
-        cv::Mat imageGray( cropSize, CV_8UC1 );
-        cv::cvtColor( imageROI, imageGray, cv::COLOR_BGRA2GRAY );
-
-        cv::Mat imageScaled;
-        if( scaledSize != cropSize ) {
-          // Shrink (for now)
-          cv::resize( imageGray, imageScaled, scaledSize );
-        } else {
-          imageScaled = imageGray;
-        }
-
-        CHECK( imageScaled.type() == CV_8U );
-        CHECK( (imageScaled.rows == slamSize.height) && (imageScaled.cols == slamSize.width) );
-
-        gui.updateLiveImage( imageScaled.data );
+        if( gui ) gui->updateLiveImage( imageScaled.data );
 
         if( doStereo == STEREO_ZED ) {
 
           // Fetch depth map as well
-          sl::zed::Mat depth = camera->retrieveMeasure( sl::zed::DEPTH );
-          cv::Mat depthCropped( sl::zed::slMat2cvMat(depth), cv::Rect( cv::Point(0,0), cropSize) );
-          cv::Mat depthScaled( scaledSize, CV_32FC1 );
-          cv::resize( depthCropped, depthScaled, scaledSize );
+          //sl::zed::Mat depth = camera->retrieveMeasure( sl::zed::DEPTH );
+          //cv::Mat depthCropped( sl::zed::slMat2cvMat(depth), cv::Rect( cv::Point(0,0), cropSize) );
+          //cv::Mat depthScaled( scaledSize, CV_32FC1 );
+          //cv::resize( depthCropped, depthScaled, scaledSize );
 
-          CHECK( depthScaled.type() == CV_32FC1 );
-          CHECK( (imageScaled.rows == depthScaled.rows) && (imageScaled.cols == depthScaled.cols) );
+          //CHECK( depthScaled.type() == CV_32FC1 );
+          //CHECK( (imageScaled.rows == depthScaled.rows) && (imageScaled.cols == depthScaled.cols) );
 
-          if(runningIdx == 0) {
-            system->gtDepthInit(imageScaled.data, (float *)depthScaled.data, fakeTimeStamp, runningIdx);
-          } else {
-            system->trackStereoFrame(imageScaled.data, (float *)depthScaled.data, runningIdx, hz == 0, fakeTimeStamp);
-          }
+          //if(runningIdx == 0) {
+          //  system->gtDepthInit(imageScaled.data, (float *)depthScaled.data, fakeTimeStamp, runningIdx);
+          //} else {
+          //  system->trackStereoFrame(imageScaled.data, (float *)depthScaled.data, runningIdx, hz == 0, fakeTimeStamp);
+          //}
 
         } else {
           if(runningIdx == 0)
@@ -154,7 +136,7 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
           }
         }
 
-        gui.pose.assignValue(system->getCurrentPoseEstimateScale());
+        if( gui ) gui->pose.assignValue(system->getCurrentPoseEstimateScale());
 
         fakeTimeStamp+=0.03;
 
@@ -165,18 +147,47 @@ void run(SlamSystem * system, Output3DWrapper* outputWrapper, Sophus::Matrix3f K
     lsdDone.assignValue(true);
 }
 
+
+void runGui(SlamSystem * system, GUI *gui )
+{
+	while(!pangolin::ShouldQuit())
+	{
+	    if(lsdDone.getValue() && !system->finalized)
+	    {
+	        system->finalize();
+	    }
+
+	    gui->preCall();
+
+	    gui->drawKeyframes();
+
+	    gui->drawFrustum();
+
+	    gui->drawImages();
+
+	    gui->postCall();
+	}
+}
+
 int main( int argc, char** argv )
 {
-  // Initialize Google logging
-  google::InitGoogleLogging( argv[0] );
-  FLAGS_logtostderr = true;
-  FLAGS_minloglevel = 0;
+
+  auto worker = g3::LogWorker::createLogWorker();
+  auto handle = worker->addDefaultLogger(argv[0], ".");
+  g3::initializeLogging(worker.get());
+  std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
+  std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
+
+  LOG(INFO) << "Starting log.";
+
+bool doGui = true;
 
   try {
     TCLAP::CmdLine cmd("LSD_Zed", ' ', "0.1");
 
     TCLAP::ValueArg<std::string> svoFileArg("i","input","Name of SVO file to read",false,"","SVO filename", cmd);
     TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
+    TCLAP::SwitchArg noGuiSwitch("","no-gui","Use stereo data", cmd, false);
 
     cmd.parse(argc, argv );
 
@@ -196,10 +207,14 @@ int main( int argc, char** argv )
       doStereo = STEREO_ZED;
     }
 
+    doGui = !noGuiSwitch.getValue();
+
   } catch (TCLAP::ArgException &e)  // catch any exceptions
 	{
     LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
   }
+
+
 
   // get camera calibration in form of an undistorter object.
 	// if no undistortion is required, the undistorter will just pass images through.
@@ -213,70 +228,56 @@ int main( int argc, char** argv )
   const bool verboseInit = true;
   sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
   if (err != sl::zed::SUCCESS) {
-    LOG(ERROR) << "Unable to init the zed: " << errcode2str(err);
+    LOG(FATAL) << "Unable to init the zed: " << errcode2str(err);
     delete camera;
     exit(-1);
   }
 
-  sl::zed::StereoParameters *params = camera->getParameters();
+  const ImageSize originalSize( 1920, 1080 );
+  const ImageSize cropSize( 1920, 1056 );
+  const SlamImageSize slamSize( cropSize.width / 2, cropSize.height / 2 );
 
-  float xscale = slamSize.width * 1.0f / originalSize.width;
-  float yscale = slamSize.height * 1.0f / originalSize.height;
+  UndistorterZED *undistorter = new UndistorterZED( camera, cropSize, slamSize );
 
-  float fx = params->LeftCam.fx * xscale;
-	float fy = params->LeftCam.fy * yscale;
-	float cx = params->LeftCam.cx * xscale;
-	float cy = params->LeftCam.cy * yscale;
+  Configuration conf;
+  conf.inputImage = undistorter->inputSize();
+  conf.slamImage  = undistorter->outputSize();
+  conf.camera = undistorter->getCamera();
 
-  LOG(INFO) << "From Zed:  fx = " << params->LeftCam.fx << "; fy = " << params->LeftCam.fy << "; cx = " << params->LeftCam.cx << "; cy = " << params->LeftCam.cy;
-  LOG(INFO) << "Scaled:    fx = " << fx << "; fy = " << fy << "; cx = " << cx << "; cy = " << cy;
+  // make slam system
+  SlamSystem * system = new SlamSystem( conf, doSlam );
+  
+  GUI *gui = NULL;
+  Output3DWrapper *outputWrapper = NULL;
+  if( doGui ) {
+	  gui = new GUI( conf );
+	  gui->initImages();
+	  outputWrapper = new PangolinOutput3DWrapper( conf, *gui);
+	  system->set3DOutputWrapper(outputWrapper);
 
+  boost::thread guiThread(runGui, system, gui );
+ 
+    guiThread.join();
+  } else {
 
-	Sophus::Matrix3f K;
-	K << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
-	Intrinsics::getInstance(fx, fy, cx, cy);
-
-  {
-    sl::zed::resolution resolution = camera->getImageSize();
-
-    // Intermediate sizes are set with const Size global (at top of file)
-    // Just a quick sanity check that they're appropriate for this
-    // camera resolution
-    assert( resolution.width >= cropSize.width );
-    assert( resolution.height >= cropSize.height );
-
-    // Set up this singletons
-  	Resolution::getInstance( slamSize.width, slamSize.height );
-  }
-
-
-	gui.initImages();
-	Output3DWrapper* outputWrapper = new PangolinOutput3DWrapper( slamSize.width, slamSize.height, gui);
-
-	// make slam system
-	SlamSystem * system = new SlamSystem( slamSize.width, slamSize.height, K, doSlam);
-	system->setVisualization(outputWrapper);
-
-  printf("Launching LSD thread\n");
-	boost::thread lsdThread(run, system, outputWrapper, K);
-
-	while(!pangolin::ShouldQuit())
+	while(true)
 	{
 	    if(lsdDone.getValue() && !system->finalized)
 	    {
 	        system->finalize();
 	    }
 
-	    gui.preCall();
-
-	    gui.drawKeyframes();
-
-	    gui.drawFrustum();
-
-	    gui.drawImages();
-
-	    gui.postCall();
+	  sleep(1);
 	}
+
+  }
+
+
+
+  printf("Launching LSD thread\n");
+  boost::thread lsdThread(run, system, undistorter, gui );
+
+  
 
 	lsdDone.assignValue(true);
 
@@ -284,7 +285,10 @@ int main( int argc, char** argv )
 
   if( camera ) delete camera;
 
+
 	delete system;
-	delete outputWrapper;
+
+	if( outputWrapper ) delete outputWrapper;
+	if( gui ) delete gui;
 	return 0;
 }

@@ -22,6 +22,7 @@
 #include <vector>
 #include <mutex>
 #include <thread>
+#include <condition_variable>
 
 #include <boost/thread/shared_mutex.hpp>
 
