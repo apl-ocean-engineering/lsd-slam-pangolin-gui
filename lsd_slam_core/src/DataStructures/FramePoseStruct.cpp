@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -45,15 +45,15 @@ FramePoseStruct::FramePoseStruct(Frame* frame)
 	this->graphVertex = nullptr;
 
 	privateFramePoseStructAllocCount++;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("ALLOCATED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
+	LOGF_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo,
+					"ALLOCATED pose %d, now there are %d", frameID, privateFramePoseStructAllocCount);
 }
 
 FramePoseStruct::~FramePoseStruct()
 {
 	privateFramePoseStructAllocCount--;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETED pose %d, now there are %d\n", frameID, privateFramePoseStructAllocCount);
+	LOGF_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo,
+					"DELETED pose %d, now there are %d", frameID, privateFramePoseStructAllocCount);
 }
 
 void FramePoseStruct::setPoseGraphOptResult(Sim3 camToWorld)
@@ -81,6 +81,7 @@ void FramePoseStruct::invalidateCache()
 {
 	cacheValidFor = -1;
 }
+
 Sim3 FramePoseStruct::getCamToWorld(int recursionDepth)
 {
 	// prevent stack overflow

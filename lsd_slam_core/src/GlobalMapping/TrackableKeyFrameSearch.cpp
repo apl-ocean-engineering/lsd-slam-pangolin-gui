@@ -37,12 +37,8 @@ TrackableKeyFrameSearch::TrackableKeyFrameSearch(KeyFrameGraph* graph, const Con
 	fowX = 2 * atanf(float(conf.slamImage.width) * conf.camera.fxi / 2.0f );
 	fowY = 2 * atanf(float(conf.slamImage.height) * conf.camera.fyi / 2.0f );
 
-	msTrackPermaRef=0;
-	nTrackPermaRef=0;
-	nAvgTrackPermaRef=0;
-
-	if(enablePrintDebugInfo && printRelocalizationInfo)
-		printf("Relocalization Values: fowX %f, fowY %f\n", fowX, fowY);
+	LOGF_IF(INFO, enablePrintDebugInfo && printRelocalizationInfo,
+					"Relocalization Values: fowX %f, fowY %f\n", fowX, fowY);
 }
 
 TrackableKeyFrameSearch::~TrackableKeyFrameSearch()
@@ -120,12 +116,11 @@ Frame* TrackableKeyFrameSearch::findRePositionCandidate(Frame* frame, float maxS
 		if(potentialReferenceFrames[i].ref->idxInKeyframes < INITIALIZATION_PHASE_COUNT)
 			continue;
 
-		struct timeval tv_start, tv_end;
-		gettimeofday(&tv_start, NULL);
-		tracker->checkPermaRefOverlap(potentialReferenceFrames[i].ref, potentialReferenceFrames[i].refToFrame);
-		gettimeofday(&tv_end, NULL);
-		msTrackPermaRef = 0.9*msTrackPermaRef + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-		nTrackPermaRef++;
+		{
+			Timer time;
+			tracker->checkPermaRefOverlap(potentialReferenceFrames[i].ref, potentialReferenceFrames[i].refToFrame);
+			trackPermaRef.update( time );
+		}
 
 		float score = getRefFrameScore(potentialReferenceFrames[i].dist, tracker->pointUsage);
 

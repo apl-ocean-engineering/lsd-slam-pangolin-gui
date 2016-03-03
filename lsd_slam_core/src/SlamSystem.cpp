@@ -618,22 +618,14 @@ void SlamSystem::addTimingSamples()
 	if(sPassed > 1.0f)
 	{
 
-		if(trackableKeyFrameSearch != 0)
-		{
-			trackableKeyFrameSearch->nAvgTrackPermaRef = 0.8*trackableKeyFrameSearch->nAvgTrackPermaRef + 0.2*(trackableKeyFrameSearch->nTrackPermaRef / sPassed); trackableKeyFrameSearch->nTrackPermaRef = 0;
-		}
-
-		if(enablePrintDebugInfo && printOverallTiming)
-		{
-			printf("MapIt: %3.1fms (%.1fHz); Track: %3.1fms (%.1fHz); Create: %3.1fms (%.1fHz); FindRef: %3.1fms (%.1fHz); PermaTrk: %3.1fms (%.1fHz); Opt: %3.1fms (%.1fHz); FindConst: %3.1fms (%.1fHz);\n",
+		LOGF_IF(INFO, enablePrintDebugInfo && printOverallTiming, "MapIt: %3.1fms (%.1fHz); Track: %3.1fms (%.1fHz); Create: %3.1fms (%.1fHz); FindRef: %3.1fms (%.1fHz); PermaTrk: %3.1fms (%.1fHz); Opt: %3.1fms (%.1fHz); FindConst: %3.1fms (%.1fHz);\n",
 					map->_perf.update.ms(), map->_perf.update.rate(),
 					_perf.trackFrame.ms(), _perf.trackFrame.rate(),
 					map->_perf.create.ms()+map->_perf.finalize.ms(), map->_perf.create.rate(),
 					_perf.findReferences.ms(), _perf.findReferences.rate(),
-					trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->msTrackPermaRef : 0, trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->nAvgTrackPermaRef : 0,
+					trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->trackPermaRef.ms() : 0, trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->trackPermaRef.rate() : 0,
 					_perf.optimization.ms(), _perf.optimization.rate(),
 					_perf.findConstraint.ms(), _perf.findConstraint.rate() );
-		}
 	}
 
 }
@@ -675,8 +667,8 @@ void SlamSystem::debugDisplayDepthMap()
 	CHECK( map->debugImageDepth.data != NULL );
 	outputWrapper->updateDepthImage(map->debugImageDepth.data);
 
-	int pressedKey = Util::waitKey(1);
-	handleKey(pressedKey);
+	// int pressedKey = Util::waitKey(1);
+	// handleKey(pressedKey);
 }
 
 
@@ -1006,13 +998,13 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 		{
 			createNewKeyFrame = true;
 
-			if(enablePrintDebugInfo && printKeyframeSelectionInfo)
-				printf("SELECT %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",trackingNewFrame->id(),trackingNewFrame->getTrackingParent()->id(), dist.dot(dist), tracker->pointUsage, trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), tracker->pointUsage));
+			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
+							"SELECT %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",trackingNewFrame->id(),trackingNewFrame->getTrackingParent()->id(), dist.dot(dist), tracker->pointUsage, trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), tracker->pointUsage));
 		}
 		else
 		{
-			if(enablePrintDebugInfo && printKeyframeSelectionInfo)
-				printf("SKIPPD %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",trackingNewFrame->id(),trackingNewFrame->getTrackingParent()->id(), dist.dot(dist), tracker->pointUsage, trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), tracker->pointUsage));
+			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
+							"SKIPPD %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",trackingNewFrame->id(),trackingNewFrame->getTrackingParent()->id(), dist.dot(dist), tracker->pointUsage, trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), tracker->pointUsage));
 
 		}
 	}

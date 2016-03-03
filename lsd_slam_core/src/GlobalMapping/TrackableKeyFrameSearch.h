@@ -29,6 +29,7 @@
 	#include "GlobalMapping/FabMap.h"
 #endif
 
+#include "util/MovingAverage.h"
 #include "util/settings.h"
 
 
@@ -76,9 +77,9 @@ public:
 				+ (1-usage)*(1-usage) * KFUsageWeight * KFUsageWeight;
 	}
 
-	float msTrackPermaRef;
-	int nTrackPermaRef;
-	float nAvgTrackPermaRef;
+	MsRateAverage trackPermaRef;
+
+
 private:
 	/**
 	 * Returns a possible loop closure for the keyframe or nullptr if none is found.
