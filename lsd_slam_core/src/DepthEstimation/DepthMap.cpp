@@ -62,13 +62,15 @@ DepthMap::DepthMap( const Configuration &conf )
 
 	reset();
 
-	msUpdate =  msCreate =  msFinalize = 0;
-	msObserve =  msRegularize =  msPropagate =  msFillHoles =  msSetDepth = 0;
-	gettimeofday(&lastHzUpdate, NULL);
-	nUpdate = nCreate = nFinalize = 0;
-	nObserve = nRegularize = nPropagate = nFillHoles = nSetDepth = 0;
-	nAvgUpdate = nAvgCreate = nAvgFinalize = 0;
-	nAvgObserve = nAvgRegularize = nAvgPropagate = nAvgFillHoles = nAvgSetDepth = 0;
+	timeLastUpdate.start();
+
+	// msUpdate =  msCreate =  msFinalize = 0;
+	// msObserve =  msRegularize =  msPropagate =  msFillHoles =  msSetDepth = 0;
+	// gettimeofday(&lastHzUpdate, NULL);
+	// nUpdate = nCreate = nFinalize = 0;
+	// nObserve = nRegularize = nPropagate = nFillHoles = nSetDepth = 0;
+	// nAvgUpdate = nAvgCreate = nAvgFinalize = 0;
+	// nAvgObserve = nAvgRegularize = nAvgPropagate = nAvgFillHoles = nAvgSetDepth = 0;
 }
 
 DepthMap::~DepthMap()
@@ -1080,8 +1082,7 @@ void DepthMap::updateKeyframe(std::deque< std::shared_ptr<Frame> > referenceFram
 {
 	assert(isValid());
 
-	struct timeval tv_start_all, tv_end_all;
-	gettimeofday(&tv_start_all, NULL);
+	Timer timeAll;
 
 	oldest_referenceFrame = referenceFrames.front().get();
 	newest_referenceFrame = referenceFrames.back().get();
@@ -1127,46 +1128,38 @@ void DepthMap::updateKeyframe(std::deque< std::shared_ptr<Frame> > referenceFram
 		cv::cvtColor(debugImageStereoLines, debugImageStereoLines, CV_GRAY2RGB);
 	}
 
-	struct timeval tv_start, tv_end;
-
-
-	gettimeofday(&tv_start, NULL);
-	observeDepth();
-	gettimeofday(&tv_end, NULL);
-	msObserve = 0.9*msObserve + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nObserve++;
+	{
+		Timer time;
+		observeDepth();
+		_perf.observe.update( time );
+	}
 
 	//if(rand()%10==0)
 	{
-		gettimeofday(&tv_start, NULL);
+		Timer time;
 		regularizeDepthMapFillHoles();
-		gettimeofday(&tv_end, NULL);
-		msFillHoles = 0.9*msFillHoles + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-		nFillHoles++;
+		_perf.fillHoles.update( time );
 	}
 
 
-	gettimeofday(&tv_start, NULL);
-	regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
-	gettimeofday(&tv_end, NULL);
-	msRegularize = 0.9*msRegularize + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nRegularize++;
+	{
+		Timer time;
+		regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
+		_perf.regularize.update( time );
+	}
+
 
 
 	// Update depth in keyframe
 	if(!activeKeyFrame->depthHasBeenUpdatedFlag)
 	{
-		gettimeofday(&tv_start, NULL);
+		Timer time;
 		activeKeyFrame->setDepth(currentDepthMap);
-		gettimeofday(&tv_end, NULL);
-		msSetDepth = 0.9*msSetDepth + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-		nSetDepth++;
+		_perf.setDepth.update( time );
 	}
 
 
-	gettimeofday(&tv_end_all, NULL);
-	msUpdate = 0.9*msUpdate + 0.1*((tv_end_all.tv_sec-tv_start_all.tv_sec)*1000.0f + (tv_end_all.tv_usec-tv_start_all.tv_usec)/1000.0f);
-	nUpdate++;
+	_perf.update.update( timeAll );
 
 
 	activeKeyFrame->numMappedOnThis++;
@@ -1235,9 +1228,7 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 	//boost::shared_lock<boost::shared_mutex> lock = activeKeyFrame->getActiveLock();
 	boost::shared_lock<boost::shared_mutex> lock2 = new_keyframe->getActiveLock();
 
-	struct timeval tv_start_all, tv_end_all;
-	gettimeofday(&tv_start_all, NULL);
-
+	Timer timeAll;
 
 	resetCounters();
 
@@ -1253,12 +1244,11 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 	SE3 oldToNew_SE3 = se3FromSim3(new_keyframe->pose->thisToParent_raw).inverse();
 
-	struct timeval tv_start, tv_end;
-	gettimeofday(&tv_start, NULL);
-	propagateDepth(new_keyframe);
-	gettimeofday(&tv_end, NULL);
-	msPropagate = 0.9*msPropagate + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nPropagate++;
+	{
+		Timer time;
+		propagateDepth(new_keyframe);
+		_perf.propagate.update( time );
+	}
 
 	activeKeyFrame = new_keyframe;
 	activeKeyFramelock = activeKeyFrame->getActiveLock();
@@ -1267,26 +1257,23 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 
 
-	gettimeofday(&tv_start, NULL);
-	regularizeDepthMap(true, VAL_SUM_MIN_FOR_KEEP);
-	gettimeofday(&tv_end, NULL);
-	msRegularize = 0.9*msRegularize + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nRegularize++;
+	{
+		Timer time;
+		regularizeDepthMap(true, VAL_SUM_MIN_FOR_KEEP);
+		_perf.regularize.update( time );
+	}
 
+	{
+		Timer time;
+		regularizeDepthMapFillHoles();
+		_perf.fillHoles.update( time );
+	}
 
-	gettimeofday(&tv_start, NULL);
-	regularizeDepthMapFillHoles();
-	gettimeofday(&tv_end, NULL);
-	msFillHoles = 0.9*msFillHoles + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nFillHoles++;
-
-
-	gettimeofday(&tv_start, NULL);
-	regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
-	gettimeofday(&tv_end, NULL);
-	msRegularize = 0.9*msRegularize + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nRegularize++;
-
+	{
+		Timer time;
+		regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
+		_perf.regularize.update( time );
+	}
 
 
 
@@ -1315,16 +1302,13 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 	// Update depth in keyframe
 
-	gettimeofday(&tv_start, NULL);
-	activeKeyFrame->setDepth(currentDepthMap);
-	gettimeofday(&tv_end, NULL);
-	msSetDepth = 0.9*msSetDepth + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nSetDepth++;
+	{
+		Timer time;
+		activeKeyFrame->setDepth(currentDepthMap);
+		_perf.setDepth.update( time );
+	}
 
-	gettimeofday(&tv_end_all, NULL);
-	msCreate = 0.9*msCreate + 0.1*((tv_end_all.tv_sec-tv_start_all.tv_sec)*1000.0f + (tv_end_all.tv_usec-tv_start_all.tv_usec)/1000.0f);
-	nCreate++;
-
+	_perf.create.update( timeAll );
 
 
 	if(plotStereoImages)
@@ -1336,32 +1320,39 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 void DepthMap::addTimingSample()
 {
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	float sPassed = ((now.tv_sec-lastHzUpdate.tv_sec) + (now.tv_usec-lastHzUpdate.tv_usec)/1000000.0f);
+	float sPassed = timeLastUpdate.reset();
 	if(sPassed > 1.0f)
 	{
-		nAvgUpdate = 0.8*nAvgUpdate + 0.2*(nUpdate / sPassed); nUpdate = 0;
-		nAvgCreate = 0.8*nAvgCreate + 0.2*(nCreate / sPassed); nCreate = 0;
-		nAvgFinalize = 0.8*nAvgFinalize + 0.2*(nFinalize / sPassed); nFinalize = 0;
-		nAvgObserve = 0.8*nAvgObserve + 0.2*(nObserve / sPassed); nObserve = 0;
-		nAvgRegularize = 0.8*nAvgRegularize + 0.2*(nRegularize / sPassed); nRegularize = 0;
-		nAvgPropagate = 0.8*nAvgPropagate + 0.2*(nPropagate / sPassed); nPropagate = 0;
-		nAvgFillHoles = 0.8*nAvgFillHoles + 0.2*(nFillHoles / sPassed); nFillHoles = 0;
-		nAvgSetDepth = 0.8*nAvgSetDepth + 0.2*(nSetDepth / sPassed); nSetDepth = 0;
-		lastHzUpdate = now;
+		// _perf.update.update( sPassed );
+		// _perf.create.update( sPassed );
+		// _perf.finalize.update( sPassed );
+		// _perf.observe.update( sPassed );
+		// _perf.regularize.update( sPassed );
+		// _perf.propagate.update( sPassed );
+		// _perf.fillHoles.update( sPassed );
+		// _perf.setDepth.update( sPassed );
+
+		// nAvgUpdate = 0.8*nAvgUpdate + 0.2*(nUpdate / sPassed); nUpdate = 0;
+		// nAvgCreate = 0.8*nAvgCreate + 0.2*(nCreate / sPassed); nCreate = 0;
+		// nAvgFinalize = 0.8*nAvgFinalize + 0.2*(nFinalize / sPassed); nFinalize = 0;
+		// nAvgObserve = 0.8*nAvgObserve + 0.2*(nObserve / sPassed); nObserve = 0;
+		// nAvgRegularize = 0.8*nAvgRegularize + 0.2*(nRegularize / sPassed); nRegularize = 0;
+		// nAvgPropagate = 0.8*nAvgPropagate + 0.2*(nPropagate / sPassed); nPropagate = 0;
+		// nAvgFillHoles = 0.8*nAvgFillHoles + 0.2*(nFillHoles / sPassed); nFillHoles = 0;
+		// nAvgSetDepth = 0.8*nAvgSetDepth + 0.2*(nSetDepth / sPassed); nSetDepth = 0;
+		// lastHzUpdate = now;
 
 		if(enablePrintDebugInfo && printMappingTiming)
 		{
 			printf("Upd %3.1fms (%.1fHz); Create %3.1fms (%.1fHz); Final %3.1fms (%.1fHz) // Obs %3.1fms (%.1fHz); Reg %3.1fms (%.1fHz); Prop %3.1fms (%.1fHz); Fill %3.1fms (%.1fHz); Set %3.1fms (%.1fHz)\n",
-					msUpdate, nAvgUpdate,
-					msCreate, nAvgCreate,
-					msFinalize, nAvgFinalize,
-					msObserve, nAvgObserve,
-					msRegularize, nAvgRegularize,
-					msPropagate, nAvgPropagate,
-					msFillHoles, nAvgFillHoles,
-					msSetDepth, nAvgSetDepth);
+					_perf.update.ms(), _perf.update.rate(),
+					_perf.create.ms(), _perf.create.rate(),
+					_perf.finalize.ms(), _perf.finalize.rate(),
+					_perf.observe.ms(), _perf.observe.rate(),
+					_perf.regularize.ms(), _perf.regularize.rate(),
+					_perf.propagate.ms(), _perf.propagate.rate(),
+					_perf.fillHoles.ms(), _perf.fillHoles.rate(),
+					_perf.setDepth.ms(), _perf.setDepth.rate() );
 		}
 	}
 
@@ -1372,34 +1363,30 @@ void DepthMap::finalizeKeyFrame()
 {
 	assert(isValid());
 
+	Timer timeAll;
 
-	struct timeval tv_start_all, tv_end_all;
-	gettimeofday(&tv_start_all, NULL);
-	struct timeval tv_start, tv_end;
+	{
+		Timer time;
+		regularizeDepthMapFillHoles();
+		_perf.fillHoles.update( time );
+	}
 
-	gettimeofday(&tv_start, NULL);
-	regularizeDepthMapFillHoles();
-	gettimeofday(&tv_end, NULL);
-	msFillHoles = 0.9*msFillHoles + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nFillHoles++;
 
-	gettimeofday(&tv_start, NULL);
+	{
+		Timer time;
 	regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
-	gettimeofday(&tv_end, NULL);
-	msRegularize = 0.9*msRegularize + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nRegularize++;
+		_perf.regularize.update( time );
+	}
 
-	gettimeofday(&tv_start, NULL);
-	activeKeyFrame->setDepth(currentDepthMap);
-	activeKeyFrame->calculateMeanInformation();
-	activeKeyFrame->takeReActivationData(currentDepthMap);
-	gettimeofday(&tv_end, NULL);
-	msSetDepth = 0.9*msSetDepth + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
-	nSetDepth++;
+	{
+		Timer time;
+		activeKeyFrame->setDepth(currentDepthMap);
+		activeKeyFrame->calculateMeanInformation();
+		activeKeyFrame->takeReActivationData(currentDepthMap);
+		_perf.setDepth.update( time );
+	}
 
-	gettimeofday(&tv_end_all, NULL);
-	msFinalize = 0.9*msFinalize + 0.1*((tv_end_all.tv_sec-tv_start_all.tv_sec)*1000.0f + (tv_end_all.tv_usec-tv_start_all.tv_usec)/1000.0f);
-	nFinalize++;
+	_perf.finalize.update( timeAll );
 }
 
 

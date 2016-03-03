@@ -262,7 +262,7 @@ void SlamSystem::finalize()
 
 void SlamSystem::constraintSearchThreadLoop()
 {
-	printf("Started constraint search thread!\n");
+	LOG(INFO) << "Started constraint search thread!";
 
 	std::unique_lock<std::mutex> lock(newKeyFrameMutex);
 	int failedToRetrack = 0;
@@ -312,13 +312,15 @@ void SlamSystem::constraintSearchThreadLoop()
 			newKeyFrames.pop_front();
 			lock.unlock();
 
-			Timer timer;
 
-			findConstraintsForNewKeyFrames(newKF, true, true, 1.0);
-			failedToRetrack=0;
+			{
+				Timer timer;
 
-			_perf.findConstraintMs.update( timer );
-			_perf.findConstraintIter.increment();
+				findConstraintsForNewKeyFrames(newKF, true, true, 1.0);
+				failedToRetrack=0;
+
+				_perf.findConstraint.update( timer );
+			}
 
 			FrameMemory::getInstance().pruneActiveFrames();
 			lock.lock();
@@ -328,7 +330,7 @@ void SlamSystem::constraintSearchThreadLoop()
 		if(doFullReConstraintTrack)
 		{
 			lock.unlock();
-			printf("Optizing Full Map!\n");
+			LOG(INFO) << "Optizing Full Map!";
 
 			int added = 0;
 			for(unsigned int i=0;i<keyFrameGraph->keyframesAll.size();i++)
@@ -337,7 +339,7 @@ void SlamSystem::constraintSearchThreadLoop()
 					added += findConstraintsForNewKeyFrames(keyFrameGraph->keyframesAll[i], false, false, 1.0);
 			}
 
-			printf("Done optizing Full Map! Added %d constraints.\n", added);
+			LOG(INFO) << "Done optizing Full Map! Added " << added << " constraints.";
 
 			doFullReConstraintTrack = false;
 
@@ -349,7 +351,7 @@ void SlamSystem::constraintSearchThreadLoop()
 
 	}
 
-	printf("Exited constraint search thread \n");
+	LOG(INFO) << "Exited constraint search thread";
 }
 
 void SlamSystem::optimizationThreadLoop()
@@ -509,8 +511,7 @@ void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
 	{
 		Timer timer;
 		newReferenceKF = trackableKeyFrameSearch->findRePositionCandidate(newKeyframeCandidate.get(), maxScore);
-		_perf.findReferencesMs.update( timer );
-		_perf.findReferences.increment();
+		_perf.findReferences.update( timer );
 	}
 
 	if(newReferenceKF != 0)
@@ -616,30 +617,22 @@ void SlamSystem::addTimingSamples()
 	float sPassed = timeLastUpdate.reset();
 	if(sPassed > 1.0f)
 	{
-		_perf.trackedFrames.update( sPassed );
-		_perf.optimizationIter.update( sPassed );
-		_perf.findReferences.update(  sPassed );
 
 		if(trackableKeyFrameSearch != 0)
 		{
 			trackableKeyFrameSearch->nAvgTrackPermaRef = 0.8*trackableKeyFrameSearch->nAvgTrackPermaRef + 0.2*(trackableKeyFrameSearch->nTrackPermaRef / sPassed); trackableKeyFrameSearch->nTrackPermaRef = 0;
 		}
 
-		_perf.findConstraintIter.update( sPassed );
-		_perf.optimizationIter.update(  sPassed );
-
-
-
 		if(enablePrintDebugInfo && printOverallTiming)
 		{
 			printf("MapIt: %3.1fms (%.1fHz); Track: %3.1fms (%.1fHz); Create: %3.1fms (%.1fHz); FindRef: %3.1fms (%.1fHz); PermaTrk: %3.1fms (%.1fHz); Opt: %3.1fms (%.1fHz); FindConst: %3.1fms (%.1fHz);\n",
-					map->msUpdate, map->nAvgUpdate,
-					_perf.trackFrameMs(), _perf.trackedFrames(),
-					map->msCreate+map->msFinalize, map->nAvgCreate,
-					_perf.findReferencesMs(), _perf.findReferences(),
+					map->_perf.update.ms(), map->_perf.update.rate(),
+					_perf.trackFrame.ms(), _perf.trackFrame.rate(),
+					map->_perf.create.ms()+map->_perf.finalize.ms(), map->_perf.create.rate(),
+					_perf.findReferences.ms(), _perf.findReferences.rate(),
 					trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->msTrackPermaRef : 0, trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->nAvgTrackPermaRef : 0,
-					_perf.optimizationMs(), _perf.optimizationIter(),
-					_perf.findConstraintMs(), _perf.findConstraintIter() );
+					_perf.optimization.ms(), _perf.optimization.rate(),
+					_perf.findConstraint.ms(), _perf.findConstraint.rate() );
 		}
 	}
 
@@ -660,8 +653,8 @@ void SlamSystem::debugDisplayDepthMap()
 
 
 	snprintf(buf1,200,"Map: Upd %3.0fms (%2.0fHz); Trk %3.0fms (%2.0fHz); %d / %d / %d",
-			map->msUpdate, map->nAvgUpdate,
-			_perf.trackFrameMs(), _perf.trackedFrames(),
+			map->_perf.update.ms(), map->_perf.update.rate(),
+			_perf.trackFrame.ms(), _perf.trackFrame.rate(),
 			currentKeyFrame->numFramesTrackedOnThis, currentKeyFrame->numMappedOnThis, (int)unmappedTrackedFrames.size());
 
 	snprintf(buf2,200,"dens %2.0f%%; good %2.0f%%; scale %2.2f; res %2.1f/; usg %2.0f%%; Map: %d F, %d KF, %d E, %.1fm Pts",
@@ -940,7 +933,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 			trackingNewFrame.get(),
 			frameToReference_initialEstimate);
 
-	_perf.trackFrameMs.update( timer );
+	_perf.trackFrame.update( timer );
 
 	tracking_lastResidual = tracker->lastResidual;
 	tracking_lastUsage = tracker->pointUsage;
@@ -1661,7 +1654,7 @@ bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
 
 
 
-	_perf.optimizationMs.update( timer );
+	_perf.optimization.update( timer );
 
 	return maxChange > minChange && its == itsPerTry;
 }

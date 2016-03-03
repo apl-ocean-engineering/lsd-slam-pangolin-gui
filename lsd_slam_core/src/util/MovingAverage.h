@@ -61,3 +61,34 @@ struct CountRateAverage : public MovingAverage {
 protected:
   int _count;
 };
+
+struct MsRateAverage {
+  MsRateAverage( void )
+  {;}
+
+  void update( const Timer &timer )
+  {
+    _ms.update( timer );
+    _rate.increment();
+  }
+
+  float ms( void ) const { return _ms.value(); }
+
+  float rate( void  )
+  {
+    float dt = _timer.stop();
+    if( dt > 1.0 ) {
+      _timer.reset();
+      _rate.update( dt );
+    }
+
+    return _rate.value();
+  }
+
+protected:
+
+  MsAverage _ms;
+  CountRateAverage _rate;
+  Timer _timer;
+
+};

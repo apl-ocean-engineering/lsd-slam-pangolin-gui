@@ -127,8 +127,7 @@ public:
 	struct PerformanceData {
 		PerformanceData( void ) {;}
 
-		CountRateAverage trackedFrames, optimizationIter, findConstraintIter, findReferences;
-		MsAverage        trackFrameMs,  optimizationMs,   findConstraintMs,   findReferencesMs;
+		MsRateAverage optimization, findConstraint, trackFrame, findReferences;
 	} _perf;
 
 	Timer timeLastUpdate;
