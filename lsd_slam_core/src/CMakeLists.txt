@@ -12,6 +12,11 @@ find_package(G2O REQUIRED)
 find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 find_package(TCLAP REQUIRED )
 
+# g3log
+add_subdirectory( ${PROJECT_SOURCE_DIR}/thirdparty/g3log )
+set( G3LOG_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/g3log/src)
+set( G3LOG_LIB g3logger_shared )
+
 # FabMap
 # uncomment this part to enable fabmap
 #add_subdirectory(${PROJECT_SOURCE_DIR}/thirdparty/openFabMap)
@@ -109,6 +114,7 @@ include_directories(
   ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
   ${ZED_CAMERA_INCLUDE_DIRS}
   ${TCLAP_INCLUDE_DIR}
+  ${G3LOG_INCLUDE_DIR}
 )
 
 # build shared library.
@@ -125,7 +131,7 @@ target_link_libraries(lsdslam
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
   cxsparse
-  g3logger_shared )
+  ${G3LOG_LIB} )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries( lsdslam
