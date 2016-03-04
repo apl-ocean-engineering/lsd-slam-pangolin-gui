@@ -60,6 +60,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter, 
     double hz = 30;
 
     int numFrames = dataSource->numFrames();
+    LOG_IF( INFO, numFrames > 0 ) << "Running for " << numFrames << " frames";
 
     cv::Mat image = cv::Mat(system->conf().slamImage.cvSize(), CV_8U);
     int runningIDX=0;
@@ -113,6 +114,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter, 
         }
     }
 
+    LOG(INFO) << "Have processed all input frames.";
     lsdDone.assignValue(true);
 }
 
@@ -251,6 +253,7 @@ int main( int argc, char** argv )
 	{
     if(lsdDone.getValue() && !system->finalized)
     {
+        LOG(INFO) << "Input finished, finalizing system.";
         system->finalize();
     }
 

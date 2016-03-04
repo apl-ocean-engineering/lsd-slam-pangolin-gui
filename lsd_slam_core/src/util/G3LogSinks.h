@@ -19,7 +19,7 @@ struct ColorStderrSink {
   void ReceiveLogMessage(g3::LogMessageMover logEntry) {
      auto level = logEntry.get()._level;
 
-     if( level.value > INFO.value ) {
+     if( level.value >= INFO.value ) {
       auto color = GetColor(level);
 
         std::cerr << "\033[" << color << "m"
