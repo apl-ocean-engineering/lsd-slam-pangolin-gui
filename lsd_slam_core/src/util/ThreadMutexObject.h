@@ -8,9 +8,12 @@
 #ifndef THREADMUTEXOBJECT_H_
 #define THREADMUTEXOBJECT_H_
 
+#include <mutex>
+#include <condition_variable>
+
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/condition_variable.hpp>
+// #include <boost/thread/condition_variable.hpp>
 
 template <class T>
 class ThreadMutexObject
@@ -24,16 +27,15 @@ class ThreadMutexObject
            lastCopy(initialValue)
         {}
 
+        typedef std::lock_guard<std::mutex> scoped_lock;
+
         void assignValue(T newValue)
         {
-            boost::mutex::scoped_lock lock(mutex);
-
+            scoped_lock lock(mutex);
             object = lastCopy = newValue;
-
-            lock.unlock();
         }
 
-        boost::mutex & getMutex()
+        std::mutex & getMutex()
         {
             return mutex;
         }
@@ -45,88 +47,94 @@ class ThreadMutexObject
 
         void assignAndNotifyAll(T newValue)
         {
-            boost::mutex::scoped_lock lock(mutex);
-
-            object = newValue;
-
+            {
+              scoped_lock lock(mutex);
+              object = newValue;
+            }
             signal.notify_all();
 
-            lock.unlock();
         }
-        
+
         void notifyAll()
         {
-            boost::mutex::scoped_lock lock(mutex);
-
+            // std::lock_guard lock(mutex);
             signal.notify_all();
-
-            lock.unlock();
         }
 
         T getValue()
         {
-            boost::mutex::scoped_lock lock(mutex);
-
+            scoped_lock lock(mutex);
             lastCopy = object;
-
-            lock.unlock();
-
             return lastCopy;
         }
 
         T waitForSignal()
         {
-            boost::mutex::scoped_lock lock(mutex);
-
-            signal.wait(mutex);
-
-            lastCopy = object;
-
-            lock.unlock();
-
-            return lastCopy;
+          scoped_lock lock(mutex);
+          signal.wait(mutex);
+          lastCopy = object;
+          return lastCopy;
         }
 
         T getValueWait(int wait = 33000)
         {
             boost::this_thread::sleep(boost::posix_time::microseconds(wait));
-
-            boost::mutex::scoped_lock lock(mutex);
-
+            scoped_lock lock(mutex);
             lastCopy = object;
-
-            lock.unlock();
-
             return lastCopy;
         }
 
         T & getReferenceWait(int wait = 33000)
         {
             boost::this_thread::sleep(boost::posix_time::microseconds(wait));
-
-            boost::mutex::scoped_lock lock(mutex);
-
+            scoped_lock lock(mutex);
             lastCopy = object;
-
-            lock.unlock();
-
             return lastCopy;
         }
 
         void operator++(int)
         {
-            boost::mutex::scoped_lock lock(mutex);
-
+            scoped_lock lock(mutex);
             object++;
-
-            lock.unlock();
         }
 
     private:
         T object;
         T lastCopy;
-        boost::mutex mutex;
-        boost::condition_variable_any signal;
+        std::mutex mutex;
+        std::condition_variable_any signal;
 };
+
+// Simplified version which only handles synchronization (no access to
+//  stored value)
+class ThreadSynchronizer  {
+public:
+  ThreadSynchronizer( void )
+    : _ready(false)
+  {;}
+
+  void notify( void )
+  {
+      {
+        std::lock_guard<std::mutex> lk(_mutex);
+        _ready = true;
+      }
+    _cv.notify_all();
+  }
+
+  void wait( void )
+  {
+    std::unique_lock<std::mutex> lk(_mutex);
+    while(!_ready) {_cv.wait(lk); }
+  }
+
+private:
+
+  bool _ready;
+  std::mutex _mutex;
+  std::condition_variable _cv;
+
+};
+
 
 #endif /* THREADMUTEXOBJECT_H_ */

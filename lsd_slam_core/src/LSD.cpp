@@ -18,231 +18,176 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LiveSLAMWrapper.h"
+#include <opencv2/opencv.hpp>
 
 #include <boost/thread.hpp>
+
+#include <tclap/CmdLine.h>
+
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
+#include "util/G3LogSinks.h"
+
 #include "util/settings.h"
 #include "util/Parse.h"
 #include "util/globalFuncs.h"
 #include "util/ThreadMutexObject.h"
-#include "IOWrapper/Pangolin/PangolinOutput3DWrapper.h"
-#include "SlamSystem.h"
-
-#include <sstream>
-#include <fstream>
-#include <dirent.h>
-#include <algorithm>
-
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
-
-#include "util/Undistorter.h"
-#include "util/RawLogReader.h"
-
-#include "util/FileUtils.h"
-
-#include "opencv2/opencv.hpp"
-
-#include "GUI.h"
 #include "util/Configuration.h"
 
-std::vector<std::string> files;
-
-ThreadMutexObject<bool> lsdDone(false);
-RawLogReader * logReader = 0;
-int numFrames = 0;
+#include <LSD.h>
 
 using namespace lsd_slam;
 
-void run(SlamSystem * system, Undistorter* undistorter, GUI *gui )
-{
-    // get HZ
-    double hz = 30;
+ThreadMutexObject<bool> lsdDone(false), guiDone(false);
 
-    cv::Mat image = cv::Mat(system->conf().slamImage.cvSize(), CV_8U);
-    int runningIDX=0;
-    float fakeTimeStamp = 0;
-
-    for(unsigned int i = 0; i < numFrames; i++)
-    {
-        if(lsdDone.getValue()) break;
-
-        cv::Mat imageDist = cv::Mat( system->conf().inputImage.cvSize(), CV_8U);
-
-        if(logReader)
-        {
-            logReader->getNext();
-
-            cv::Mat3b img( system->conf().inputImage.height, system->conf().inputImage.width, (cv::Vec3b *)logReader->rgb);
-
-            cv::cvtColor(img, imageDist, CV_RGB2GRAY);
-        }
-        else
-        {
-            imageDist = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
-
-            if(imageDist.rows != system->conf().inputImage.cvSize().height ||
-               imageDist.cols != system->conf().inputImage.cvSize().width )
-            {
-                if(imageDist.rows * imageDist.cols == 0)
-                    printf("failed to load image %s! skipping.\n", files[i].c_str());
-                else
-                    printf("image %s has wrong dimensions - expecting %d x %d, found %d x %d. Skipping.\n",
-                            files[i].c_str(),
-                            system->conf().inputImage.cvSize().width,
-                            system->conf().inputImage.cvSize().height,
-                            imageDist.cols, imageDist.rows);
-                continue;
-            }
-        }
-
-        CHECK(imageDist.type() == CV_8U);
-
-        undistorter->undistort(imageDist, image);
-
-        CHECK(image.type() == CV_8U);
-
-        if(runningIDX == 0)
-        {
-            system->randomInit(image.data, fakeTimeStamp, runningIDX);
-        }
-        else
-        {
-            system->trackFrame(image.data, runningIDX, hz == 0, fakeTimeStamp);
-        }
-
-        gui->pose.assignValue(system->getCurrentPoseEstimateScale());
-        gui->updateFrameNumber( runningIDX );
-        gui->updateLiveImage( image.data );
-
-        runningIDX++;
-        fakeTimeStamp+=0.03;
-
-        if(fullResetRequested)
-        {
-            SlamSystem *newSystem = new SlamSystem( system->conf(), system->SLAMEnabled );
-            newSystem->set3DOutputWrapper( system->get3DOutputWrapper() );
-
-            LOG(WARNING) << "FULL RESET!";
-            delete system;
-
-            system = newSystem;
-
-            fullResetRequested = false;
-            runningIDX = 0;
-        }
-    }
-
-    lsdDone.assignValue(true);
-}
+ThreadSynchronizer lsdReady, guiReady, startAll;
 
 int main( int argc, char** argv )
 {
   auto worker = g3::LogWorker::createLogWorker();
   auto handle = worker->addDefaultLogger(argv[0], ".");
+  auto stderrHangle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
+                                       &ColorStderrSink::ReceiveLogMessage);
+
+
   g3::initializeLogging(worker.get());
   std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
   std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
 
   LOG(INFO) << "Starting log.";
 
+  DataSource *dataSource = NULL;
+  Undistorter* undistorter = NULL;
+
   Configuration conf;
-  GUI gui( conf );
 
-	// get camera calibration in form of an undistorter object.
-	// if no undistortion is required, the undistorter will just pass images through.
-	std::string calibFile;
-	Undistorter* undistorter = 0;
+  bool doGui = true;
 
-	if(Parse::arg(argc, argv, "-c", calibFile) > 0)
-	{
-		 undistorter = Undistorter::getUndistorterForFile(calibFile.c_str());
-	}
+    try {
+      TCLAP::CmdLine cmd("LSD", ' ', "0.1");
 
-	if(undistorter == 0)
-	{
-		printf("need camera calibration file! (set using -c FILE)\n");
-		exit(0);
-	}
+      TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
+#ifdef USE_ZED
+      TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
+      TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
+      TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
+#endif
+      TCLAP::SwitchArg noGuiSwitch("","no-gui","Use stereo data", cmd, false);
+
+      TCLAP::UnlabeledMultiArg<std::string> imageFilesArg("input-files","Name of image files / directories to read", false, "Files or directories", cmd );
+
+      cmd.parse(argc, argv );
+
+    	// if( svoFileArg.isSet() > 0)
+    	// {
+      //   LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
+      //   camera = new sl::zed::Camera( svoFileArg.getValue() );
+      //   numFrames = camera->getSVONumberOfFrames();
+    	// } else {
+      //   LOG(INFO) << "Using live Zed data";
+      //   camera = new sl::zed::Camera( zedResolution );
+      //   numFrames = -1;
+      // }
+      //
+
+#ifdef USE_ZED
+      if( zedSwitch.getValue() || svoFileArg.isSet() ) {
+        if( stereoSwitch.getValue() ) {
+          LOG(INFO) << "Using stereo data from Stereolabs libraries";
+          conf.doStereo = Configuration::STEREO_ZED;
+        }
+
+        const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
+        const sl::zed::MODE zedMode = ( conf.doStereo == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
+        const int whichGpu = -1;
+        const bool verboseInit = true;
+
+        sl::zed::Camera *camera = NULL;
+
+        if( svoFileArg.isSet() )
+      	{
+          LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
+          camera = new sl::zed::Camera( svoFileArg.getValue() );
+      	} else {
+          LOG(INFO) << "Using live Zed data";
+          camera = new sl::zed::Camera( zedResolution );
+          conf.stopOnFailedRead = false;
+        }
+
+
+
+        sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
+        if (err != sl::zed::SUCCESS) {
+          LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
+          delete camera;
+          exit(-1);
+        }
+
+        const ImageSize cropSize( 1920, 1056 );
+        const SlamImageSize slamSize( cropSize.width / 2, cropSize.height / 2 );
+
+        dataSource = new ZedSource( camera );
+        undistorter = new UndistorterZED( camera, cropSize, slamSize );
+      } else
+#endif
+      {
+        std::vector< std::string > imageFiles = imageFilesArg.getValue();
+        dataSource = new ImagesSource( imageFiles );
+
+        if( !calibFileArg.isSet() ) {
+          LOG(WARNING) << "Must specify camera calibration!";
+          exit(-1);
+        }
+
+        undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
+
+      }
+
+      doGui = !noGuiSwitch.getValue();
+
+    } catch (TCLAP::ArgException &e)  // catch any exceptions
+  	{
+      LOG(WARNING) << "error: " << e.error() << " for arg " << e.argId();
+      exit(-1);
+    }
+
+  CHECK( undistorter != NULL ) << "Undistorter doesn't exist.";
+  CHECK( dataSource != NULL ) << "Data source doesn't exist.";
 
   conf.inputImage = ImageSize( undistorter->getInputWidth(), undistorter->getInputHeight() );
   conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );
   conf.camera     = Camera( undistorter->getK() );
 
+	SlamSystem * system = new SlamSystem(conf, doSlam);
 
-	gui.initImages();
+  if( doGui ) {
+    boost::thread guiThread(runGui, system );
+    guiReady.wait();
+  }
 
-	Output3DWrapper* outputWrapper = new PangolinOutput3DWrapper( conf, gui );
+  boost::thread lsdThread(run, system, dataSource, undistorter );
+  lsdReady.wait();
+
+  // Wait for threads to be ready.
+  startAll.notify();
+
+
+  while(true)
+  {
+      if( (lsdDone.getValue() || guiDone.getValue()) && !system->finalized)
+      {
+          LOG(INFO) << "Finalizing system.";
+          system->finalize();
+      }
+
+    sleep(1);
+  }
 
 	// make slam system
-	SlamSystem * system = new SlamSystem(conf, doSlam);
-	system->set3DOutputWrapper( outputWrapper );
 
-
-	// open image files: first try to open as file.
-	std::string source;
-	if(!(Parse::arg(argc, argv, "-f", source) > 0))
-	{
-		printf("need source files! (set using -f FOLDER or KLG)\n");
-		exit(0);
-	}
-
-	Bytef * decompressionBuffer = new Bytef[conf.inputImage.area() * 2];
-    IplImage * deCompImage = 0;
-
-    if(source.substr(source.find_last_of(".") + 1) == "klg")
-    {
-        logReader = new RawLogReader( conf.inputImage,
-                                      decompressionBuffer,
-                                     deCompImage,
-                                     source);
-
-        numFrames = logReader->getNumFrames();
-    }
-    else
-    {
-        if(getdir(source, files) >= 0)
-        {
-            printf("found %d image files in folder %s!\n", (int)files.size(), source.c_str());
-        }
-        else if(getFile(source, files) >= 0)
-        {
-            printf("found %d image files in file %s!\n", (int)files.size(), source.c_str());
-        }
-        else
-        {
-            printf("could not load file list! wrong path / file?\n");
-        }
-
-        numFrames = (int)files.size();
-    }
-
-	boost::thread lsdThread(run, system, undistorter, &gui );
-
-	while(!pangolin::ShouldQuit())
-	{
-    if(lsdDone.getValue() && !system->finalized)
-    {
-        system->finalize();
-    }
-
-    gui.preCall();
-
-    gui.drawKeyframes();
-
-    gui.drawFrustum();
-
-    gui.drawImages();
-
-    gui.postCall();
-	}
-
-	lsdDone.assignValue(true);
-
-	lsdThread.join();
-
-  delete system;
-  delete undistorter;
-  delete outputWrapper;
+  if( system ) delete system;
+  if( undistorter ) delete undistorter;
+  // if( outputWrapper ) delete outputWrapper;
+  // if( gui ) delete gui;
   return 0;
 }

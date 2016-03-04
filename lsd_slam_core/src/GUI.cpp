@@ -62,16 +62,16 @@ GUI::~GUI()
     if(liveImgBuffer.getValue())
         delete [] liveImgBuffer.getValue();
 
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
-
-    for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
     {
-        delete i->second;
+      std::lock_guard<std::mutex> lock(keyframes.getMutex());
+
+      for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
+      {
+          delete i->second;
+      }
+
+      keyframes.getReference().clear();
     }
-
-    keyframes.getReference().clear();
-
-    lock.unlock();
 
     delete totalPoints;
     delete gpuMem;
@@ -89,14 +89,14 @@ void GUI::initImages()
 
 void GUI::updateDepthImage(unsigned char * data)
 {
-  boost::lock_guard<boost::mutex> lock(depthImgBuffer.getMutex());
+  std::lock_guard<std::mutex> lock(depthImgBuffer.getMutex());
   memcpy(depthImgBuffer.getReference(), data, _conf.slamImage.area() * 3);
 }
 
 // Expects CV_8UC1 data
 void GUI::updateLiveImage(unsigned char * data)
 {
-  boost::lock_guard<boost::mutex> lock(liveImgBuffer.getMutex());
+  std::lock_guard<std::mutex> lock(liveImgBuffer.getMutex());
   memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
 }
 
@@ -107,7 +107,7 @@ void GUI::updateFrameNumber( int fn )
 
 void GUI::addKeyframe(Keyframe * newFrame)
 {
-  boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
+  std::lock_guard<std::mutex> lock(keyframes.getMutex());
 
   //Exists
   if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
@@ -125,7 +125,7 @@ void GUI::addKeyframe(Keyframe * newFrame)
 
 void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
 {
-  boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
+  std::lock_guard<std::mutex> lock(keyframes.getMutex());
 
   for(int i = 0; i < num; i++)
   {
@@ -151,7 +151,7 @@ void GUI::preCall()
 void GUI::drawImages()
 {
     {
-      boost::lock_guard<boost::mutex> lock(depthImgBuffer.getMutex());
+      std::lock_guard<std::mutex> lock(depthImgBuffer.getMutex());
       depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
     }
 
@@ -159,7 +159,7 @@ void GUI::drawImages()
     depthImg->RenderToViewport(true);
 
     {
-      boost::lock_guard<boost::mutex> lock(liveImgBuffer.getMutex());
+      std::lock_guard<std::mutex> lock(liveImgBuffer.getMutex());
       liveImg->Upload(liveImgBuffer.getReference(), GL_LUMINANCE, GL_UNSIGNED_BYTE);
     }
 
@@ -169,7 +169,7 @@ void GUI::drawImages()
 
 void GUI::drawKeyframes()
 {
-    boost::lock_guard<boost::mutex> lock(keyframes.getMutex());
+   std::lock_guard<std::mutex> lock(keyframes.getMutex());
 
     glEnable(GL_MULTISAMPLE);
     glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);

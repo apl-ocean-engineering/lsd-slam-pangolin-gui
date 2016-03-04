@@ -20,11 +20,8 @@
 
 #include "Undistorter.h"
 
-#include <sstream>
 #include <fstream>
 
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 #include "util/settings.h"
 
 namespace lsd_slam
@@ -34,22 +31,20 @@ Undistorter::~Undistorter()
 {
 }
 
-Undistorter* Undistorter::getUndistorterForFile(const char* configFilename)
+Undistorter* Undistorter::getUndistorterForFile(const std::string &configFilename)
 {
-	std::string completeFileName = configFilename;
-
-	printf("Reading Calibration from file %s",completeFileName.c_str());
+	printf("Reading Calibration from file %s",configFilename.c_str());
 
 
-	std::ifstream f(completeFileName.c_str());
+	std::ifstream f(configFilename.c_str());
 	if (!f.good())
 	{
 		f.close();
 
-		completeFileName = packagePath+"calib/"+configFilename;
-		printf(" ... not found!\n Trying %s", completeFileName.c_str());
+		std::string altFilename = packagePath+"calib/"+configFilename;
+		printf(" ... not found!\n Trying %s", altFilename.c_str());
 
-		f.open(completeFileName.c_str());
+		f.open(altFilename.c_str());
 
 		if (!f.good())
 		{
@@ -73,14 +68,14 @@ Undistorter* Undistorter::getUndistorterForFile(const char* configFilename)
 			&ic[5], &ic[6], &ic[7]) == 8)
 	{
 		printf("found OpenCV camera model, building rectifier.\n");
-		Undistorter* u = new UndistorterOpenCV(completeFileName.c_str());
+		Undistorter* u = new UndistorterOpenCV(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
 	}
 	else
 	{
 		printf("found ATAN camera model, building rectifier.\n");
-		Undistorter* u = new UndistorterPTAM(completeFileName.c_str());
+		Undistorter* u = new UndistorterPTAM(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
 	}

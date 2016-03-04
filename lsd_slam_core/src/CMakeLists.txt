@@ -90,6 +90,7 @@ set(lsdslam_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/GUI.cpp
   ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMap.cpp
   ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMapPixelHypothesis.cpp
+  ${PROJECT_SOURCE_DIR}/util/FileUtils.cpp
   ${PROJECT_SOURCE_DIR}/util/globalFuncs.cpp
   ${PROJECT_SOURCE_DIR}/util/SophusUtil.cpp
   ${PROJECT_SOURCE_DIR}/util/settings.cpp
@@ -133,7 +134,7 @@ target_link_libraries(lsdslam
   ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
-                   ${ZED_CAMERA_LIBRARIES} 
+                   ${ZED_CAMERA_LIBRARIES}
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
@@ -149,12 +150,14 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF()
 
 # build image node
-add_executable(LSD LSD.cpp)
+add_executable(LSD LSD.cpp
+  LSDGuiThread.cpp
+  LSDMainThread.cpp)
 target_link_libraries(LSD lsdslam )
 
-if( USE_ZED_CAMERA )
-  add_executable(LSD_Zed LSD_Zed.cpp)
-
-  target_link_libraries(LSD_Zed lsdslam )
-
-endif()
+# if( USE_ZED_CAMERA )
+#   add_executable(LSD_Zed LSD_Zed.cpp)
+#
+#   target_link_libraries(LSD_Zed lsdslam )
+#
+# endif()

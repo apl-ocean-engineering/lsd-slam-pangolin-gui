@@ -1,5 +1,5 @@
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/core.hpp>
 
 #include <g3log/g3log.hpp>            // Provides CHECK() macros
 
@@ -51,7 +51,7 @@ struct SlamImageSize : public ImageSize {
     CHECK(     w!=0 && h!=0 ) << "Height or width set to zero!";
   }
 
-  SlamImageSize &operator=(const ImageSize &other) { width = other.width; height = other.height; }
+  SlamImageSize &operator=(const ImageSize &other) { width = other.width; height = other.height; return *this; }
 };
 
 struct Camera {
@@ -97,7 +97,7 @@ struct Camera {
                     (cy+0.5) * scale - 0.5);
   }
 
-  Camera scale( float xscale, float yscale ) const 
+  Camera scale( float xscale, float yscale ) const
   {
     return Camera( fx*xscale, fy*yscale,
                     (cx+0.5) * xscale - 0.5,
@@ -126,11 +126,18 @@ private:
 class Configuration {
 public:
 
-  Configuration() {;}
+  Configuration() :
+    doStereo( NO_STEREO ),
+    stopOnFailedRead( true )
+  {;}
 
   ImageSize inputImage;
   SlamImageSize slamImage;
   Camera camera;
+
+  enum { NO_STEREO, STEREO_ZED } doStereo;
+
+  bool stopOnFailedRead;
 
 protected:
 
