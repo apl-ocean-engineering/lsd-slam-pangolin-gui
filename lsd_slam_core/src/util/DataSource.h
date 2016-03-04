@@ -39,6 +39,8 @@ public:
   virtual int getImage( cv::Mat &mat ) { return getImage( 0, mat ); }
 
   float fps( void ) const { return _fps; }
+  void setFPS( float f ) { _fps = f; }
+
 
 protected:
 
@@ -87,8 +89,6 @@ public:
     mat = cv::imread( _paths[_idx].string(), CV_LOAD_IMAGE_GRAYSCALE );
     return _idx;
   }
-
-  void setFPS( float f ) { _fps = f; }
 
 protected:
 
