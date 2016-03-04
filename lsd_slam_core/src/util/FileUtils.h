@@ -2,9 +2,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <fstream>
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
-
 #include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 

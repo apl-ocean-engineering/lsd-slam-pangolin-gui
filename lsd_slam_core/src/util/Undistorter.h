@@ -21,7 +21,7 @@
 #ifndef _UNDISTORTER_HPP_
 #define _UNDISTORTER_HPP_
 
-#include <OpenCV2/core/core.hpp>
+#include <opencv2/core/core.hpp>
 
 #include "Configuration.h"
 

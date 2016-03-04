@@ -133,7 +133,7 @@ target_link_libraries(lsdslam
   ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
-                   ${ZED_CAMERA_LIBRARIES} 
+                   ${ZED_CAMERA_LIBRARIES}
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
@@ -152,9 +152,9 @@ ENDIF()
 add_executable(LSD LSD.cpp)
 target_link_libraries(LSD lsdslam )
 
-if( USE_ZED_CAMERA )
-  add_executable(LSD_Zed LSD_Zed.cpp)
-
-  target_link_libraries(LSD_Zed lsdslam )
-
-endif()
+# if( USE_ZED_CAMERA )
+#   add_executable(LSD_Zed LSD_Zed.cpp)
+#
+#   target_link_libraries(LSD_Zed lsdslam )
+#
+# endif()

@@ -51,7 +51,6 @@ ThreadMutexObject<bool> lsdDone(false);
 int numFrames = 0;
 
 sl::zed::Camera *camera = NULL;
-enum { NO_STEREO, STEREO_ZED } doStereo = NO_STEREO;
 
 using namespace lsd_slam;
 

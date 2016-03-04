@@ -10,6 +10,9 @@
 #include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 
+#ifdef USE_ZED
+#include <zed/Camera.hpp>
+#endif
 #include "util/FileUtils.h"
 
 
@@ -25,7 +28,7 @@ public:
   DataSource &operator=( const DataSource & ) = delete;
 
   bool hasDepth( void ) const { return _hasDepth; }
-  bool numImages( void ) const { return _numImages; }
+  int numImages( void ) const { return _numImages; }
 
   virtual int numFrames( void ) const = 0;
 
@@ -38,7 +41,7 @@ public:
 protected:
 
   int _numImages;
-  int _hasDepth;
+  bool _hasDepth;
 
 };
 
@@ -92,6 +95,48 @@ protected:
 
 #ifdef USE_ZED
 class ZedSource : public DataSource {
+public:
+
+  ZedSource( sl::zed::Camera *camera, bool doComputeDepth = false, sl::zed::SENSING_MODE mode = sl::zed::RAW )
+    :_cam( camera ),
+     _mode( mode ),
+     _computeDepth( doComputeDepth )
+
+  {
+    CHECK( _cam );
+    _numImages = 2;
+    _hasDepth = true;
+  }
+
+  ZedSource( const ZedSource & ) = delete;
+  ZedSource &operator=( const ZedSource & ) = delete;
+
+  virtual int numFrames( void ) const { return _cam->getSVONumberOfFrames(); };
+
+  virtual int grab( void )
+  {
+    if( _cam->grab( _mode, _computeDepth, _computeDepth ) ) {
+      LOG( WARNING ) << "Error from Zed::grab";
+      return -1;
+    }
+  }
+
+  virtual int getImage( int i, cv::Mat &mat )
+  {
+    if( i == 0 )
+      mat = sl::zed::slMat2cvMat( _cam->getView( sl::zed::STEREO_LEFT ) );
+    else if( i == 1 )
+      mat = sl::zed::slMat2cvMat( _cam->getView( sl::zed::STEREO_RIGHT ) );
+
+    return 0;
+  }
+
+protected:
+
+  sl::zed::Camera *_cam;
+  sl::zed::SENSING_MODE _mode;
+  bool _computeDepth;
+
 
 };
 #endif

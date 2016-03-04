@@ -47,6 +47,7 @@
 // std::vector<std::string> files;
 
 ThreadMutexObject<bool> lsdDone(false);
+
 // RawLogReader * logReader = 0;
 
 using namespace lsd_slam;
@@ -68,39 +69,13 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter, 
 
         cv::Mat imageDist = cv::Mat( system->conf().inputImage.cvSize(), CV_8U);
 
-        // if(logReader)
-        // {
-        //     logReader->getNext();
-        //
-        //     cv::Mat3b img( system->conf().inputImage.height, system->conf().inputImage.width, (cv::Vec3b *)logReader->rgb);
-        //
-        //     cv::cvtColor(img, imageDist, CV_RGB2GRAY);
-        // }
-        // else
-        // {
-        //     imageDist = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
-        //
-        //     if(imageDist.rows != system->conf().inputImage.cvSize().height ||
-        //        imageDist.cols != system->conf().inputImage.cvSize().width )
-        //     {
-        //         if(imageDist.rows * imageDist.cols == 0)
-        //             printf("failed to load image %s! skipping.\n", files[i].c_str());
-        //         else
-        //             printf("image %s has wrong dimensions - expecting %d x %d, found %d x %d. Skipping.\n",
-        //                     files[i].c_str(),
-        //                     system->conf().inputImage.cvSize().width,
-        //                     system->conf().inputImage.cvSize().height,
-        //                     imageDist.cols, imageDist.rows);
-        //         continue;
-        //     }
-        // }
-
-        if( dataSource->grab() < 0 ) break;
+        if( dataSource->grab() < 0 )
+          if( system->conf().stopOnFailedRead )
+            break;
+          else
+            continue;
 
         dataSource->getImage( imageDist );
-
-        CHECK(imageDist.type() == CV_8U);
-
         undistorter->undistort(imageDist, image);
 
         CHECK(image.type() == CV_8U);
@@ -152,16 +127,18 @@ int main( int argc, char** argv )
   DataSource *dataSource = NULL;
   Undistorter* undistorter = NULL;
 
+  Configuration conf;
+
   bool doGui = true;
 
     try {
       TCLAP::CmdLine cmd("LSD", ' ', "0.1");
 
       TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
-      // TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
 #ifdef USE_ZED
       TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
       TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
+      TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
 #endif
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Use stereo data", cmd, false);
 
@@ -180,15 +157,16 @@ int main( int argc, char** argv )
       //   numFrames = -1;
       // }
       //
-      // if( stereoSwitch.getValue() ) {
-      //   LOG(INFO) << "Using stereo data from Stereolabs libraries";
-      //   doStereo = STEREO_ZED;
-      // }
 
 #ifdef USE_ZED
       if( zedSwitch.getValue() || svoFileArg.isSet() ) {
+        if( stereoSwitch.getValue() ) {
+          LOG(INFO) << "Using stereo data from Stereolabs libraries";
+          conf.doStereo = Configuration::STEREO_ZED;
+        }
+
         const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
-        const sl::zed::MODE zedMode = ( doStereo == STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
+        const sl::zed::MODE zedMode = ( conf.doStereo == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
         const int whichGpu = -1;
         const bool verboseInit = true;
 
@@ -201,18 +179,20 @@ int main( int argc, char** argv )
       	} else {
           LOG(INFO) << "Using live Zed data";
           camera = new sl::zed::Camera( zedResolution );
+          conf.stopOnFailedRead = false;
         }
+
+
 
         sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
         if (err != sl::zed::SUCCESS) {
-          LOG(FATAL) << "Unable to init the zed: " << errcode2str(err);
+          LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
           delete camera;
+          exit(-1);
         }
 
-        const ImageSize originalSize( 1920, 1080 );
         const ImageSize cropSize( 1920, 1056 );
         const SlamImageSize slamSize( cropSize.width / 2, cropSize.height / 2 );
-
 
         dataSource = new ZedSource( camera );
         undistorter = new UndistorterZED( camera, cropSize, slamSize );
@@ -223,7 +203,8 @@ int main( int argc, char** argv )
         dataSource = new ImagesSource( imageFiles );
 
         if( !calibFileArg.isSet() ) {
-          LOG(FATAL) << "Must specify camera calibration!";
+          LOG(WARNING) << "Must specify camera calibration!";
+          exit(-1);
         }
 
         undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
@@ -234,14 +215,12 @@ int main( int argc, char** argv )
 
     } catch (TCLAP::ArgException &e)  // catch any exceptions
   	{
-      LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
+      LOG(WARNING) << "error: " << e.error() << " for arg " << e.argId();
+      exit(-1);
     }
 
   CHECK(undistorter != NULL) << "Need camera calibration file!";
   CHECK( dataSource != NULL ) << "No data source defined!";
-
-
-  Configuration conf;
 
   conf.inputImage = ImageSize( undistorter->getInputWidth(), undistorter->getInputHeight() );
   conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );

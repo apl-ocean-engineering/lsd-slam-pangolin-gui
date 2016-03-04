@@ -126,11 +126,18 @@ private:
 class Configuration {
 public:
 
-  Configuration() {;}
+  Configuration() :
+    doStereo( NO_STEREO ),
+    stopOnFailedRead( true )
+  {;}
 
   ImageSize inputImage;
   SlamImageSize slamImage;
   Camera camera;
+
+  enum { NO_STEREO, STEREO_ZED } doStereo;
+
+  bool stopOnFailedRead;
 
 protected:
 
