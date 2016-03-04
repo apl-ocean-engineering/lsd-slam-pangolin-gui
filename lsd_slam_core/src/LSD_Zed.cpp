@@ -18,6 +18,13 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
+#include <fstream>
+#include <dirent.h>
+#include <algorithm>
+
+#include "opencv2/opencv.hpp"
+
 #include <zed/Camera.hpp>
 
 #include <boost/thread.hpp>
@@ -27,25 +34,15 @@
 #include "util/ThreadMutexObject.h"
 #include "IOWrapper/Pangolin/PangolinOutput3DWrapper.h"
 #include "SlamSystem.h"
-
-#include <sstream>
-#include <fstream>
-#include <dirent.h>
-#include <algorithm>
+#include "util/Undistorter.h"
 
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
 
-
 #include <tclap/CmdLine.h>
-
-#include "util/Undistorter.h"
-
-#include "opencv2/opencv.hpp"
 
 #include "GUI.h"
 
-const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
 
 // 1080 is not divisible by 16
 
@@ -54,7 +51,6 @@ ThreadMutexObject<bool> lsdDone(false);
 int numFrames = 0;
 
 sl::zed::Camera *camera = NULL;
-enum { NO_STEREO, STEREO_ZED } doStereo = NO_STEREO;
 
 using namespace lsd_slam;
 
@@ -246,7 +242,7 @@ bool doGui = true;
 
   // make slam system
   SlamSystem * system = new SlamSystem( conf, doSlam );
-  
+
   GUI *gui = NULL;
   Output3DWrapper *outputWrapper = NULL;
   if( doGui ) {
@@ -256,7 +252,7 @@ bool doGui = true;
 	  system->set3DOutputWrapper(outputWrapper);
 
   boost::thread guiThread(runGui, system, gui );
- 
+
     guiThread.join();
   } else {
 
@@ -277,7 +273,7 @@ bool doGui = true;
   printf("Launching LSD thread\n");
   boost::thread lsdThread(run, system, undistorter, gui );
 
-  
+
 
 	lsdDone.assignValue(true);
 

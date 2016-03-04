@@ -152,7 +152,7 @@ ENDIF()
 # build image node
 add_executable(LSD LSD.cpp
   LSDGuiThread.cpp
-  LSDMainThread.cpp)
+  LSDInputThread.cpp)
 target_link_libraries(LSD lsdslam )
 
 # if( USE_ZED_CAMERA )

@@ -22,6 +22,7 @@ namespace lsd_slam {
 class DataSource {
 public:
   DataSource( void )
+    : _fps( 0.0 )
   {;}
 
   DataSource( const DataSource & ) = delete;
@@ -32,16 +33,18 @@ public:
 
   virtual int numFrames( void ) const = 0;
 
-  virtual int grab( void ) = 0;
+  virtual bool grab( void ) = 0;
 
   virtual int getImage( int i, cv::Mat &mat ) = 0;
   virtual int getImage( cv::Mat &mat ) { return getImage( 0, mat ); }
 
+  float fps( void ) const { return _fps; }
 
 protected:
 
   int _numImages;
   bool _hasDepth;
+  float _fps;
 
 };
 
@@ -66,13 +69,13 @@ public:
 
   virtual int numFrames( void ) const { return _paths.size(); }
 
-  virtual int grab( void )
+  virtual bool grab( void )
   {
     ++_idx;
 
-    if( _idx >= _paths.size() ) return -1;
+    if( _idx >= _paths.size() ) return false;
 
-    return 0;
+    return true;
   }
 
   virtual int getImage( int i, cv::Mat &mat )
@@ -85,6 +88,7 @@ public:
     return _idx;
   }
 
+  void setFPS( float f ) { _fps = f; }
 
 protected:
 
@@ -106,6 +110,8 @@ public:
     CHECK( _cam );
     _numImages = 2;
     _hasDepth = true;
+
+    _fps = _cam->getCurrentFPS();
   }
 
   ZedSource( const ZedSource & ) = delete;
@@ -113,12 +119,14 @@ public:
 
   virtual int numFrames( void ) const { return _cam->getSVONumberOfFrames(); };
 
-  virtual int grab( void )
+  virtual bool grab( void )
   {
     if( _cam->grab( _mode, _computeDepth, _computeDepth ) ) {
       LOG( WARNING ) << "Error from Zed::grab";
-      return -1;
+      return false;
     }
+
+    return true;
   }
 
   virtual int getImage( int i, cv::Mat &mat )
