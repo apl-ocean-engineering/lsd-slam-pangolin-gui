@@ -36,6 +36,8 @@
 #include "util/Undistorter.h"
 #include "util/RawLogReader.h"
 
+#include "util/G3LogSinks.h"
+
 #include "SlamSystem.h"
 
 #include "IOWrapper/Pangolin/PangolinOutput3DWrapper.h"
@@ -118,6 +120,10 @@ int main( int argc, char** argv )
 {
   auto worker = g3::LogWorker::createLogWorker();
   auto handle = worker->addDefaultLogger(argv[0], ".");
+  auto stderrHangle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
+                                       &ColorStderrSink::ReceiveLogMessage);
+
+
   g3::initializeLogging(worker.get());
   std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
   std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
@@ -219,8 +225,8 @@ int main( int argc, char** argv )
       exit(-1);
     }
 
-  CHECK(undistorter != NULL) << "Need camera calibration file!";
-  CHECK( dataSource != NULL ) << "No data source defined!";
+  CHECK(undistorter != NULL) << "Undistorter doesn't exist.";
+  CHECK( dataSource != NULL ) << "Data source doesn't exist.";
 
   conf.inputImage = ImageSize( undistorter->getInputWidth(), undistorter->getInputHeight() );
   conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );
@@ -238,44 +244,6 @@ int main( int argc, char** argv )
 	SlamSystem * system = new SlamSystem(conf, doSlam);
 	system->set3DOutputWrapper( outputWrapper );
 
-  //
-	// // open image files: first try to open as file.
-	// std::string source;
-	// if(!(Parse::arg(argc, argv, "-f", source) > 0))
-	// {
-	// 	printf("need source files! (set using -f FOLDER or KLG)\n");
-	// 	exit(0);
-	// }
-  //
-	// Bytef * decompressionBuffer = new Bytef[conf.inputImage.area() * 2];
-  //   IplImage * deCompImage = 0;
-  //
-  //   if(source.substr(source.find_last_of(".") + 1) == "klg")
-  //   {
-  //       logReader = new RawLogReader( conf.inputImage,
-  //                                     decompressionBuffer,
-  //                                    deCompImage,
-  //                                    source);
-  //
-  //       numFrames = logReader->getNumFrames();
-  //   }
-  //   else
-  //   {
-  //       if(getdir(source, files) >= 0)
-  //       {
-  //           printf("found %d image files in folder %s!\n", (int)files.size(), source.c_str());
-  //       }
-  //       else if(getFile(source, files) >= 0)
-  //       {
-  //           printf("found %d image files in file %s!\n", (int)files.size(), source.c_str());
-  //       }
-  //       else
-  //       {
-  //           printf("could not load file list! wrong path / file?\n");
-  //       }
-  //
-  //       numFrames = (int)files.size();
-  //   }
 
 	boost::thread lsdThread(run, system, dataSource, undistorter, gui );
 
