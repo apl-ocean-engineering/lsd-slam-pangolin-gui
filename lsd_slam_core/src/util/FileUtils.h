@@ -3,6 +3,11 @@
 #include <string>
 #include <vector>
 
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
+
 std::string &ltrim(std::string &s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
         return s;
@@ -14,7 +19,7 @@ std::string &rtrim(std::string &s) {
 std::string &trim(std::string &s) {
         return ltrim(rtrim(s));
 }
-int getdir (std::string dir, std::vector<std::string> &files)
+int getdir (fs::path dir, std::vector<fs::path> &files)
 {
     DIR *dp;
     struct dirent *dirp;
@@ -27,18 +32,18 @@ int getdir (std::string dir, std::vector<std::string> &files)
     	std::string name = std::string(dirp->d_name);
 
     	if(name != "." && name != "..")
-    		files.push_back(name);
+    		files.push_back( fs::path(name) );
     }
     closedir(dp);
 
 
     std::sort(files.begin(), files.end());
 
-    if(dir.at( dir.length() - 1 ) != '/') dir = dir+"/";
+    // if(dir.string().at( dir.length() - 1 ) != '/') dir = dir+"/";
 	for(unsigned int i=0;i<files.size();i++)
 	{
-		if(files[i].at(0) != '/')
-			files[i] = dir + files[i];
+		if(files[i].string().at(0) != '/')
+			files[i] = dir / files[i];
 	}
 
     return files.size();

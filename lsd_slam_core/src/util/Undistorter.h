@@ -21,7 +21,7 @@
 #ifndef _UNDISTORTER_HPP_
 #define _UNDISTORTER_HPP_
 
-#include <opencv2/core/core.hpp>
+#include <OpenCV2/core/core.hpp>
 
 #include "Configuration.h"
 
@@ -83,7 +83,7 @@ public:
 	 * Creates and returns an Undistorter of the type used by the given
 	 * configuration file. If the format is not recognized, returns nullptr.
 	 */
-	static Undistorter* getUndistorterForFile(const char* configFilename);
+	static Undistorter* getUndistorterForFile(const std::string &configFilename);
 };
 
 class UndistorterPTAM : public Undistorter
