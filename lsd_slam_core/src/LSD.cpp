@@ -53,7 +53,6 @@ int main( int argc, char** argv )
   auto stderrHandle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
                                        &ColorStderrSink::ReceiveLogMessage);
 
-
   g3::initializeLogging(worker.get());
   std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
   std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
@@ -71,33 +70,22 @@ int main( int argc, char** argv )
       TCLAP::CmdLine cmd("LSD", ' ', "0.1");
 
       TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
-      TCLAP::ValueArg<std::string> resolutionArg("", "resolution", "", false, "hd1080", "Calibration filename", cmd );
-
+      TCLAP::ValueArg<std::string> resolutionArg("r", "resolution", "", false, "hd1080", "{hd2k, hd1080, hd720, vga}", cmd );
 
 #ifdef USE_ZED
       TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
       TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
       TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
 #endif
-      TCLAP::SwitchArg noGuiSwitch("","no-gui","Use stereo data", cmd, false);
-      TCLAP::ValueArg<int> fpsArg("", "fps","FPS for playback (will do strange things if reading from a device)", false, 0, "", cmd );
+
+      TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
+      TCLAP::ValueArg<int> fpsArg("", "fps","FPS for playback", false, 0, "", cmd );
 
 
       TCLAP::UnlabeledMultiArg<std::string> imageFilesArg("input-files","Name of image files / directories to read", false, "Files or directories", cmd );
 
       cmd.parse(argc, argv );
 
-    	// if( svoFileArg.isSet() > 0)
-    	// {
-      //   LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
-      //   camera = new sl::zed::Camera( svoFileArg.getValue() );
-      //   numFrames = camera->getSVONumberOfFrames();
-    	// } else {
-      //   LOG(INFO) << "Using live Zed data";
-      //   camera = new sl::zed::Camera( zedResolution );
-      //   numFrames = -1;
-      // }
-      //
 
 #ifdef USE_ZED
       if( zedSwitch.getValue() || svoFileArg.isSet() ) {
@@ -145,7 +133,6 @@ int main( int argc, char** argv )
         } else {
           LOG(FATAL) << "Don't know how to handle Zed resolution" << resolutionToString( zedResolution );
         }
-
 
         dataSource = new ZedSource( camera );
         if( fpsArg.isSet() && svoFileArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
@@ -195,7 +182,6 @@ int main( int argc, char** argv )
 
   // Wait for all threads to be ready.
   startAll.notify();
-
 
   while(true)
   {
