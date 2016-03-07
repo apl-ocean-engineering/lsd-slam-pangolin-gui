@@ -75,6 +75,7 @@ int main( int argc, char** argv )
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
 		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0,"", cmd);
 
 		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
 		TCLAP::ValueArg<std::string> svoOutputArg("o","svo-output","Name of SVO file to read",false,"","SVO filename", cmd);
@@ -97,7 +98,7 @@ int main( int argc, char** argv )
 			camera = new sl::zed::Camera( svoInputArg.getValue() );
 		} else {
 			LOG(INFO) << "Using live Zed data";
-			camera = new sl::zed::Camera( zedResolution );
+			camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
 		}
 
 		sl::zed::ERRCODE err =camera->initRecording( svoOutputArg.getValue() );
@@ -150,7 +151,7 @@ int main( int argc, char** argv )
 
 			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
 			unsigned int fileSizeMB = fileSize / (1024*1024);
-			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB ()" << fileSizeMB/dur.count() << " MB/sec)";
+			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
 
 		} else {
 			LOG(WARNING) << "No output format specified.";

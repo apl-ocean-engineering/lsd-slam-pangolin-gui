@@ -28,7 +28,7 @@ struct ColorStderrSink {
       auto color = GetColor(level);
 
       std::cerr << "\033[" << color << "m"
-      << logEntry.get().toString() << "\033[m" << std::endl;
+      << logEntry.get().toString() << "\033[m"; // << std::endl;
     }
   }
 

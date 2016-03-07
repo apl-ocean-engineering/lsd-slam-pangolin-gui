@@ -13,7 +13,7 @@ It contains my experiments with LSD-SLAM.
 
 # 1. Quickstart / Minimal Setup
 
-Requires OpenCV 3.0 (with nonfree if you want FABMAP), TCLAP, [g3log](https://github.com/KjellKod/g3log),Boost, Eigen, Pangolin and g2o.
+Requires OpenCV 3.0 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), [g3log](https://github.com/KjellKod/g3log),Boost, Eigen, Pangolin and g2o.
 
 # 2. Installation
 
@@ -21,9 +21,9 @@ Install everything from apt repos if you can, otherwise there are githubs for Pa
 
 # 3. Running
 
-Supports raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
+Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
 
-./LSD -c ~/Mono_Logs/LSD_machine/cameraCalibration.cfg -f ~/Mono_Logs/LSD_machine/images/
+./LSD --calib ~/Mono_Logs/LSD_machine/cameraCalibration.cfg  ~/Mono_Logs/LSD_machine/images/
 
 # 4. License
 
