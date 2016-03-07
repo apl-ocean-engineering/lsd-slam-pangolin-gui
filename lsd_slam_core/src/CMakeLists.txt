@@ -1,112 +1,40 @@
-cmake_minimum_required(VERSION 2.8.7)
-project(lsd_slam_core)
-
-# set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
-find_package(Boost COMPONENTS thread filesystem system REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(Pangolin 0.1 REQUIRED)
-find_package(G2O REQUIRED)
-find_package(SuiteParse REQUIRED) # Apparently needed by g2o
-find_package(TCLAP REQUIRED )
-
-# g3log
-set( ADD_FATAL_EXAMPLE OFF )
-add_subdirectory( ${PROJECT_SOURCE_DIR}/thirdparty/g3log )
-set( G3LOG_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/g3log/src)
-set( G3LOG_LIB g3logger_shared )
-
-# FabMap
-# uncomment this part to enable fabmap
-#add_subdirectory(${PROJECT_SOURCE_DIR}/thirdparty/openFabMap)
-#include_directories(${PROJECT_SOURCE_DIR}/thirdparty/openFabMap/include)
-#add_definitions("-DHAVE_FABMAP")
-#set(FABMAP_LIB openFABMAP )
-
-## Enable support for the Zed stereo camera
-option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
-if( USE_ZED_CAMERA )
-  add_definitions( -DUSE_ZED )
-
-  IF(WIN32) # Windows
-    SET(ZED_INCLUDE_DIRS $ENV{ZED_INCLUDE_DIRS})
-        if (CMAKE_CL_64) # 64 bits
-            SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_64})
-        else(CMAKE_CL_64) # 32 bits
-            message("32bits compilation is no more available with CUDA7.0")
-        endif(CMAKE_CL_64)
-    SET(ZED_LIBRARY_DIR $ENV{ZED_LIBRARY_DIR})
-    SET(OPENCV_DIR $ENV{OPENCV_DIR})
-    find_package(CUDA 7.0 REQUIRED)
-  ELSE() # Linux
-    find_package(ZED REQUIRED)
-    find_package(CUDA 6.5 REQUIRED)
-  ENDIF(WIN32)
-
-  set( ZED_CAMERA_INCLUDE_DIRS ${ZED_INCLUDE_DIRS}
-                              ${CUDA_INCLUDE_DIRS} )
-
-  set( ZED_CAMERA_LIBRARY_DIRS ${ZED_LIBRARY_DIR}
-                                ${CUDA_LIBRARY_DIRS})
-
-  set( ZED_SRCS
-        ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterZED.cpp )
-
-  link_directories( ${ZED_CAMERA_LIBRARY_DIRS} )
-
-  set( ZED_CAMERA_LIBRARIES ${ZED_LIBRARIES}
-                            ${CUDA_LIBRARIES}
-                            ${CUDA_npps_LIBRARY}
-                            ${CUDA_nppi_LIBRARY} )
-
-endif()
-
-# SSE flags
-add_definitions("-DENABLE_SSE")
-
-## Disable all debugging
-#add_definitions("-DNDEBUG")
-
-# Also add some useful compiler flag
-set(CMAKE_CXX_FLAGS
-   "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
-)
-
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 set(GUI_SRCS
-  ${PROJECT_SOURCE_DIR}/IOWrapper/OpenCV/ImageDisplay_OpenCV.cpp
-  ${PROJECT_SOURCE_DIR}/IOWrapper/Pangolin/PangolinOutput3DWrapper.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/IOWrapper/OpenCV/ImageDisplay_OpenCV.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/IOWrapper/Pangolin/PangolinOutput3DWrapper.cpp
 )
+
+if( USE_ZED_CAMERA )
+  set( ZED_SRCS
+      ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterZED.cpp )
+endif()
 
 # Set source files
 set(lsdslam_SOURCE_FILES
-  ${PROJECT_SOURCE_DIR}/DataStructures/Frame.cpp
-  ${PROJECT_SOURCE_DIR}/DataStructures/FramePoseStruct.cpp
-  ${PROJECT_SOURCE_DIR}/DataStructures/FrameMemory.cpp
-  ${PROJECT_SOURCE_DIR}/SlamSystem.cpp
-  ${PROJECT_SOURCE_DIR}/GUI.cpp
-  ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMap.cpp
-  ${PROJECT_SOURCE_DIR}/DepthEstimation/DepthMapPixelHypothesis.cpp
-  ${PROJECT_SOURCE_DIR}/util/FileUtils.cpp
-  ${PROJECT_SOURCE_DIR}/util/globalFuncs.cpp
-  ${PROJECT_SOURCE_DIR}/util/SophusUtil.cpp
-  ${PROJECT_SOURCE_DIR}/util/settings.cpp
-  ${PROJECT_SOURCE_DIR}/util/Undistorter.cpp
-  ${PROJECT_SOURCE_DIR}/util/RawLogReader.cpp
-  ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
-  ${PROJECT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
-  ${PROJECT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
-  ${PROJECT_SOURCE_DIR}/Tracking/Relocalizer.cpp
-  ${PROJECT_SOURCE_DIR}/Tracking/SE3Tracker.cpp
-  ${PROJECT_SOURCE_DIR}/Tracking/TrackingReference.cpp
-  ${PROJECT_SOURCE_DIR}/IOWrapper/Timestamp.cpp
-  ${PROJECT_SOURCE_DIR}/GlobalMapping/FabMap.cpp
-  ${PROJECT_SOURCE_DIR}/GlobalMapping/KeyFrameGraph.cpp
-  ${PROJECT_SOURCE_DIR}/GlobalMapping/g2oTypeSim3Sophus.cpp
-  ${PROJECT_SOURCE_DIR}/GlobalMapping/TrackableKeyFrameSearch.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/DataStructures/Frame.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/DataStructures/FramePoseStruct.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/DataStructures/FrameMemory.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/SlamSystem.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GUI.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/DepthEstimation/DepthMap.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/DepthEstimation/DepthMapPixelHypothesis.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/FileUtils.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/globalFuncs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/SophusUtil.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/settings.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/RawLogReader.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Relocalizer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/SE3Tracker.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/TrackingReference.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/IOWrapper/Timestamp.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/FabMap.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/KeyFrameGraph.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/g2oTypeSim3Sophus.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/TrackableKeyFrameSearch.cpp
   ${ZED_SRCS}
   ${GUI_SRCS}
 )
@@ -114,7 +42,7 @@ set(lsdslam_SOURCE_FILES
 
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
-  ${PROJECT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${OpenCV_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
   ${Pangolin_INCLUDE_DIRS}
@@ -134,7 +62,7 @@ target_link_libraries(lsdslam
   ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
-                   ${ZED_CAMERA_LIBRARIES}
+  ${ZED_CAMERA_LIBRARIES}
   ${G2O_CORE_LIBRARY}
   ${G2O_STUFF_LIBRARY}
   ${G2O_SOLVER_CSPARSE_EXTENSION}
@@ -154,10 +82,3 @@ add_executable(LSD LSD.cpp
   LSDGuiThread.cpp
   LSDInputThread.cpp)
 target_link_libraries(LSD lsdslam )
-
-# if( USE_ZED_CAMERA )
-#   add_executable(LSD_Zed LSD_Zed.cpp)
-#
-#   target_link_libraries(LSD_Zed lsdslam )
-#
-# endif()

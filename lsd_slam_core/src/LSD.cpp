@@ -46,7 +46,7 @@ int main( int argc, char** argv )
 {
   auto worker = g3::LogWorker::createLogWorker();
   auto handle = worker->addDefaultLogger(argv[0], ".");
-  auto stderrHangle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
+  auto stderrHandle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
                                        &ColorStderrSink::ReceiveLogMessage);
 
 
@@ -159,12 +159,7 @@ int main( int argc, char** argv )
   conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );
   conf.camera     = undistorter->getCamera();
 
-  LOG(INFO) << "After setting conf.camera: ";
-  LOG(INFO) << "fx=" << a.fx << "; fy="  << a.fy << " ; cx=" << a.cx << " ; cy=" << a.cy;
-
-  LOG(INFO) << "fx=" << conf.camera.fx << "; fy="  << conf.camera.fy << " ; cx=" << conf.camera.cx << " ; cy=" << conf.camera.cy;
-  LOG(INFO) << conf.camera.fxi << " " << conf.camera.fyi;
-
+  CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
 	SlamSystem * system = new SlamSystem(conf, doSlam);
 
