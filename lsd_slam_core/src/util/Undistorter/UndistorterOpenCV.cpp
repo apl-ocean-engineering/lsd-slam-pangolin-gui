@@ -130,6 +130,11 @@ void UndistorterOpenCV::undistort(const cv::Mat& image, cv::OutputArray result) 
 	cv::remap(image, result, map1, map2, cv::INTER_LINEAR);
 }
 
+const Camera UndistorterOpenCV::getCamera() const
+{
+	return Camera( K_ );
+}
+
 const cv::Mat UndistorterOpenCV::getK() const
 {
 	return K_;

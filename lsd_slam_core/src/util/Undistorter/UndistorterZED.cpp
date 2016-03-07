@@ -41,7 +41,7 @@ void UndistorterZED::undistort(const cv::Mat& image, cv::OutputArray result) con
 
 }
 
-Camera UndistorterZED::getCamera() const
+const Camera UndistorterZED::getCamera() const
 {
 	float xscale = getOutputWidth() * 1.0f / getInputWidth();
 	float yscale = getOutputHeight() * 1.0f / getInputHeight();
@@ -53,6 +53,7 @@ const cv::Mat UndistorterZED::getK() const
 {
 	cv::Mat out;
 	cv::eigen2cv(getCamera().K, out);
+	std::cout << out << std::endl;
 	return out;
 }
 

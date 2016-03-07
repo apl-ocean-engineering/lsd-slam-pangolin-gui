@@ -332,6 +332,11 @@ void UndistorterPTAM::undistort(const cv::Mat& image, cv::OutputArray result) co
 	}
 }
 
+const Camera UndistorterPTAM::getCamera() const
+{
+	return Camera( K_ );
+}
+
 const cv::Mat UndistorterPTAM::getK() const
 {
 	return K_;
