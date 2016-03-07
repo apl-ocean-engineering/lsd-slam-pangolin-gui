@@ -15,6 +15,7 @@ namespace fs = boost::filesystem;
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
 #include "util/G3LogSinks.h"
+#include "util/ZedUtils.h"
 
 
 #ifndef USE_ZED
@@ -29,36 +30,6 @@ void signal_handler( int sig )
 	case SIGINT:
 		keepGoing = false;
 		break;
-	}
-}
-
-static sl::zed::ZEDResolution_mode parseResolution( const string &arg )
-{
-	if( arg == "hd2k" )
-		return sl::zed::HD2K;
-	else if( arg == "hd1080" )
-	 return sl::zed::HD1080;
-	else if( arg == "hd720" )
-		return sl::zed::HD720;
-	else if( arg == "vga" )
-		return sl::zed::VGA;
-	else
-		LOG(FATAL) << "Couldn't parse resolution \"" << arg << "\"";
-}
-
-static string resolutionToString( sl::zed::ZEDResolution_mode arg )
-{
-	switch( arg ) {
-		case sl::zed::HD2K:
-				return "HD2K";
-		case sl::zed::HD1080:
-				return "HD1080";
-		case sl::zed::HD720:
-				return "HD720";
-		case sl::zed::VGA:
-				return "VGA";
-		default:
-				return "(unknown)";
 	}
 }
 

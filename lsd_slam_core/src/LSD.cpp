@@ -36,6 +36,10 @@
 
 #include <LSD.h>
 
+#ifdef USE_ZED
+#include "util/ZedUtils.h"
+#endif
+
 using namespace lsd_slam;
 
 ThreadMutexObject<bool> lsdDone(false), guiDone(false);
@@ -67,13 +71,16 @@ int main( int argc, char** argv )
       TCLAP::CmdLine cmd("LSD", ' ', "0.1");
 
       TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
+      TCLAP::ValueArg<std::string> resolutionArg("", "resolution", "", false, "hd1080", "Calibration filename", cmd );
+
+
 #ifdef USE_ZED
       TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
       TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
       TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
 #endif
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Use stereo data", cmd, false);
-      TCLAP::ValueArg<float> fpsArg("", "fps","FPS for playback (will do strange things if reading from a device)", false, 0.0, "", cmd );
+      TCLAP::ValueArg<int> fpsArg("", "fps","FPS for playback (will do strange things if reading from a device)", false, 0, "", cmd );
 
 
       TCLAP::UnlabeledMultiArg<std::string> imageFilesArg("input-files","Name of image files / directories to read", false, "Files or directories", cmd );
@@ -99,7 +106,7 @@ int main( int argc, char** argv )
           conf.doStereo = Configuration::STEREO_ZED;
         }
 
-        const sl::zed::ZEDResolution_mode zedResolution = sl::zed::HD1080;
+        const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
         const sl::zed::MODE zedMode = ( conf.doStereo == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
         const int whichGpu = -1;
         const bool verboseInit = true;
@@ -112,7 +119,7 @@ int main( int argc, char** argv )
           camera = new sl::zed::Camera( svoFileArg.getValue() );
       	} else {
           LOG(INFO) << "Using live Zed data";
-          camera = new sl::zed::Camera( zedResolution );
+          camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
           conf.stopOnFailedRead = false;
         }
 
@@ -123,16 +130,32 @@ int main( int argc, char** argv )
           exit(-1);
         }
 
-        const ImageSize cropSize( 1920, 1056 );
-        const SlamImageSize slamSize( cropSize.width / 2, cropSize.height / 2 );
+        ImageSize cropSize;
+        SlamImageSize slamSize;
+
+        if( zedResolution == sl::zed::HD1080 ) {
+          cropSize = ImageSize( 1920, 1056 );
+          slamSize = SlamImageSize( cropSize.width / 2, cropSize.height / 2 );
+        } else if( zedResolution == sl::zed::HD720) {
+          cropSize = ImageSize( 1280, 704 );
+          slamSize = SlamImageSize( cropSize.width / 2, cropSize.height / 2 );
+        } else if( zedResolution == sl::zed::HD720) {
+          cropSize = ImageSize( 640, 480 );
+          slamSize = SlamImageSize( cropSize.height, cropSize.width );
+        } else {
+          LOG(FATAL) << "Don't know how to handle Zed resolution" << resolutionToString( zedResolution );
+        }
+
 
         dataSource = new ZedSource( camera );
+        if( fpsArg.isSet() && svoFileArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
         undistorter = new UndistorterZED( camera, cropSize, slamSize );
       } else
 #endif
       {
         std::vector< std::string > imageFiles = imageFilesArg.getValue();
         dataSource = new ImagesSource( imageFiles );
+        if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
 
         if( !calibFileArg.isSet() ) {
           LOG(WARNING) << "Must specify camera calibration!";
@@ -142,7 +165,6 @@ int main( int argc, char** argv )
 
       }
 
-      if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
 
       doGui = !noGuiSwitch.getValue();
 
