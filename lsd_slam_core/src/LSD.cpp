@@ -81,7 +81,6 @@ int main( int argc, char** argv )
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
       TCLAP::ValueArg<int> fpsArg("", "fps","FPS for playback", false, 0, "", cmd );
 
-
       TCLAP::UnlabeledMultiArg<std::string> imageFilesArg("input-files","Name of image files / directories to read", false, "Files or directories", cmd );
 
       cmd.parse(argc, argv );
