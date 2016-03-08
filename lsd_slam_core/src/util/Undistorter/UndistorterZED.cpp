@@ -42,10 +42,11 @@ void UndistorterZED::undistort(const cv::Mat& image, cv::OutputArray result) con
 
 void UndistorterZED::undistortDepth(const cv::Mat& depth, cv::OutputArray result) const
 {
-	cv::Mat imageROI( image, cv::Rect( cv::Point(0,0), _cropSize.cvSize() ) );
-	cv::resize( imageROI, result, _finalSize.cvSize() );
+	cv::Mat depthROI( depth, cv::Rect( cv::Point(0,0), _cropSize.cvSize() ) );
+	cv::resize( depthROI, result, _finalSize.cvSize() );
 
 	CHECK( result.type() == CV_32F );
+	// CHECK( (result.rows == _finalSize.height) && (result.cols == _finalSize.width) );
 }
 
 const Camera UndistorterZED::getCamera() const

@@ -144,7 +144,7 @@ public:
   virtual void getDepth( cv::Mat &mat )
   {
       if( _computeDepth )
-        mat = sl::zed::sMat2cvMat( _cam->getMeasure( sl::zed::DEPTH ); }
+        mat = sl::zed::slMat2cvMat( _cam->retrieveMeasure( sl::zed::DEPTH ) );
   }
 
 

@@ -10,6 +10,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
     // get HZ
     float fps = dataSource->fps();
     long int dt_us = (fps > 0) ? (1e6/fps) : 0;
+    long int dt_wiggle = 1000;
 
     const bool doDepth( system->conf().doDepth && dataSource->hasDepth() );
 
@@ -92,7 +93,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
           if( system->conf().stopOnFailedRead ) break;
         }
 
-        if( dt_us > 0 ) std::this_thread::sleep_until( start + std::chrono::microseconds( dt_us ) );
+        if( dt_us > 0 ) std::this_thread::sleep_until( start + std::chrono::microseconds( dt_us + dt_wiggle ) );
     }
 
     LOG(INFO) << "Have processed all input frames.";
