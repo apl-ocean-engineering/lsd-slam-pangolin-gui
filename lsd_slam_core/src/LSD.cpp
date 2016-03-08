@@ -75,7 +75,7 @@ int main( int argc, char** argv )
 #ifdef USE_ZED
       TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
       TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
-      TCLAP::SwitchArg stereoSwitch("","stereo","Use stereo data", cmd, false);
+      TCLAP::SwitchArg depthSwitch("","depth","Use depth data", cmd, false);
 #endif
 
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
@@ -88,13 +88,13 @@ int main( int argc, char** argv )
 
 #ifdef USE_ZED
       if( zedSwitch.getValue() || svoFileArg.isSet() ) {
-        if( stereoSwitch.getValue() ) {
-          LOG(INFO) << "Using stereo data from Stereolabs libraries";
-          conf.doStereo = Configuration::STEREO_ZED;
+        if( depthSwitch.getValue() ) {
+          LOG(INFO) << "Using depth data from Stereolabs libraries";
+          conf.doDepth = Configuration::STEREO_ZED;
         }
 
         const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
-        const sl::zed::MODE zedMode = ( conf.doStereo == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
+        const sl::zed::MODE zedMode = ( conf.doDepth == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
         const int whichGpu = -1;
         const bool verboseInit = true;
 

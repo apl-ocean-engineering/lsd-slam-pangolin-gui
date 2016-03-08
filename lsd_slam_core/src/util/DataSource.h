@@ -38,6 +38,8 @@ public:
   virtual int getImage( int i, cv::Mat &mat ) = 0;
   virtual int getImage( cv::Mat &mat ) { return getImage( 0, mat ); }
 
+  virtual void getDepth( cv::Mat &mat ) { return; }
+
   float fps( void ) const { return _fps; }
   void setFPS( float f ) { _fps = f; }
 
@@ -138,6 +140,14 @@ public:
 
     return 0;
   }
+
+  virtual void getDepth( cv::Mat &mat )
+  {
+      if( _computeDepth )
+        mat = sl::zed::sMat2cvMat( _cam->getMeasure( sl::zed::DEPTH ); }
+  }
+
+
 
 protected:
 

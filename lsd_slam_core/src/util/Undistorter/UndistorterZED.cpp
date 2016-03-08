@@ -38,7 +38,14 @@ void UndistorterZED::undistort(const cv::Mat& image, cv::OutputArray result) con
 
 	CHECK( result.type() == CV_8U );
 	// CHECK( (result.rows == _finalSize.height) && (result.cols == _finalSize.width) );
+}
 
+void UndistorterZED::undistortDepth(const cv::Mat& depth, cv::OutputArray result) const
+{
+	cv::Mat imageROI( image, cv::Rect( cv::Point(0,0), _cropSize.cvSize() ) );
+	cv::resize( imageROI, result, _finalSize.cvSize() );
+
+	CHECK( result.type() == CV_32F );
 }
 
 const Camera UndistorterZED::getCamera() const

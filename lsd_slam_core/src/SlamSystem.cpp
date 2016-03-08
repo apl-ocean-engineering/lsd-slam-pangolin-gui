@@ -809,15 +809,18 @@ bool SlamSystem::doMappingIteration()
 }
 
 
-void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int id)
+void SlamSystem::gtDepthInit( std::shared_ptr<Frame> frame )
 {
 	LOG(INFO) << "Doing GT initialization!";
+
+	// For a newly-imported frame, this should only be true if the depth
+	// has been set explicitly
+	CHECK( frame->hasIDepthBeenSet() );
 
 	{
 		std::lock_guard<std::mutex> lock( currentKeyFrameMutex );
 
-		currentKeyFrame.reset(new Frame(id, _conf, timeStamp, image));
-		currentKeyFrame->setDepthFromGroundTruth(depth);
+		currentKeyFrame = frame;
 
 		map->initializeFromGTDepth(currentKeyFrame.get());
 		keyFrameGraph->addFrame(currentKeyFrame.get());
@@ -834,9 +837,14 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 }
 
 
-void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
+void SlamSystem::randomInit(uchar* image, int id, double timeStamp)
 {
-	printf("Doing Random initialization!\n");
+	randomInit( newFrame( image, id, timeStamp ));
+}
+
+void SlamSystem::randomInit( std::shared_ptr<Frame> frame )
+{
+	LOG(INFO) << "Doing Random initialization!";
 
 	if(!doMapping)
 		printf("WARNING: mapping is disabled, but we just initialized... THIS WILL NOT WORK! Set doMapping to true.\n");
@@ -844,7 +852,7 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 	{
 		std::lock_guard<std::mutex> lock(currentKeyFrameMutex);
 
-		currentKeyFrame.reset(new Frame(id, _conf, timeStamp, image));
+		currentKeyFrame = frame;
 		map->initializeRandomly(currentKeyFrame.get());
 		keyFrameGraph->addFrame(currentKeyFrame.get());
 	}
@@ -860,21 +868,19 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 	if (displayDepthMap || depthMapScreenshotFlag)
 		debugDisplayDepthMap();
 
-	printf("Done Random initialization!\n");
+	LOG(INFO) << "Done Random initialization!";
 
 }
 
-void SlamSystem::trackStereoFrame(uchar* image, float *depth, unsigned int frameID, bool blockUntilMapped, double timestamp)
+std::shared_ptr<Frame> SlamSystem::newFrame(uchar* image, unsigned int frameID, double timestamp)
 {
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
-	trackingNewFrame->setDepthFromGroundTruth( depth );
-	trackFrame( trackingNewFrame, blockUntilMapped );
+	return std::shared_ptr<Frame>( new Frame(frameID, _conf, timestamp, image) );
 }
 
 void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp )
 {
 	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
-	trackFrame( trackingNewFrame, blockUntilMapped );
+	trackFrame( newFrame( image, frameID, timestamp ), blockUntilMapped );
 }
 
 void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped )

@@ -11,6 +11,8 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
     float fps = dataSource->fps();
     long int dt_us = (fps > 0) ? (1e6/fps) : 0;
 
+    const bool doDepth( system->conf().doDepth && dataSource->hasDepth() );
+
     lsdReady.notify();
     startAll.wait();
 
@@ -18,7 +20,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
     LOG_IF( INFO, numFrames > 0 ) << "Running for " << numFrames << " frames";
 
     cv::Mat image = cv::Mat(system->conf().slamImage.cvSize(), CV_8U);
-    int runningIDX=0;
+    int runningIdx=0;
     float fakeTimeStamp = 0;
 
     for(unsigned int i = 0; (numFrames < 0) || (i < numFrames); ++i)
@@ -36,22 +38,40 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
 
           CHECK(image.type() == CV_8U);
 
-          if(runningIDX == 0)
+          std::shared_ptr<Frame> frame( system->newFrame( image.data, runningIdx, fakeTimeStamp ));
+
+          if( doDepth ) {
+            cv::Mat depthOrig, depth;
+            dataSource->getDepth( depthOrig );
+
+            // Depth needs to be scaled as well...
+            undistorter->undistortDepth( depthOrig, depth );
+
+            CHECK(depth.type() == CV_32F );
+            CHECK( (depth.rows == image.rows) && (depth.cols == image.cols) );
+
+            frame->setDepthFromGroundTruth( depth.ptr<float>() );
+          }
+
+          if(runningIdx == 0)
           {
-              system->randomInit(image.data, fakeTimeStamp, runningIDX);
+            if( doDepth )
+              system->gtDepthInit( frame );
+            else
+              system->randomInit( frame );
           }
           else
           {
-              system->trackFrame(image.data, runningIDX, fps == 0, fakeTimeStamp);
+              system->trackFrame(image.data, runningIdx, fps == 0, fakeTimeStamp);
           }
 
           if( gui ){
             gui->pose.assignValue(system->getCurrentPoseEstimateScale());
-            gui->updateFrameNumber( runningIDX );
+            gui->updateFrameNumber( runningIdx );
             gui->updateLiveImage( image.data );
           }
 
-          runningIDX++;
+          runningIdx++;
           fakeTimeStamp += (fps > 0) ? (1.0/fps) : 0.03;
 
           if(fullResetRequested)
@@ -65,7 +85,7 @@ void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
               system = newSystem;
 
               fullResetRequested = false;
-              runningIDX = 0;
+              runningIdx = 0;
           }
 
         } else {

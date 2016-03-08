@@ -23,6 +23,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <memory>
 
 #include <boost/thread/shared_mutex.hpp>
 
@@ -82,8 +83,10 @@ public:
 
 
 
-	void randomInit(uchar* image, double timeStamp, int id);
-	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
+	void randomInit(uchar* image, int id, double timeStamp);
+	void randomInit( std::shared_ptr<Frame> frame );
+
+	void gtDepthInit( std::shared_ptr<Frame> frame );
 
 
 
@@ -91,10 +94,11 @@ public:
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
-	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp);
-	void trackStereoFrame(uchar* image, float *depth, unsigned int frameID, bool blockUntilMapped, double timestamp);
+	std::shared_ptr<Frame> newFrame(uchar* image, unsigned int frameID, double timestamp);
+	void trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntilMapped );
 
-	void trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped );
+	// Combines the above two functions
+	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp );
 
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.

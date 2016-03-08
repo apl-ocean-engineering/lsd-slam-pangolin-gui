@@ -73,11 +73,11 @@ public:
 
 	#define DATA_LEVEL_READER( _rtype, _name ) \
 		inline _rtype _name( int level = 0 ) const \
-		{ return data._name[level]; }
+			{ return data._name[level]; }
 
 	#define DATA_LEVEL_CAMERA_READER( _rtype, _name ) \
 		inline _rtype _name( int level = 0 ) const \
-		{ return data.camera[level]._name; }
+			{ return data.camera[level]._name; }
 
 	DATA_LEVEL_READER( int, width )
 	DATA_LEVEL_READER( int, height )

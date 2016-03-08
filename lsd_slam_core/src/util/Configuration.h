@@ -127,7 +127,7 @@ class Configuration {
 public:
 
   Configuration() :
-    doStereo( NO_STEREO ),
+    doDepth( NO_STEREO ),
     stopOnFailedRead( true )
   {;}
 
@@ -135,7 +135,7 @@ public:
   SlamImageSize slamImage;
   Camera camera;
 
-  enum { NO_STEREO, STEREO_ZED } doStereo;
+  enum { NO_STEREO = 0, STEREO_ZED } doDepth;
 
   bool stopOnFailedRead;
 

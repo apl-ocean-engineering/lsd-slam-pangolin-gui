@@ -43,6 +43,8 @@ public:
 	 */
 	virtual void undistort(const cv::Mat &image, cv::OutputArray result) const = 0;
 
+	virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const { depth.copyTo( result ); }
+
 	/**
 	 * Returns the intrinsic parameter matrix of the undistorted images.
 	 */
@@ -276,6 +278,8 @@ public:
 	UndistorterZED& operator=(const UndistorterZED&) = delete;
 
 	void undistort(const cv::Mat &image, cv::OutputArray result) const;
+	virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const;
+
 
 	virtual const Camera getCamera() const;
 	virtual const cv::Mat getK() const;
