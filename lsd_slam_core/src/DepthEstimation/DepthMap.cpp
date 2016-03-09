@@ -972,7 +972,7 @@ void DepthMap::setFromExistingKF(Frame* kf)
 
 void DepthMap::initializeFromGTDepth(Frame* new_frame)
 {
-	assert(new_frame->hasIDepthBeenSet());
+	CHECK(new_frame->hasIDepthBeenSet());
 
 	activeKeyFramelock = new_frame->getActiveLock();
 	activeKeyFrame = new_frame;

@@ -80,8 +80,7 @@ Frame::Frame(int id, const Configuration &conf,
 Frame::~Frame()
 {
 
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETING frame %d\n", this->id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printMemoryDebugInfo,"DELETING frame %d\n", this->id());
 
 	FrameMemory::getInstance().deactivateFrame(this);
 
@@ -109,8 +108,7 @@ Frame::~Frame()
 		delete permaRef_posData;
 
 	privateFrameAllocCount--;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+	LOGF_IF(DEBUG, enablePrintDebugInfo && printMemoryDebugInfo, "DELETED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
 }
 
 
@@ -389,8 +387,7 @@ bool Frame::minimizeInMemory()
 	if(activeMutex.timed_lock(boost::posix_time::milliseconds(10)))
 	{
 		buildMutex.lock();
-		if(enablePrintDebugInfo && printMemoryDebugInfo)
-			printf("minimizing frame %d\n",id());
+		LOGF_IF(DEBUG, enablePrintDebugInfo && printMemoryDebugInfo, "minimizing frame %d\n",id());
 
 		release(IMAGE | IDEPTH | IDEPTH_VAR, true, false);
 		release(GRADIENTS | MAX_GRADIENTS, false, false);
@@ -491,7 +488,7 @@ void Frame::buildImage(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::buildImage(0): Loading image from disk is not implemented yet! No-op.\n");
+		LOG(WARNING) << "Frame::buildImage(0): Loading image from disk is not implemented yet! No-op.";
 		return;
 	}
 
@@ -501,8 +498,7 @@ void Frame::buildImage(int level)
 	if(data.imageValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE Image lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE Image lvl %d for frame %d", level, id());
 
 	int width = data.width[level - 1];
 	int height = data.height[level - 1];
@@ -632,7 +628,7 @@ void Frame::releaseImage(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseImage(0): Storing image on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseImage(0): Storing image on disk is not supported yet! No-op.";
 		return;
 	}
 	FrameMemory::getInstance().returnBuffer(data.image[level]);
@@ -647,8 +643,7 @@ void Frame::buildGradients(int level)
 	if(data.gradientsValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE Gradients lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE Gradients lvl %d for frame %d", level, id());
 
 	int width = data.width[level];
 	int height = data.height[level];
@@ -693,8 +688,7 @@ void Frame::buildMaxGradients(int level)
 
 	if(data.maxGradientsValid[level]) return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE AbsGrad lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE AbsGrad lvl %d for frame %d", level, id());
 
 	int width = data.width[level];
 	int height = data.height[level];
@@ -775,12 +769,12 @@ void Frame::buildIDepthAndIDepthVar(int level)
 {
 	if (! data.hasIDepthBeenSet)
 	{
-		printfAssert("Frame::buildIDepthAndIDepthVar(): idepth has not been set yet!\n");
+		LOG(WARNING) << "Frame::buildIDepthAndIDepthVar(): idepth has not been set yet!";
 		return;
 	}
 	if (level == 0)
 	{
-		printf("Frame::buildIDepthAndIDepthVar(0): Loading depth from disk is not implemented yet! No-op.\n");
+		LOG(DEBUG) << "Frame::buildIDepthAndIDepthVar(0): Loading depth from disk is not implemented yet! No-op.";
 		return;
 	}
 
@@ -790,8 +784,7 @@ void Frame::buildIDepthAndIDepthVar(int level)
 	if(data.idepthValid[level] && data.idepthVarValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE IDepth lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE IDepth lvl %d for frame %d", level, id());
 
 	int width = data.width[level];
 	int height = data.height[level];
@@ -879,7 +872,7 @@ void Frame::releaseIDepth(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseIDepth(0): Storing depth on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseIDepth(0): Storing depth on disk is not supported yet! No-op.";
 		return;
 	}
 
@@ -892,16 +885,11 @@ void Frame::releaseIDepthVar(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseIDepthVar(0): Storing depth variance on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseIDepthVar(0): Storing depth variance on disk is not supported yet! No-op.";
 		return;
 	}
 	FrameMemory::getInstance().returnBuffer(data.idepthVar[level]);
 	data.idepthVar[level] = 0;
 }
 
-void Frame::printfAssert(const char* message) const
-{
-	assert(!message);
-	printf("%s\n", message);
-}
 }

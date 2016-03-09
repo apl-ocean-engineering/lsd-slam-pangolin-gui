@@ -151,7 +151,6 @@ int main( int argc, char** argv )
 
       }
 
-
       doGui = !noGuiSwitch.getValue();
 
     } catch (TCLAP::ArgException &e)  // catch any exceptions
@@ -172,14 +171,17 @@ int main( int argc, char** argv )
 	SlamSystem * system = new SlamSystem(conf, doSlam);
 
   if( doGui ) {
+    LOG(INFO) << "Starting GUI thread";
     boost::thread guiThread(runGui, system );
     guiReady.wait();
   }
 
-  boost::thread lsdThread(run, system, dataSource, undistorter );
+  LOG(INFO) << "Starting input thread.";
+  boost::thread inputThread(runInput, system, dataSource, undistorter );
   lsdReady.wait();
 
   // Wait for all threads to be ready.
+  LOG(INFO) << "Starting all threads.";
   startAll.notify();
 
   while(true)

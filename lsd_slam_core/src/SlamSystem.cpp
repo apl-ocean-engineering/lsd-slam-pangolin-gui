@@ -299,8 +299,7 @@ void SlamSystem::constraintSearchThreadLoop()
 
 			if(!doneSomething)
 			{
-				if(enablePrintDebugInfo && printConstraintSearchInfo)
-					printf("nothing to re-track... waiting.\n");
+				LOG_IF(DEBUG, enablePrintDebugInfo && printConstraintSearchInfo) << "nothing to re-track... waiting.";
 				newKeyFrameCreatedSignal.wait_for(lock,std::chrono::milliseconds(500));
 
 			}

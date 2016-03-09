@@ -20,4 +20,4 @@ extern ThreadSynchronizer startAll, lsdReady, guiReady;
 extern GUI *gui;
 
 extern void runGui(lsd_slam::SlamSystem * system );
-extern void run(lsd_slam::SlamSystem * system, lsd_slam::DataSource *dataSource, lsd_slam::Undistorter* undistorter );
+extern void runInput(lsd_slam::SlamSystem * system, lsd_slam::DataSource *dataSource, lsd_slam::Undistorter* undistorter );

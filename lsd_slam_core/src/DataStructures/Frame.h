@@ -227,8 +227,6 @@ private:
 	void releaseIDepth(int level);
 	void releaseIDepthVar(int level);
 
-	void printfAssert(const char* message) const;
-
 	struct Data
 	{
 		int id;
@@ -324,7 +322,7 @@ inline const float* Frame::idepth(int level)
 {
 	if (! data.hasIDepthBeenSet)
 	{
-		printfAssert("Frame::idepth(): idepth has not been set yet!");
+		LOG(WARNING) << "Frame::idepth(): idepth has not been set yet!";
 		return nullptr;
 	}
 	if (! data.idepthValid[level])
@@ -353,7 +351,7 @@ inline const float* Frame::idepthVar(int level)
 {
 	if (! data.hasIDepthBeenSet)
 	{
-		printfAssert("Frame::idepthVar(): idepth has not been set yet!");
+		LOG(WARNING) << "Frame::idepthVar(): idepth has not been set yet!";
 		return nullptr;
 	}
 	if (! data.idepthVarValid[level])

@@ -5,7 +5,7 @@
 using namespace lsd_slam;
 
 
-void run(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
+void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
 {
     // get HZ
     float fps = dataSource->fps();
