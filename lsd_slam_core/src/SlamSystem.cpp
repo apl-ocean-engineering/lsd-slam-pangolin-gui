@@ -487,18 +487,17 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
-	if(enablePrintDebugInfo && printThreadingInfo)
-		printf("RE-ACTIVATE KF %d\n", keyframeToLoad->id());
+	LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo ) << "RE-ACTIVATE KF " << keyframeToLoad->id();
 
 	map->setFromExistingKF(keyframeToLoad);
 
-	if(enablePrintDebugInfo && printRegularizeStatistics)
-		printf("re-activate frame %d!\n", keyframeToLoad->id());
+	LOG_IF(DEBUG, enablePrintDebugInfo && printRegularizeStatistics ) << "re-activate frame " << keyframeToLoad->id() << "!";
 
-	currentKeyFrameMutex.lock();
-	currentKeyFrame = keyFrameGraph->idToKeyFrame.find(keyframeToLoad->id())->second;
-	currentKeyFrame->depthHasBeenUpdatedFlag = false;
-	currentKeyFrameMutex.unlock();
+	{
+		std::lock_guard< std::mutex > lock(currentKeyFrameMutex);
+		currentKeyFrame = keyFrameGraph->idToKeyFrame.find(keyframeToLoad->id())->second;
+		currentKeyFrame->depthHasBeenUpdatedFlag = false;
+	}
 }
 
 void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
