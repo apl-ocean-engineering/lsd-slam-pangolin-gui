@@ -28,6 +28,9 @@ namespace logger {
 class LogWriter
 {
     public:
+
+      static const int CompressLevel = 6;
+
       typedef unsigned int FieldHandle_t;
 
         LogWriter();
@@ -75,12 +78,13 @@ class LogWriter
           FieldType_t type;
 
           unsigned int nBytes( void ) const {
-            switch( type ) {
-            case FIELD_BGRA_8C:
-              return size.height * size.width * 4 * sizeof( unsigned char );
-            case FIELD_DEPTH_32F:
-              return size.height * size.width * 1 * sizeof( float );
-            default:
+            if( type == FIELD_BGRA_8C ) {
+              unsigned long bytes = size.height * size.width * 4 * sizeof( unsigned char );
+              return compressBound( bytes );
+            } else if( type == FIELD_DEPTH_32F ) {
+              unsigned long bytes = size.height * size.width * 1 * sizeof( float );
+              return compressBound( bytes );
+            } else {
               return 0;
             }
           }
@@ -93,16 +97,12 @@ class LogWriter
           Chunk() = delete;
 
           Chunk( unsigned int _sz )
-            : data( new char[_sz] ), size(_sz)
+            : data( new char[_sz] ), size(_sz), capacity( _sz )
           { memset( data.get(), 0, size );}
 
           Chunk( const void *_data, unsigned int _sz )
-            : data( new char[_sz] ), size(_sz)
+            : data( new char[_sz] ), size(_sz), capacity( _sz )
           { memcpy( data.get(), _data, size );}
-
-          // Chunk( std::unique_ptr<char[]> &_data, unsigned int _sz )
-          //   : data( std::move(_data) ), size(_sz)
-          // {}
 
           unsigned int set( void *_data, unsigned int _sz )
           {
@@ -112,7 +112,7 @@ class LogWriter
           }
 
           std::unique_ptr<char[]> data;
-          unsigned int size;
+          unsigned int size, capacity;
         };
 
         std::unique_ptr<logger::Active> _writer;

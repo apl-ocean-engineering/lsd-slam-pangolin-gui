@@ -154,7 +154,10 @@ void LogWriter::bgCompressPng( unsigned int handle, std::shared_ptr<Chunk> chunk
 	// Do some non-compression
 	{
 		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
-		_compressorOutput[handle].set( chunk->data.get(), chunk->size );
+
+		uLongf destSz = _compressorOutput[handle].capacity;
+		CHECK( compress2( (Bytef *)_compressorOutput[handle].data.get(), &destSz, (Bytef *)chunk->data.get(), chunk->size, CompressLevel )  == Z_OK );
+		_compressorOutput[handle].size = destSz;
 		_compressorDone[handle] = true;
 	}
 }
@@ -164,7 +167,10 @@ void LogWriter::bgCompressDepth( unsigned int handle, std::shared_ptr<Chunk> chu
 	// Do some non-compression
 	{
 		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
-		_compressorOutput[handle].set( chunk->data.get(), chunk->size );
+
+		uLongf destSz = _compressorOutput[handle].capacity;
+		CHECK( compress2( (Bytef *)_compressorOutput[handle].data.get(), &destSz, (Bytef *)chunk->data.get(), chunk->size, CompressLevel )  == Z_OK );
+		_compressorOutput[handle].size = destSz;
 		_compressorDone[handle] = true;
 	}
 }
