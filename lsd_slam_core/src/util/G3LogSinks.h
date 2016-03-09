@@ -8,6 +8,11 @@ struct ColorStderrSink {
     : _threshold( threshold )
   {;}
 
+  ~ColorStderrSink()
+  {
+    std::cerr << std::endl;
+  }
+
   // Linux xterm color
   // http://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
   enum FG_Color {YELLOW = 33, RED = 31, GREEN=32, WHITE = 97};

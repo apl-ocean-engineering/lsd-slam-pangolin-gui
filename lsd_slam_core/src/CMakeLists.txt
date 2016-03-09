@@ -23,7 +23,6 @@ set(lsdslam_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/util/SophusUtil.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/settings.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/util/RawLogReader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
@@ -51,7 +50,6 @@ include_directories(
   ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
   ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
   ${ZED_CAMERA_INCLUDE_DIRS}
-  ${TCLAP_INCLUDE_DIR}
   ${G3LOG_INCLUDE_DIR}
 )
 

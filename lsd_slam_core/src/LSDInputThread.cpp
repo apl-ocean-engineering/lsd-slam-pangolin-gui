@@ -10,7 +10,7 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
     // get HZ
     float fps = dataSource->fps();
     long int dt_us = (fps > 0) ? (1e6/fps) : 0;
-    long int dt_wiggle = 1000;
+    long int dt_wiggle = 0;
 
     const bool doDepth( system->conf().doDepth && dataSource->hasDepth() );
 

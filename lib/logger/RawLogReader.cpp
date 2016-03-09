@@ -7,7 +7,11 @@
 
 #include "RawLogReader.h"
 
-RawLogReader::RawLogReader(const lsd_slam::ImageSize &sz,
+#include <g3log/g3log.hpp>
+
+namespace logger {
+
+RawLogReader::RawLogReader(const cv::Size &sz,
                            Bytef *& decompressionBuffer,
                            IplImage *& deCompImage,
                            std::string file)
@@ -19,7 +23,7 @@ RawLogReader::RawLogReader(const lsd_slam::ImageSize &sz,
    height(sz.height),
    numPixels(width * height)
 {
-    assert(boost::filesystem::exists(file.c_str()));
+    CHECK(fs::exists(file.c_str()));
 
     fp = fopen(file.c_str(), "rb");
 
@@ -131,4 +135,6 @@ bool RawLogReader::hasMore()
 const std::string RawLogReader::getFile()
 {
     return file;
+}
+
 }

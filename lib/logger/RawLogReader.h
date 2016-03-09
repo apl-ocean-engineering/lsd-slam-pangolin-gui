@@ -5,10 +5,7 @@
  *      Author: thomas
  */
 
-#ifndef RAWLOGREADER_H_
-#define RAWLOGREADER_H_
-
-#include "Configuration.h"
+#pragma once
 
 #include <cassert>
 #include <zlib.h>
@@ -17,11 +14,14 @@
 #include <stdio.h>
 #include <string>
 #include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
+namespace logger {
 
 class RawLogReader
 {
     public:
-        RawLogReader(const lsd_slam::ImageSize &sz,
+        RawLogReader(const cv::Size &sz,
                      Bytef *& decompressionBuffer,
                      IplImage *& deCompImage,
                      std::string file);
@@ -60,4 +60,4 @@ class RawLogReader
         int numPixels;
 };
 
-#endif /* RAWLOGREADER_H_ */
+}
