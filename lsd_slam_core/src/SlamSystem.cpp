@@ -354,7 +354,7 @@ void SlamSystem::constraintSearchThreadLoop()
 
 void SlamSystem::optimizationThreadLoop()
 {
-	printf("Started optimization thread \n");
+	LOG(INFO) << "Started optimization thread";
 
 	while(keepRunning)
 	{
@@ -373,7 +373,7 @@ void SlamSystem::optimizationThreadLoop()
 		while(optimizationIteration(5, 0.02));
 	}
 
-	printf("Exited optimization thread \n");
+	LOG(INFO) << "Exited optimization thread";
 }
 
 void SlamSystem::publishKeyframeGraph()

@@ -106,7 +106,7 @@ class ThreadMutexObject
 };
 
 // Simplified version which only handles synchronization (no access to
-//  stored value)
+//  stored boolean value)
 class ThreadSynchronizer  {
 public:
   ThreadSynchronizer( void )
