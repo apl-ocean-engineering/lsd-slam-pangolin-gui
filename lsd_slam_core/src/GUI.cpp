@@ -9,9 +9,6 @@
 
 #include <pangolin/display/device/display_glut.h>
 
-#include <glog/logging.h>
-
-
 GUI::GUI( const lsd_slam::Configuration &conf )
  : _conf( conf ),
     liveImg(NULL),
