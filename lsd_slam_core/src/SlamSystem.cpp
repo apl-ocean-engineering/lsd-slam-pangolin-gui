@@ -469,7 +469,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	// propagate & make new.
 	map->createKeyFrame(newKeyframeCandidate.get());
 
-	if(printPropagationStatistics)
+	if(outputWrapper && printPropagationStatistics)
 	{
 
 		Eigen::Matrix<float, 20, 1> data;
@@ -575,7 +575,9 @@ bool SlamSystem::updateKeyframe()
 	}
 
 
-	if(enablePrintDebugInfo && printRegularizeStatistics)
+	if( outputWrapper ) {
+
+	if( enablePrintDebugInfo && printRegularizeStatistics)
 	{
 		Eigen::Matrix<float, 20, 1> data;
 		data.setZero();
@@ -602,8 +604,9 @@ bool SlamSystem::updateKeyframe()
 
 
 
-	if(outputWrapper != 0 && continuousPCOutput && currentKeyFrame != 0)
+	if( continuousPCOutput && currentKeyFrame != 0)
 		outputWrapper->publishKeyframe(currentKeyFrame.get());
+	}
 
 	return true;
 }
@@ -632,7 +635,7 @@ void SlamSystem::addTimingSamples()
 
 void SlamSystem::debugDisplayDepthMap()
 {
-
+	if( !outputWrapper ) return;
 
 	map->debugPlotDepthMap();
 	double scale = 1;
