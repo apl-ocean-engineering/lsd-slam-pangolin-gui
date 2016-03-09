@@ -19,6 +19,10 @@ Requires OpenCV 3.0 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sour
 
 Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o. Then usual cmake building process.
 
+(Incomplete list) for dependencies on clean install on a Jetson TX1:
+
+    sudo apt-get install libglm-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev
+
 # 3. Running
 
 Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;

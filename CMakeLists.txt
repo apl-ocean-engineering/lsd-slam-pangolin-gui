@@ -63,11 +63,23 @@ if( USE_ZED_CAMERA )
 
 endif()
 
-# SSE flags
-add_definitions("-DENABLE_SSE")
-set(CMAKE_CXX_FLAGS
-   "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
-)
+## Architecture detection
+EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
+message( STATUS "Architecture: ${ARCHITECTURE}" )
+
+if( ${ARCHITECTURE} STREQUAL "aarch64" )
+  set(CMAKE_CXX_FLAGS
+     "${CMAKE_CXX_FLAGS} -O3 -std=c++11"
+  )
+elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
+  # SSE flags
+  add_definitions("-DENABLE_SSE")
+  set(CMAKE_CXX_FLAGS
+     "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
+  )
+endif()
+
+
 
 add_subdirectory("lsd_slam_core/src")
 
