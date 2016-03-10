@@ -31,6 +31,6 @@ SVO to Logger transcoding
 -----
 
 <table>
-	<tr><th>Resolution</th><th>Compression</th><th>Meas. FPS</th><th>File Size (MB)</th><th>Rate (MB/s)</th><tr>
-	<tr><td>HD1080</td><td>Snappy</td><td></td><td></td><td></td></tr>
+	<tr><th>Resolution</th><th>Duration (s)</th><th>Compression</th><th>Channels</th><th>Meas. FPS</th><th>File Size (MB)</th><th>Rate (MB/s)</th><tr>
+	<tr><td>HD1080</td><td>30</td><td>Snappy</td><td>LRD</td><td>15.8025</td><td>572</td><td>33.6023</td></tr>
 </table>

@@ -199,7 +199,7 @@ void LogWriter::compressPng( unsigned int handle, std::shared_ptr<Chunk> chunk )
 			CHECK( status == Z_OK ) << "Compress status: " << status;
 			_compressorOutput[handle]->size = destSz;
 		}
-		LOG(INFO) << "PNG compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
+		LOG(DEBUG) << "PNG compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
 		_compressorDone[handle] = true;
 	}
 }
@@ -226,7 +226,7 @@ void LogWriter::compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk
 					_compressorOutput[handle]->size = destSz;
 				}
 
-		LOG(INFO) << "Depth compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
+		LOG(DEBUG) << "Depth compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
 		_compressorDone[handle] = true;
 	}
 }
