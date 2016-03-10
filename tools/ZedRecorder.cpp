@@ -104,7 +104,7 @@ int main( int argc, char** argv )
 			camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
 		}
 
-int numFrames = camera->getSVONumberOfFrames();
+		int numFrames = camera->getSVONumberOfFrames();
 
 		sl::zed::ERRCODE err;
 		if( svoOutputArg.isSet() ) {

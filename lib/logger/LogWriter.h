@@ -147,7 +147,7 @@ class LogWriter
         //   _writer->send( std::bind( &LogWriter::bgWriteData, this, ptrChunk ) );
         // }
 
-        // Backgroundable PNG compression
+        // Backgroundable Image compression
         void bgCompressPng( unsigned int handle, std::shared_ptr<Chunk> chunk );
 
         void compressPng( FieldHandle_t handle, const void *data )
@@ -158,6 +158,7 @@ class LogWriter
           _compressors[handle]->send( std::bind( &LogWriter::bgCompressPng, this, handle, ptrChunk ) );
         }
 
+        // Backgroundable depth compression
         void bgCompressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk );
 
         void compressDepth( FieldHandle_t handle, const void *data )
