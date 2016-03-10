@@ -142,10 +142,13 @@ int main( int argc, char** argv )
       } else
 #endif
       {
+        std::vector< std::string > imageFiles = imageFilesArg.getValue();
+
         if( logFileArg.isSet() ) {
           dataSource = new LoggerSource( logFileArg.getValue() );
+        } else if ( imageFiles.size() > 0 && fs::path(imageFiles[0]).extension().string() == ".log" ) {
+          dataSource = new LoggerSource( imageFiles[0] );
         } else {
-          std::vector< std::string > imageFiles = imageFilesArg.getValue();
           dataSource = new ImagesSource( imageFiles );
         }
 
