@@ -50,7 +50,7 @@ class LogWriter
         void addField( FieldHandle_t handle, const void *data );
         void addField( FieldHandle_t handle, const cv::Mat &mat );
 
-        bool writeFrame( void );
+        bool writeFrame( bool doBlock = false );
 
         // void getNext();
         //

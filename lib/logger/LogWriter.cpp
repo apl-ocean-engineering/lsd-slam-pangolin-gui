@@ -119,7 +119,7 @@ bool LogWriter::allCompressionDone( void )
 	return true;
 }
 
-bool LogWriter::writeFrame( void )
+bool LogWriter::writeFrame( bool doBlock )
 {
 	// Wait for all frames to be done
 	while( !allCompressionDone() ) {
@@ -133,15 +133,24 @@ bool LogWriter::writeFrame( void )
 
 	// LOG(INFO) << "Compressors done, writing frame." << numFrames;
 
+	// Write per-frame headers if needed...
+
 	for( unsigned int handle = 0; handle < _fields.size(); ++handle ) {
-		// Write per-frame headers
 
 		// Should be unnecessary, there should be no compressors running.
 		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
 
+		if( doBlock ){
 		// This causes another copy into a a chunk which goes to the file writer...
-		writeData( _compressorOutput[handle].data.get(), _compressorOutput[handle].size );
+			if( fp ) fwrite( _compressorOutput[handle].data.get(), _compressorOutput[handle].size, 1, fp );
+			else LOG(WARNING) << "Trying to write but fp doesn't exist!";
+		} else {
+			// Push into the background queue
+			writeData( _compressorOutput[handle].data.get(), _compressorOutput[handle].size );
+		}
 	}
+
+
 
 	// LOG(INFO) << "Wrote frame " << numFrames;
 	++numFrames;

@@ -92,6 +92,7 @@ int main( int argc, char** argv )
 		const int whichGpu = -1;
 		const bool verboseInit = true;
 
+
 		sl::zed::Camera *camera = NULL;
 
 		if( svoInputArg.isSet() )
@@ -102,6 +103,8 @@ int main( int argc, char** argv )
 			LOG(INFO) << "Using live Zed data";
 			camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
 		}
+
+int numFrames = camera->getSVONumberOfFrames();
 
 		sl::zed::ERRCODE err;
 		if( svoOutputArg.isSet() ) {
@@ -157,7 +160,6 @@ int main( int argc, char** argv )
 		int count = 0;
 		while( keepGoing ) {
 			if( (count % 100)==0 ) LOG(INFO) << count << " frames";
-			count++;
 
 			std::chrono::steady_clock::time_point present( std::chrono::steady_clock::now() );
 
@@ -203,7 +205,8 @@ int main( int argc, char** argv )
 					}
 
 					if( loggerOutputArg.isSet() ) {
-						if( !logWriter.writeFrame() ) {
+						const bool doBlock( dt_us == 0 );
+						if( !logWriter.writeFrame( doBlock ) ) {
 							LOG(WARNING) << "Error while writing frame...";
 						}
 					}
@@ -214,7 +217,13 @@ int main( int argc, char** argv )
 			}
 
 			if( dt_us > 0 )
-			std::this_thread::sleep_until( present + std::chrono::microseconds( dt_us ) );
+				std::this_thread::sleep_until( present + std::chrono::microseconds( dt_us ) );
+
+				count++;
+
+				if( numFrames > 0 && count >= numFrames ) {
+					keepGoing = false;
+				}
 		}
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
