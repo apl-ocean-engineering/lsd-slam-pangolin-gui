@@ -203,6 +203,8 @@ public:
   {
       if( _computeDepth )
         mat = sl::zed::slMat2cvMat( _cam->retrieveMeasure( sl::zed::DEPTH ) );
+      else
+        LOG(WARNING) << "Asked for depth after begin configured not to compute depth";
   }
 
 

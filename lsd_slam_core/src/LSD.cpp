@@ -136,7 +136,7 @@ int main( int argc, char** argv )
           LOG(FATAL) << "Don't know how to handle Zed resolution" << resolutionToString( zedResolution );
         }
 
-        dataSource = new ZedSource( camera );
+        dataSource = new ZedSource( camera, conf.doDepth == Configuration::STEREO_ZED );
         if( fpsArg.isSet() && svoFileArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
         undistorter = new UndistorterZED( camera, cropSize, slamSize );
       } else
@@ -180,7 +180,7 @@ int main( int argc, char** argv )
 
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
-	SlamSystem * system = new SlamSystem(conf, doSlam);
+	SlamSystem * system = new SlamSystem(conf, doSlam );
 
   if( doGui ) {
     LOG(INFO) << "Starting GUI thread";
