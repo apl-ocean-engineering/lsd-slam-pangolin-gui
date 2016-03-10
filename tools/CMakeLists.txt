@@ -5,6 +5,8 @@ include_directories(
   ${TCLAP_INCLUDE_DIR}
   ${G3LOG_INCLUDE_DIR}
   ${ZED_CAMERA_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
+  ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
 )
 
 set(CMAKE_CXX_FLAGS

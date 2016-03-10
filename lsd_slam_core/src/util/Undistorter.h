@@ -253,9 +253,64 @@ private:
 	bool valid;
 };
 
+
+class UndistorterLogger : public Undistorter
+{
+public:
+	/**
+	 * Creates an Undistorter by reading the distortion parameters from a file.
+	 *
+	 * The file format is as follows:
+	 * fx fy cx cy
+	 * inputWidth inputHeight
+	 * cropWidth cropHeight
+	 * outputWidth outputHeight
+	 */
+	UndistorterLogger(const char* configFileName);
+
+	/**
+	 * Destructor.
+	 */
+	~UndistorterLogger();
+
+	UndistorterLogger(const UndistorterLogger&) = delete;
+	UndistorterLogger& operator=(const UndistorterLogger&) = delete;
+
+	void undistort(const cv::Mat &image, cv::OutputArray result) const;
+	virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const;
+
+
+	const cv::Mat getK() const;
+	virtual const Camera getCamera() const;
+	virtual const Camera getOriginalCamera( void ) const { return _originalCamera; }
+
+
+	const cv::Mat getOriginalK() const;
+	int getOutputWidth() const						{ return _finalSize.width; }
+	int getOutputHeight() const						{ return _finalSize.height; }
+	int getInputWidth() const							{ return _inputSize.width; }
+	int getInputHeight() const						{ return _inputSize.height; }
+
+
+	bool isValid() const { return _valid; }
+
+#ifdef USE_ZED
+	static bool calibrationFromZed( sl::zed::Camera *camera, const std::string &filename );
+#endif
+
+protected:
+
+	UndistorterLogger( const ImageSize &inputSize, const ImageSize &cropSize, const ImageSize &finalSize, const Camera &cam  );
+
+	ImageSize _inputSize, _cropSize, _finalSize;
+	Camera _originalCamera;
+
+	bool _valid;
+};
+
 #ifdef USE_ZED
 
-class UndistorterZED : public Undistorter
+class UndistorterZED : public UndistorterLogger
 {
 public:
 	/**
@@ -277,38 +332,13 @@ public:
 	UndistorterZED(const UndistorterZED&) = delete;
 	UndistorterZED& operator=(const UndistorterZED&) = delete;
 
-	void undistort(const cv::Mat &image, cv::OutputArray result) const;
-	virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const;
+	// Until a Zed-optimized version is needed, devolve these to UndistortLogger
+	// void undistort(const cv::Mat &image, cv::OutputArray result) const;
+	// virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const;
 
-
-	virtual const Camera getCamera() const;
-	virtual const cv::Mat getK() const;
-
-	Camera getOriginalCamera() const;
-	const cv::Mat getOriginalK() const;
-
-	ImageSize outputSize( void ) const { return _finalSize; }
-
-	int getOutputWidth() const;
-
-	int getOutputHeight() const;
-
-	ImageSize inputSize( void ) const { return _inputSize; }
-
-	int getInputWidth() const;
-
-	int getInputHeight() const;
-
-
-	/**
-	 * Returns if the undistorter was initialized successfully.
-	 */
-	bool isValid() const;
 
 private:
 
-	ImageSize _inputSize, _cropSize, _finalSize;
-	Camera _originalCamera;
 
 };
 

@@ -25,6 +25,7 @@ set(lsdslam_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterLogger.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Relocalizer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/SE3Tracker.cpp
@@ -38,8 +39,7 @@ set(lsdslam_SOURCE_FILES
   ${GUI_SRCS}
 )
 
-
-include_directories(
+set( LSDSLAM_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/lib
   ${EIGEN3_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -53,6 +53,8 @@ include_directories(
   ${ZED_CAMERA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
 )
+
+include_directories( ${LSDSLAM_INCLUDE_DIRS} )
 
 # build shared library.
 add_library(lsdslam SHARED ${lsdslam_SOURCE_FILES})

@@ -17,6 +17,7 @@ namespace fs = boost::filesystem;
 #include "util/G3LogSinks.h"
 #include "util/ZedUtils.h"
 #include "util/DataSource.h"
+#include "util/Undistorter.h"
 
 #include "logger/LogWriter.h"
 
@@ -53,12 +54,13 @@ int main( int argc, char** argv )
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
 		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
-		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0,"", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0.0,"", cmd);
 
 		TCLAP::ValueArg<std::string> logInputArg("","log-input","Name of Logger file to read",false,"","Logger filename", cmd);
 		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
 		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Name of SVO file to read",false,"","SVO filename", cmd);
 		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Name of SVO file to read",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Name of calibration file",false,"","Calib filename", cmd);
 
 		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
 
@@ -111,7 +113,7 @@ int main( int argc, char** argv )
 		}
 
 		const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
-		const sl::zed::MODE zedMode = sl::zed::MODE::NONE; //( conf.doStereo == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
+		const sl::zed::MODE zedMode = sl::zed::MODE::NONE;
 		const int whichGpu = -1;
 		const bool verboseInit = true;
 
@@ -126,15 +128,16 @@ int main( int argc, char** argv )
 			LOG_IF(FATAL, doDepth && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
 			LOG_IF(FATAL, doRight && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
 
+			if( calibOutputArg.isSet() )
+				LOG(WARNING) << "Can't create calibration file from a log file.";
+
 		} else {
 			if( svoInputArg.isSet() )	{
 				LOG(INFO) << "Loading SVO file " << svoInputArg.getValue();
 				camera = new sl::zed::Camera( svoInputArg.getValue() );
-				dataSource = new ZedSource( camera, doDepth );
 			} else  {
 				LOG(INFO) << "Using live Zed data";
 				camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
-				dataSource = new ZedSource( camera, doDepth );
 			}
 
 			sl::zed::ERRCODE err;
@@ -144,16 +147,29 @@ int main( int argc, char** argv )
 				err = camera->init( sl::zed::PERFORMANCE, -1, true );
 			}
 
+			dataSource = new ZedSource( camera, doDepth );
+
 			if (err != sl::zed::SUCCESS) {
 				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
 				delete camera;
 				exit(-1);
+			}
+
+			// Does this need to be called after a grab()?
+			if( calibOutputArg.isSet() ) {
+				if( svoInputArg.isSet() )	{
+					LOG(INFO) << "Calibration not loaded when logging to SVO?";
+				} else {
+					LOG(INFO) << "Saving calibration to \"" << calibOutputArg.getValue() << "\"";
+					lsd_slam::UndistorterLogger::calibrationFromZed( camera, calibOutputArg.getValue() );
+				}
 			}
 		}
 
 		int numFrames = dataSource->numFrames();
 		float fps = dataSource->fps();
 
+		CHECK( fps >= 0 );
 
 		logger::LogWriter logWriter( compressLevel );
 		logger::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;

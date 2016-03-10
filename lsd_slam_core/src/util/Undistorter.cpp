@@ -67,14 +67,20 @@ Undistorter* Undistorter::getUndistorterForFile(const std::string &configFilenam
 			&ic[0], &ic[1], &ic[2], &ic[3], &ic[4],
 			&ic[5], &ic[6], &ic[7]) == 8)
 	{
-		printf("found OpenCV camera model, building rectifier.\n");
+		LOG(INFO) << "found OpenCV camera model, building rectifier.";
 		Undistorter* u = new UndistorterOpenCV(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
 	}
-	else
+	else if(std::sscanf(l1.c_str(), "%f %f %f %f",
+				&ic[0], &ic[1], &ic[2], &ic[3]) == 4)
 	{
-		printf("found ATAN camera model, building rectifier.\n");
+		LOG(INFO) << "found Logger camera model, building rectifier.";
+		Undistorter* u = new UndistorterLogger(configFilename.c_str());
+		if(!u->isValid()) return 0;
+		return u;
+} else	{
+		LOG(INFO) << "found ATAN camera model, building rectifier.";
 		Undistorter* u = new UndistorterPTAM(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;

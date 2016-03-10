@@ -170,6 +170,8 @@ public:
     _hasDepth = true;
 
     _fps = _cam->getCurrentFPS();
+
+    LOG(INFO) << "fps: " << _fps;
   }
 
   ZedSource( const ZedSource & ) = delete;

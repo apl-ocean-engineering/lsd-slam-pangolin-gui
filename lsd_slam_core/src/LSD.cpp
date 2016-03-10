@@ -78,6 +78,9 @@ int main( int argc, char** argv )
       TCLAP::SwitchArg depthSwitch("","depth","Use depth data", cmd, false);
 #endif
 
+      TCLAP::ValueArg<std::string> logFileArg("","log-input","Name of logger file to read",false,"","Logger filename", cmd);
+
+
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
       TCLAP::ValueArg<int> fpsArg("", "fps","FPS", false, 0, "", cmd );
 
@@ -139,16 +142,22 @@ int main( int argc, char** argv )
       } else
 #endif
       {
-        std::vector< std::string > imageFiles = imageFilesArg.getValue();
-        dataSource = new ImagesSource( imageFiles );
+        if( logFileArg.isSet() ) {
+          dataSource = new LoggerSource( logFileArg.getValue() );
+        } else {
+          std::vector< std::string > imageFiles = imageFilesArg.getValue();
+          dataSource = new ImagesSource( imageFiles );
+        }
+
         if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
 
         if( !calibFileArg.isSet() ) {
           LOG(WARNING) << "Must specify camera calibration!";
           exit(-1);
         }
-        undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
 
+        undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
+        CHECK(undistorter);
       }
 
       doGui = !noGuiSwitch.getValue();
