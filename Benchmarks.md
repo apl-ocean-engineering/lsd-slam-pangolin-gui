@@ -21,7 +21,7 @@ RawLog Recording Rates
 Recorded file includes left and right images (as BGRA_8C), and depth map (as DEPTH_32F) w/ zlib compress (level 6) on all three channels.
 
 <table>
-	<tr><th>Resolution</th><th>Duration (s)</th><th<Compression</th><th>Nom. FPS</th><th>Meas. FPS</th><th>File Size (MB)</th><th>Rate (MB/s)</th><tr>
+	<tr><th>Resolution</th><th>Duration (s)</th><th>Compression</th><th>Nom. FPS</th><th>Meas. FPS</th><th>File Size (MB)</th><th>Rate (MB/s)</th><tr>
 	<tr><td>HD1080</td><td>30</td><td>Snappy</td><td>30</td><td>14.8935</td><td>3196</td><td>106.487</td></tr>
 </table>
 
