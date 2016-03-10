@@ -73,7 +73,10 @@ class LogWriter
         // One backgroundable task
         void bgWriteData( std::shared_ptr<Chunk> chunk )
         {
-          if( fp ) fwrite( chunk->data.get(), chunk->size, 1, fp );
+          if( fp ) {
+            fwrite( &(chunk->size), sizeof( uint32_t), 1, fp );
+            fwrite( chunk->data.get(), chunk->size, 1, fp );
+          }
           else LOG(WARNING) << "Trying to write but fp doesn't exist!";
         }
 

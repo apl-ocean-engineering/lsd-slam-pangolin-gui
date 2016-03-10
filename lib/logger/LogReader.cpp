@@ -77,6 +77,8 @@ bool LogReader::open( const std::string &filename )
 
     const Field &f( _fields.back() );
     _data.emplace_back( f.nBytes() );
+
+    _compressed.emplace_back( f.compressedBytes() );
 	}
 
   // Read header
@@ -85,14 +87,37 @@ bool LogReader::open( const std::string &filename )
 
 bool LogReader::close( void )
 {
+  if( fp == NULL ) return false;
+
   fclose( fp );
   fp = NULL;
+  return true;
 }
 
 
 void LogReader::grab()
 {
   currentFrame++;
+
+  for( unsigned int i = 0; i < _fields.size(); ++i ) {
+    unsigned int len;
+    CHECK( fread( &len, sizeof( int32_t), 1, fp ));
+
+    CHECK( fread( _compressed[i].data.get(), sizeof( unsigned char), len, fp ));
+    _compressed[i].size = len;
+  }
+
+  // Now decompress the data
+  for( unsigned int i = 0; i < _fields.size(); ++i ) {
+    uLongf destLen = _data[i].size;
+
+    if( uncompress( (Bytef *)_data[i].data.get(), &destLen, (Bytef *)_compressed[i].data.get(), _compressed[i].size ) != Z_OK) {
+      LOG(WARNING) << "Error uncompressing data.";
+      continue;
+    }
+
+    CHECK( destLen == _fields[i].nBytes() );
+  }
 
 //     assert(fread(&timestamp, sizeof(int64_t), 1, fp));
 //

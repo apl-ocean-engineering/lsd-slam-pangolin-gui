@@ -141,11 +141,10 @@ bool LogWriter::writeFrame( bool doBlock )
 		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
 
 		if( doBlock ){
-		// This causes another copy into a a chunk which goes to the file writer...
-			if( fp ) fwrite( _compressorOutput[handle].data.get(), _compressorOutput[handle].size, 1, fp );
-			else LOG(WARNING) << "Trying to write but fp doesn't exist!";
+			bgWriteData( std::shared_ptr<Chunk>( &_compressorOutput[handle] ) );
 		} else {
 			// Push into the background queue
+			// This causes a copy into a new chunk which is queued to the file writer...
 			writeData( _compressorOutput[handle].data.get(), _compressorOutput[handle].size );
 		}
 	}

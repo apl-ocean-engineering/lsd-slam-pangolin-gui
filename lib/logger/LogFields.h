@@ -62,7 +62,7 @@ struct Chunk {
 	{
 		CHECK( _sz >= size );
 		memcpy( data.get(), _data, _sz );
-		size = _sz;
+		return size = _sz;
 	}
 
 	std::unique_ptr<char[]> data;

@@ -60,6 +60,7 @@ class LogReader
 
         Fields _fields;
         std::deque< Chunk > _data;
+        std::deque< Chunk > _compressed;
 
         // int width;
         // int height;
