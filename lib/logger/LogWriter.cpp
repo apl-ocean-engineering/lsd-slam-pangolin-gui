@@ -14,7 +14,7 @@ LogWriter::LogWriter( void )
 LogWriter::~LogWriter()
 {}
 
-LogWriter::FieldHandle_t LogWriter::registerField( const std::string &name, const cv::Size &sz, FieldType_t type )
+FieldHandle_t LogWriter::registerField( const std::string &name, const cv::Size &sz, FieldType_t type )
 {
 	_fields.emplace_back( name, sz, type );
 
@@ -22,7 +22,7 @@ LogWriter::FieldHandle_t LogWriter::registerField( const std::string &name, cons
 	CHECK( f.size.width != 0 && f.size.height != 0 && f.nBytes() != 0 );
 
 	_compressors.push_back( Active::createActive() );
-	_compressorOutput.push_back( f.nBytes() );
+	_compressorOutput.push_back( f.compressedBytes() );
 	_compressorMutex.emplace_back();
 	_compressorDone.push_back( true );
 	_fieldUpdated.push_back( false );

@@ -15,13 +15,13 @@
 #include <stdio.h>
 
 #include <g3log/g3log.hpp>
-#include <zlib.h>
 #include <opencv2/opencv.hpp>
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
 #include "active.h"
+#include "LogFields.h"
 
 namespace logger {
 
@@ -31,15 +31,8 @@ class LogWriter
 
       static const int CompressLevel = 6;
 
-      typedef unsigned int FieldHandle_t;
-
         LogWriter();
         virtual ~LogWriter();
-
-        enum FieldType_t {
-          FIELD_BGRA_8C = 0,
-          FIELD_DEPTH_32F = 1
-        };
 
         FieldHandle_t registerField( const std::string &name, const cv::Size &sz, FieldType_t type );
 
@@ -68,52 +61,7 @@ class LogWriter
 
     private:
 
-        struct Field {
-          Field( const std::string &nm, const cv::Size &sz, FieldType_t tp )
-            : name(nm), size(sz), type(tp)
-          {;}
-
-          std::string name;
-          cv::Size size;
-          FieldType_t type;
-
-          unsigned int nBytes( void ) const {
-            if( type == FIELD_BGRA_8C ) {
-              unsigned long bytes = size.height * size.width * 4 * sizeof( unsigned char );
-              return compressBound( bytes );
-            } else if( type == FIELD_DEPTH_32F ) {
-              unsigned long bytes = size.height * size.width * 1 * sizeof( float );
-              return compressBound( bytes );
-            } else {
-              return 0;
-            }
-          }
-
-        };
-        typedef std::vector<Field> Fields;
         Fields _fields;
-
-        struct Chunk {
-          Chunk() = delete;
-
-          Chunk( unsigned int _sz )
-            : data( new char[_sz] ), size(_sz), capacity( _sz )
-          { memset( data.get(), 0, size );}
-
-          Chunk( const void *_data, unsigned int _sz )
-            : data( new char[_sz] ), size(_sz), capacity( _sz )
-          { memcpy( data.get(), _data, size );}
-
-          unsigned int set( void *_data, unsigned int _sz )
-          {
-            CHECK( _sz >= size );
-            memcpy( data.get(), _data, _sz );
-            size = _sz;
-          }
-
-          std::unique_ptr<char[]> data;
-          unsigned int size, capacity;
-        };
 
         std::unique_ptr<logger::Active> _writer;
         std::deque< std::unique_ptr<logger::Active> > _compressors;

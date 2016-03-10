@@ -9,7 +9,7 @@ endif()
 
 # Set source files
 set(logger_SOURCE_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/RawLogReader.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/LogReader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/LogWriter.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/active.cpp
   # ${ZED_SRCS}

@@ -127,14 +127,14 @@ int main( int argc, char** argv )
 		}
 
 		logger::LogWriter logWriter;
-		logger::LogWriter::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;
+		logger::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;
 		if( loggerOutputArg.isSet() ) {
 			sl::zed::resolution res( camera->getImageSize() );
 			cv::Size sz( res.width, res.height);
 
-			leftHandle = logWriter.registerField( "left", sz, logger::LogWriter::FIELD_BGRA_8C );
-			if( doDepth ) depthHandle = logWriter.registerField( "depth", sz, logger::LogWriter::FIELD_DEPTH_32F );
-			if( doRight ) rightHandle = logWriter.registerField( "right", sz, logger::LogWriter::FIELD_BGRA_8C );
+			leftHandle = logWriter.registerField( "left", sz, logger::FIELD_BGRA_8C );
+			if( doDepth ) depthHandle = logWriter.registerField( "depth", sz, logger::FIELD_DEPTH_32F );
+			if( doRight ) rightHandle = logWriter.registerField( "right", sz, logger::FIELD_BGRA_8C );
 
 			if( !logWriter.open( loggerOutputArg.getValue() ) ) {
 				LOG(FATAL) << "Unable to open file " << loggerOutputArg.getValue() << " for logging.";
