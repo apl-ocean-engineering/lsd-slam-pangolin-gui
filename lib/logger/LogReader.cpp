@@ -7,6 +7,11 @@
 
 #include "LogReader.h"
 
+#ifdef USE_SNAPPY
+#include <snappy.h>
+#endif
+#include <zlib.h>
+
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
@@ -45,6 +50,15 @@ LogReader::~LogReader()
     // fclose(fp);
 }
 
+FieldHandle_t LogReader::findField( const std::string &field )
+{
+  for( unsigned int i = 0; i < _fields.size(); ++i ) {
+    if( field == _fields[i].name ) return i;
+  }
+
+  return -1;
+}
+
 bool LogReader::open( const std::string &filename )
 {
   CHECK(fs::exists(fs::path(filename)));
@@ -56,10 +70,29 @@ bool LogReader::open( const std::string &filename )
   }
 
   currentFrame = 0;
+  uint16_t version = 0;
+
+  fread( &version, sizeof( int16_t), 1, fp );
+  CHECK( version == LogFormatVersion );
+  LOG(DEBUG) << "Format version: " << version;
+
+  fread( &_featureFlags, sizeof( int16_t), 1, fp );
+  LOG(DEBUG) << "Feature flags: " << _featureFlags;
+
+#if not defined(USE_SNAPPY)
+  CHECK( (_featureFlags & SNAPPY_COMPRESSION) == 0 ) << "Log written with Snappy compressor, which isn't compiled in...";
+#endif
+
+  CHECK( _featureFlags != 0 ) << "Feature flags is zero? (" << _featureFlags << ")";
 
   fread(&numFrames, sizeof(int32_t), 1, fp);
+  LOG(DEBUG) << "Num frames: " << numFrames;
+
 	int32_t numFields = 0;
 	fread(&numFields, sizeof(int32_t), 1, fp);
+  LOG(DEBUG) << "Num fields: " << numFields;
+
+  CHECK( numFields > 0 && numFields < 5 ) << "Don't believe the number of fields: " << numFields;
 
   _fields.clear();
 	for( unsigned int i = 0; i < numFields; ++i ) {
@@ -101,7 +134,7 @@ void LogReader::grab()
 
   for( unsigned int i = 0; i < _fields.size(); ++i ) {
     unsigned int len;
-    CHECK( fread( &len, sizeof( int32_t), 1, fp ));
+    CHECK( fread( &len, sizeof(uint32_t), 1, fp ));
 
     CHECK( fread( _compressed[i].data.get(), sizeof( unsigned char), len, fp ));
     _compressed[i].size = len;
@@ -111,10 +144,26 @@ void LogReader::grab()
   for( unsigned int i = 0; i < _fields.size(); ++i ) {
     uLongf destLen = _data[i].size;
 
-    if( uncompress( (Bytef *)_data[i].data.get(), &destLen, (Bytef *)_compressed[i].data.get(), _compressed[i].size ) != Z_OK) {
-      LOG(WARNING) << "Error uncompressing data.";
-      continue;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+#ifdef USE_SNAPPY
+    if( _featureFlags & SNAPPY_COMPRESSION) {
+      // LOG(INFO) << "IsValidCompressedBuffer: " << snappy::IsValidCompressedBuffer( (char *)_compressed[i].data.get(), _compressed[i].size );
+
+      if( !snappy::RawUncompress( (char *)_compressed[i].data.get(), _compressed[i].size, _data[i].data.get() )) {
+        LOG(WARNING) << "Error uncompressing snappy data.";
+        continue;
+      }
     }
+    else
+#endif
+    {
+      if( uncompress( (Bytef *)_data[i].data.get(), &destLen, (Bytef *)_compressed[i].data.get(), _compressed[i].size ) != Z_OK) {
+        LOG(WARNING) << "Error uncompressing zlib data.";
+        continue;
+      }
+    }
+    LOG(DEBUG) << "PNG uncompression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
+
 
     CHECK( destLen == _fields[i].nBytes() );
   }
@@ -194,7 +243,8 @@ cv::Mat LogReader::retrieve( FieldHandle_t handle )
 {
   CHECK( handle >= 0 && handle < _fields.size() );
 
-  return cv::Mat();
+
+  return cv::Mat( _fields[handle].size, _fields[handle].cvType(), (void *)_data[handle].data.get() );
 }
 
 

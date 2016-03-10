@@ -40,6 +40,7 @@ set(lsdslam_SOURCE_FILES
 
 
 include_directories(
+  ${CMAKE_SOURCE_DIR}/lib
   ${EIGEN3_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${OpenCV_INCLUDE_DIRS}
@@ -68,7 +69,8 @@ target_link_libraries(lsdslam
   ${G2O_TYPES_SBA}
   ${G2O_TYPES_SIM3}
   cxsparse
-  ${G3LOG_LIB} )
+  ${G3LOG_LIB}
+  logger )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries( lsdslam

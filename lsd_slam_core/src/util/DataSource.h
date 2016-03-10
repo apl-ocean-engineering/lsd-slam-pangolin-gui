@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include <g3log/g3log.hpp>
+
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -14,6 +16,8 @@ namespace fs = boost::filesystem;
 #include <zed/Camera.hpp>
 #endif
 #include "util/FileUtils.h"
+
+#include "logger/LogReader.h"
 
 
 namespace lsd_slam {
@@ -98,6 +102,58 @@ protected:
   int _idx;
 
 };
+
+class LoggerSource : public DataSource {
+public:
+  LoggerSource( const std::string &filename )
+    : _reader( )
+  {
+    CHECK( fs::is_regular_file( fs::path(filename ))) << "Couldn't open log file \"" << filename << "\"";
+
+    CHECK( _reader.open( filename ) ) << "Couldn't open log file \"" << filename << "\"";
+
+    _leftHandle = _reader.findField("left");
+    _rightHandle = _reader.findField("right");
+    _depthHandle = _reader.findField("depth");
+
+    CHECK( _leftHandle >= 0 ) << "Couldn't find left image";
+
+    _numImages = (_rightHandle >= 0 ) ? 2 : 1;
+    _hasDepth = (_depthHandle >= 0) ? true : false;
+  }
+
+  virtual int numFrames( void ) const { return _reader.getNumFrames(); }
+
+  virtual bool grab( void )
+  {
+    _reader.grab();
+  }
+
+  virtual int getImage( int i, cv::Mat &mat )
+  {
+    if( i < 0 || i >= _numImages )  return -1;
+
+    if( i == 0 )
+      mat = _reader.retrieve( _leftHandle );
+    else if( i == 1 )
+      mat = _reader.retrieve( _rightHandle );
+
+    return 0;
+  }
+
+  virtual void getDepth( cv::Mat &mat ) {
+    if( !_hasDepth ) return;
+
+    mat = _reader.retrieve( _depthHandle );
+  }
+
+protected:
+
+  logger::LogReader _reader;
+  logger::FieldHandle_t _leftHandle, _rightHandle, _depthHandle;
+
+};
+
 
 #ifdef USE_ZED
 class ZedSource : public DataSource {

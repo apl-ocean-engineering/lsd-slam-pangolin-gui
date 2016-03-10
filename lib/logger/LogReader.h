@@ -27,6 +27,8 @@ class LogReader
         bool open( const std::string &file );
         bool close( void );
 
+        FieldHandle_t findField( const std::string &field );
+
         void grab();
 
         cv::Mat retrieve( FieldHandle_t handle );
@@ -57,6 +59,8 @@ class LogReader
         FILE * fp;
         int32_t numFrames;
         int currentFrame;
+
+        uint16_t _featureFlags;
 
         Fields _fields;
         std::deque< Chunk > _data;

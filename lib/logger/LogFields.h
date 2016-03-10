@@ -11,12 +11,20 @@
 
 namespace logger {
 
+	extern const uint16_t LogFormatVersion;
+
+	enum FeatureFlags {
+		ZLIB_COMPRESSION = (1 << 0),
+		SNAPPY_COMPRESSION = (1 << 1)
+	};
+
+
 enum FieldType_t {
 	FIELD_BGRA_8C = 0,
 	FIELD_DEPTH_32F = 1
 };
 
-typedef unsigned int FieldHandle_t;
+typedef int FieldHandle_t;
 
 struct Field {
 	Field( const std::string &nm, const cv::Size &sz, FieldType_t tp )
@@ -48,6 +56,16 @@ struct Field {
 			return 0;
 		}
 	}
+
+	 int cvType( void ) const {
+			if( type == FIELD_BGRA_8C ) {
+				return CV_8UC4;
+			} else if( type == FIELD_DEPTH_32F ) {
+				return CV_32FC1;
+			} else {
+				return 0;
+			}
+		}
 
 };
 typedef std::vector<Field> Fields;

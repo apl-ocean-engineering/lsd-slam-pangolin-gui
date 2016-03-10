@@ -10,7 +10,7 @@
 
 namespace logger {
 
-	const uint16_t LogWriter::LogFormatVersion = 1;
+	const uint16_t LogFormatVersion = 1;
 
 
 LogWriter::LogWriter( int level )
@@ -78,6 +78,10 @@ bool LogWriter::close( void )
 		return false;
 	}
 
+	// Wait for all threads to complete.
+	_compressors.clear();				// Destructor for includes join();
+	delete _writer.release();
+
 	fseek(fp, 2*sizeof(uint16_t), SEEK_SET);
   fwrite(&numFrames, sizeof(int32_t), 1, fp);
 
@@ -113,7 +117,7 @@ void LogWriter::addField( FieldHandle_t handle, const void *data )
 	if( _fields[handle].type == FIELD_BGRA_8C ) {
 		bgCompressPng( handle, data );
 	} else if( _fields[handle].type == FIELD_DEPTH_32F ) {
-		bgCompressDepth( handle, data );
+		bgCompressPng( handle, data );
 	}
 
 	_fieldUpdated[handle] = true;
@@ -171,8 +175,6 @@ bool LogWriter::writeFrame( bool doBlock )
 		}
 	}
 
-
-
 	// LOG(INFO) << "Wrote frame " << numFrames;
 	++numFrames;
 	return true;
@@ -204,59 +206,64 @@ void LogWriter::compressPng( unsigned int handle, std::shared_ptr<Chunk> chunk )
 	}
 }
 
-void LogWriter::compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk )
-{
-	{
-		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
-
-		std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-
-		#ifdef USE_SNAPPY
-				if( _compressionLevel == SnappyCompressLevel ) {
-					size_t destSz = _compressorOutput[handle]->capacity();
-					snappy::RawCompress( chunk->data.get(), chunk->size, (char *)_compressorOutput[handle]->data.get(),  &destSz );
-					_compressorOutput[handle]->size = destSz;
-				}
-				else
-		#endif
-				{
-					uLongf destSz = _compressorOutput[handle]->capacity();
-					int status = compress2( (Bytef *)_compressorOutput[handle]->data.get(), &destSz, (Bytef *)chunk->data.get(), chunk->size, _compressionLevel );
-					CHECK( status == Z_OK ) << "Compress status: " << status;
-					_compressorOutput[handle]->size = destSz;
-				}
-
-		LOG(DEBUG) << "Depth compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
-		_compressorDone[handle] = true;
-	}
-}
+// The two functions are currently identical
+// void LogWriter::compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk )
+// {
+// 	{
+// 		std::lock_guard< std::mutex > lock( _compressorMutex[handle] );
+//
+// 		std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+//
+// 		#ifdef USE_SNAPPY
+// 				if( _compressionLevel == SnappyCompressLevel ) {
+// 					size_t destSz = _compressorOutput[handle]->capacity();
+// 					snappy::RawCompress( chunk->data.get(), chunk->size, (char *)_compressorOutput[handle]->data.get(),  &destSz );
+// 					_compressorOutput[handle]->size = destSz;
+// 				}
+// 				else
+// 		#endif
+// 				{
+// 					uLongf destSz = _compressorOutput[handle]->capacity();
+// 					int status = compress2( (Bytef *)_compressorOutput[handle]->data.get(), &destSz, (Bytef *)chunk->data.get(), chunk->size, _compressionLevel );
+// 					CHECK( status == Z_OK ) << "Compress status: " << status;
+// 					_compressorOutput[handle]->size = destSz;
+// 				}
+//
+// 		LOG(DEBUG) << "Depth compression required " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << " ms";
+// 		_compressorDone[handle] = true;
+// 	}
+// }
 
 void LogWriter::writeHeader( void )
 {
-	unsigned int bufferSize = 2 * sizeof(int32_t);
-	for( const Field &field : _fields ) {
-		bufferSize += 4 * sizeof( int32_t ) + field.name.size();
-	}
+	// unsigned int bufferSize = 2 * sizeof(int32_t);
+	// for( const Field &field : _fields ) {
+	// 	bufferSize += 4 * sizeof( int32_t ) + field.name.size();
+	// }
 
 	fwrite( &LogFormatVersion, sizeof(int16_t), 1, fp );
 
-	uint16_t featureFlags;
-#ifdef USE_SNAPPY
-	if( _compressionLevel == SnappyCompressLevel )
-		featureFlags |= SNAPPY_COMPRESSION;
-	else
-#else
-		featureFlags |= ZLIB_COMPRESSION;
-#endif
+	uint16_t featureFlags = 0;
 
+	if( _compressionLevel == SnappyCompressLevel ) {
+		featureFlags |= SNAPPY_COMPRESSION;
+	} else {
+		featureFlags |= ZLIB_COMPRESSION;
+	}
+
+	LOG(DEBUG) << "Feature flags: " << featureFlags;
 	fwrite( &featureFlags, sizeof(int16_t), 1, fp );
 
+	LOG(DEBUG) << "Num frames: " << numFrames;
 	fwrite(&numFrames, sizeof(int32_t), 1, fp);
+
 	int32_t val = _fields.size();
 	fwrite(&val, sizeof(int32_t), 1, fp);
 
 	for( const Field &field : _fields ) {
 		int32_t h( field.size.height ), w( field.size.width ), type( field.type ), len( field.name.length() );
+
+		LOG(DEBUG) << "Write field \"" << field.name << "\"";
 
 		fwrite(&h, sizeof(int32_t), 1, fp);
 		fwrite(&w, sizeof(int32_t), 1, fp);

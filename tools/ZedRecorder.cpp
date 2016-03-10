@@ -16,9 +16,11 @@ namespace fs = boost::filesystem;
 #include <g3log/logworker.hpp>
 #include "util/G3LogSinks.h"
 #include "util/ZedUtils.h"
+#include "util/DataSource.h"
 
 #include "logger/LogWriter.h"
 
+using namespace lsd_slam;
 
 #ifndef USE_ZED
 #error "This shouldn't be built unless USE_ZED is defined."
@@ -45,6 +47,7 @@ int main( int argc, char** argv )
 	signal( SIGINT, signal_handler );
 
 	bool doDepth = false, doRight = false;
+	bool doGui = false;
 
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
@@ -52,9 +55,10 @@ int main( int argc, char** argv )
 		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
 		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0,"", cmd);
 
+		TCLAP::ValueArg<std::string> logInputArg("","log-input","Name of Logger file to read",false,"","Logger filename", cmd);
 		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
 		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Name of SVO file to read",false,"","SVO filename", cmd);
-		TCLAP::ValueArg<std::string> loggerOutputArg("l","logger-output","Name of SVO file to read",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Name of SVO file to read",false,"","SVO filename", cmd);
 
 		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
 
@@ -65,6 +69,8 @@ int main( int argc, char** argv )
 		TCLAP::SwitchArg depthSwitch("","depth","", cmd, false);
 		TCLAP::SwitchArg rightSwitch("","right","", cmd, false);
 
+		TCLAP::SwitchArg guiSwitch("","display","", cmd, false);
+
 
 		TCLAP::ValueArg<int> durationArg("","duration","Duration",false,0,"seconds", cmd);
 
@@ -72,6 +78,7 @@ int main( int argc, char** argv )
 
 		doDepth = depthSwitch.getValue();
 		doRight = rightSwitch.getValue();
+		doGui = guiSwitch.getValue();
 
 		int compressLevel = logger::LogWriter::DefaultCompressLevel;
 		if( compressionArg.isSet() ) {
@@ -88,7 +95,7 @@ int main( int argc, char** argv )
 		}
 
 		// Output validation
-		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() ) {
+		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !doGui ) {
 			LOG(WARNING) << "No output options set.";
 			exit(-1);
 		}
@@ -108,39 +115,45 @@ int main( int argc, char** argv )
 		const int whichGpu = -1;
 		const bool verboseInit = true;
 
+		DataSource *dataSource = NULL;
 
 		sl::zed::Camera *camera = NULL;
 
-		if( svoInputArg.isSet() )
-		{
-			LOG(INFO) << "Loading SVO file " << svoInputArg.getValue();
-			camera = new sl::zed::Camera( svoInputArg.getValue() );
+		if( logInputArg.isSet() ) {
+			LOG(INFO) << "Loading logger data from " << logInputArg.getValue();
+			dataSource = new LoggerSource( logInputArg.getValue() );
+
+			LOG_IF(FATAL, doDepth && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
+			LOG_IF(FATAL, doRight && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
+
 		} else {
-			LOG(INFO) << "Using live Zed data";
-			camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
+			if( svoInputArg.isSet() )	{
+				LOG(INFO) << "Loading SVO file " << svoInputArg.getValue();
+				camera = new sl::zed::Camera( svoInputArg.getValue() );
+				dataSource = new ZedSource( camera, doDepth );
+			} else  {
+				LOG(INFO) << "Using live Zed data";
+				camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
+				dataSource = new ZedSource( camera, doDepth );
+			}
+
+			sl::zed::ERRCODE err;
+			if( svoOutputArg.isSet() ) {
+				err = camera->initRecording( svoOutputArg.getValue() );
+			} else {
+				err = camera->init( sl::zed::PERFORMANCE, -1, true );
+			}
+
+			if (err != sl::zed::SUCCESS) {
+				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
+				delete camera;
+				exit(-1);
+			}
 		}
 
-		int numFrames = camera->getSVONumberOfFrames();
+		int numFrames = dataSource->numFrames();
+		float fps = dataSource->fps();
 
-		sl::zed::ERRCODE err;
-		if( svoOutputArg.isSet() ) {
-			err = camera->initRecording( svoOutputArg.getValue() );
-		} else {
-			err = camera->init( sl::zed::PERFORMANCE, -1, true );
-		}
-
-		if (err != sl::zed::SUCCESS) {
-			LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
-			delete camera;
-			exit(-1);
-		}
-
-		float fps = camera->getCurrentFPS();
-		if( fps < 0 ) {
-			LOG(WARNING) << "Problem getting FPS.";
-			delete camera;
-			exit(-1);
-		}
 
 		logger::LogWriter logWriter( compressLevel );
 		logger::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;
@@ -166,16 +179,16 @@ int main( int argc, char** argv )
 		std::chrono::steady_clock::time_point end( start + std::chrono::seconds( duration ) );
 
 		if( duration > 0 )
-		LOG(INFO) << "Will log for " << duration << " seconds or press CTRL-C to stop.";
+			LOG(INFO) << "Will log for " << duration << " seconds or press CTRL-C to stop.";
 		else
-		LOG(INFO) << "Logging now, press CTRL-C to stop.";
+			LOG(INFO) << "Logging now, press CTRL-C to stop.";
 
 		// Wait for the auto exposure and white balance
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 
 		int count = 0;
 		while( keepGoing ) {
-			if( (count % 100)==0 ) LOG(INFO) << count << " frames";
+			if( count > 0 && (count % 100)==0 ) LOG(INFO) << count << " frames";
 
 			std::chrono::steady_clock::time_point present( std::chrono::steady_clock::now() );
 
@@ -184,9 +197,10 @@ int main( int argc, char** argv )
 			if( svoOutputArg.isSet() ) {
 				camera->record();
 			} else {
-				if( !camera->grab() ) {
+				if( dataSource->grab() ) {
 
-					cv::Mat left( sl::zed::slMat2cvMat( camera->retrieveImage( sl::zed::LEFT ) ) );
+					cv::Mat left;
+					dataSource->getImage( 0, left );
 
 					if( imageOutputArg.isSet() ) {
 						char filename[80];
@@ -199,7 +213,8 @@ int main( int argc, char** argv )
 					}
 
 					if( doRight ) {
-						cv::Mat right(sl::zed::slMat2cvMat( camera->retrieveImage( sl::zed::RIGHT ) ) );
+						cv::Mat right;
+						dataSource->getImage( 1, right );
 						if( imageOutputArg.isSet() ) {
 							char filename[80];
 							snprintf(filename, 79, "right_%06d.png", count );
@@ -207,16 +222,42 @@ int main( int argc, char** argv )
 						} else if( loggerOutputArg.isSet() ) {
 							logWriter.addField( rightHandle, right.data );
 						}
+
+						if( doGui ) {
+							if( right.empty() ) {
+								LOG(WARNING) << "Right image is empty, not displaying";
+							} else {
+								cv::imshow("Right", right);
+							}
+						}
 					}
 
 					if( doDepth ) {
-						cv::Mat depth(sl::zed::slMat2cvMat( camera->retrieveMeasure( sl::zed::DEPTH ) ) );
+						cv::Mat depth;
+						dataSource->getDepth( depth );
 						if( imageOutputArg.isSet() ) {
 							char filename[80];
 							snprintf(filename, 79, "depth_%06d.png", count );
 							cv::imwrite( (imageOutputDir / filename).string(), left );
 						} else if( loggerOutputArg.isSet() ) {
 							logWriter.addField( depthHandle, depth.data );
+						}
+
+						if( doGui ) {
+							if( depth.empty() ) {
+								LOG(WARNING) << "Depth image is empty, not displaying";
+							} else {
+								cv::imshow("Depth", depth);
+							}
+						}
+					}
+
+					if( doGui ) {
+						if( left.empty() ) {
+							LOG(WARNING) << "Left image is empty, not displaying";
+						} else {
+							cv::imshow("Left", left);
+							cv::waitKey(1);
 						}
 					}
 
@@ -254,55 +295,15 @@ int main( int argc, char** argv )
 		}
 
 		if( loggerOutputArg.isSet() ) {
+			logWriter.close();
+
 			unsigned int fileSize = fs::file_size( fs::path(loggerOutputArg.getValue() ));
 			unsigned int fileSizeMB = fileSize / (1024*1024);
 			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
 		}
 
-		if( loggerOutputArg.isSet() ) { logWriter.close(); }
-
+		if( dataSource ) delete dataSource;
 		if( camera ) delete camera;
-
-		//
-		// 	if( svoFileArg.isSet() )
-		// 	{
-		// 		LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
-		// 		camera = new sl::zed::Camera( svoFileArg.getValue() );
-		// 	} else {
-		// 		LOG(INFO) << "Using live Zed data";
-		// 		camera = new sl::zed::Camera( zedResolution );
-		// 		conf.stopOnFailedRead = false;
-		// 	}
-		//
-		// 	sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
-		// 	if (err != sl::zed::SUCCESS) {
-		// 		LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
-		// 		delete camera;
-		// 		exit(-1);
-		// 	}
-		//
-		// 	const ImageSize cropSize( 1920, 1056 );
-		// 	const SlamImageSize slamSize( cropSize.width / 2, cropSize.height / 2 );
-		//
-		// 	dataSource = new ZedSource( camera );
-		// 	undistorter = new UndistorterZED( camera, cropSize, slamSize );
-		// } else
-		// #endif
-		// {
-		// 	std::vector< std::string > imageFiles = imageFilesArg.getValue();
-		// 	dataSource = new ImagesSource( imageFiles );
-		//
-		// 	if( !calibFileArg.isSet() ) {
-		// 		LOG(WARNING) << "Must specify camera calibration!";
-		// 		exit(-1);
-		// 	}
-		// 	undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
-		//
-		// }
-		//
-		// if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
-		//
-		// doGui = !noGuiSwitch.getValue();
 
 	} catch (TCLAP::ArgException &e)  // catch any exceptions
 	{

@@ -29,16 +29,6 @@ class LogWriter
 {
     public:
 
-      static const uint16_t LogFormatVersion;
-
-      enum FeatureFlags {
-        ZLIB_COMPRESSION = 1 << 0,
-#ifdef USE_SNAPPY
-        SNAPPY_COMPRESSION = 1 << 1
-#endif
-      };
-
-
       static const int SnappyCompressLevel = 100;
 #ifdef USE_SNAPPY
       static const int DefaultCompressLevel = SnappyCompressLevel;
@@ -91,7 +81,7 @@ class LogWriter
         {
           if( fp ) {
             fwrite( &(chunk->size), sizeof( uint32_t), 1, fp );
-            fwrite( chunk->data.get(), chunk->size, 1, fp );
+            fwrite( chunk->data.get(), sizeof(unsigned char), chunk->size, fp );
           }
           else LOG(WARNING) << "Trying to write but fp doesn't exist!";
         }
@@ -126,16 +116,16 @@ class LogWriter
           _compressors[handle]->send( std::bind( &LogWriter::compressPng, this, handle, ptrChunk ) );
         }
 
-        // Backgroundable depth compression
-        void compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk );
-
-        void bgCompressDepth( FieldHandle_t handle, const void *data )
-        {
-          // This will do an extra copy (data -> Chunk)
-          // is this avoidable?
-          std::shared_ptr<Chunk> ptrChunk( new Chunk( data, _fields[handle].nBytes() ) );
-          _compressors[handle]->send( std::bind( &LogWriter::compressDepth, this, handle, ptrChunk ) );
-        }
+        // Backgroundable depth compression -- currently just use compressPng
+        // void compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk );
+        //
+        // void bgCompressDepth( FieldHandle_t handle, const void *data )
+        // {
+        //   // This will do an extra copy (data -> Chunk)
+        //   // is this avoidable?
+        //   std::shared_ptr<Chunk> ptrChunk( new Chunk( data, _fields[handle].nBytes() ) );
+        //   _compressors[handle]->send( std::bind( &LogWriter::compressDepth, this, handle, ptrChunk ) );
+        // }
 
 
         void writeHeader( void );
