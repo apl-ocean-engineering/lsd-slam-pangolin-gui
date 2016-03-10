@@ -29,8 +29,13 @@ struct Field {
 
 	unsigned int compressedBytes( void ) const {
 		unsigned int bytes = nBytes();
-		if( bytes > 0 )
-			return compressBound( nBytes() );
+		if( bytes > 0 ) {
+#ifdef USE_GOOGLE_SNAPPY
+			return std::max( compressBound( bytes ), snappy::MaxCompressedLength( bytes ) );
+#else
+			return compressBound( bytes );
+#endif
+		}
 		return 0;
 	}
 
@@ -50,23 +55,31 @@ typedef std::vector<Field> Fields;
 struct Chunk {
 	Chunk() = delete;
 
-	Chunk( unsigned int _sz )
-		: data( new char[_sz] ), size(_sz), capacity( _sz )
+	Chunk( unsigned long _sz )
+		: size(_sz), _capacity( _sz ), data( new char[_capacity] )
 	{ memset( data.get(), 0, size );}
 
-	Chunk( const void *_data, unsigned int _sz )
-		: data( new char[_sz] ), size(_sz), capacity( _sz )
+	Chunk( const void *_data, unsigned long _sz )
+		: size(_sz), _capacity( _sz ), data( new char[_capacity] )
 	{ memcpy( data.get(), _data, size );}
 
 	unsigned int set( void *_data, unsigned int _sz )
 	{
-		CHECK( _sz >= size );
+		CHECK( _sz >= capacity() );
 		memcpy( data.get(), _data, _sz );
 		return size = _sz;
 	}
 
+private:
+
+	const unsigned long _capacity;
+public:
+
+	unsigned long size;
 	std::unique_ptr<char[]> data;
-	unsigned int size, capacity;
+
+	unsigned long capacity( void ) const { return _capacity; }
+
 };
 
 }

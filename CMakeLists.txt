@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 project(lsd_slam_core)
+include(ExternalProject)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -60,7 +61,30 @@ if( USE_ZED_CAMERA )
                             ${CUDA_LIBRARIES}
                             ${CUDA_npps_LIBRARY}
                             ${CUDA_nppi_LIBRARY} )
+endif()
 
+option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
+if( USE_GOOGLE_SNAPPY )
+  add_definitions( -DUSE_SNAPPY )
+
+  SET( SNAPPY_PREFIX_DIR ${PROJECT_BINARY_DIR}/google-snappy )
+  SET( SNAPPY_INSTALL_DIR ${SNAPPY_PREFIX_DIR} )
+  SET( SNAPPY_SOURCE_DIR ${SNAPPY_PREFIX_DIR}/src/snappy )
+  ExternalProject_Add( snappy
+                      GIT_REPOSITORY https://github.com/google/snappy.git
+                      PREFIX google-snappy
+                      SOURCE_DIR ${SNAPPY_SOURCE_DIR}
+                      BINARY_DIR ${SNAPPY_SOURCE_DIR}
+                      UPDATE_COMMAND ""
+                      CONFIGURE_COMMAND ./autogen.sh && ./configure --prefix=${SNAPPY_INSTALL_DIR}
+                      BUILD_COMMAND make -j -C ${SNAPPY_SOURCE_DIR} )
+
+  find_path( SNAPPY_INCLUDE_DIRS snappy.h
+                PATHS ${SNAPPY_INSTALL_DIR}/include )
+
+  ## This doesn't seem right.
+  find_library( SNAPPY_LIBRARIES libsnappy.so
+                PATHS ${SNAPPY_INSTALL_DIR}/lib )
 endif()
 
 ## Architecture detection

@@ -29,9 +29,25 @@ class LogWriter
 {
     public:
 
-      static const int CompressLevel = 6;
+      static const uint16_t LogFormatVersion;
 
-        LogWriter();
+      enum FeatureFlags {
+        ZLIB_COMPRESSION = 1 << 0,
+#ifdef USE_SNAPPY
+        SNAPPY_COMPRESSION = 1 << 1
+#endif
+      };
+
+
+      static const int SnappyCompressLevel = 100;
+#ifdef USE_SNAPPY
+      static const int DefaultCompressLevel = SnappyCompressLevel;
+#else
+      static const int DefaultCompressLevel = Z_DEFAULT_COMPRESSION;
+#endif
+
+
+        LogWriter( int compressLevel = DefaultCompressLevel );
         virtual ~LogWriter();
 
         FieldHandle_t registerField( const std::string &name, const cv::Size &sz, FieldType_t type );
@@ -65,13 +81,13 @@ class LogWriter
 
         std::unique_ptr<logger::Active> _writer;
         std::deque< std::unique_ptr<logger::Active> > _compressors;
-        std::deque< Chunk > _compressorOutput;
+        std::deque< std::shared_ptr<Chunk> > _compressorOutput;
         std::deque< bool > _compressorDone, _fieldUpdated;
         std::deque< std::mutex > _compressorMutex;
 
 
         // One backgroundable task
-        void bgWriteData( std::shared_ptr<Chunk> chunk )
+        void writeData( std::shared_ptr<Chunk> chunk )
         {
           if( fp ) {
             fwrite( &(chunk->size), sizeof( uint32_t), 1, fp );
@@ -80,16 +96,17 @@ class LogWriter
           else LOG(WARNING) << "Trying to write but fp doesn't exist!";
         }
 
-        void writeData( std::shared_ptr<Chunk> ptrChunk )
+        void bgWriteData( std::shared_ptr<Chunk> chunk )
         {
-          _writer->send( std::bind( &LogWriter::bgWriteData, this, ptrChunk ) );
+          std::shared_ptr<Chunk> ptrChunk( new Chunk( chunk->data.get(), chunk->size ) );
+          _writer->send( std::bind( &LogWriter::writeData, this, ptrChunk ) );
         }
 
-        void writeData( char *data, unsigned int sz )
+        void bgWriteData( char *data, unsigned int sz )
         {
           // This copies data in to the chunk
           std::shared_ptr<Chunk> ptrChunk( new Chunk( data, sz ) );
-          _writer->send( std::bind( &LogWriter::bgWriteData, this, ptrChunk ) );
+          _writer->send( std::bind( &LogWriter::writeData, this, ptrChunk ) );
         }
 
         // void writeData( std::unique_ptr<char[]> &data, unsigned int sz )
@@ -99,25 +116,25 @@ class LogWriter
         // }
 
         // Backgroundable Image compression
-        void bgCompressPng( unsigned int handle, std::shared_ptr<Chunk> chunk );
+        void compressPng( unsigned int handle, std::shared_ptr<Chunk> chunk );
 
-        void compressPng( FieldHandle_t handle, const void *data )
+        void bgCompressPng( FieldHandle_t handle, const void *data )
         {
           // This will do an extra copy (data -> Chunk)
           // is this avoidable?
           std::shared_ptr<Chunk> ptrChunk( new Chunk( data, _fields[handle].nBytes() ) );
-          _compressors[handle]->send( std::bind( &LogWriter::bgCompressPng, this, handle, ptrChunk ) );
+          _compressors[handle]->send( std::bind( &LogWriter::compressPng, this, handle, ptrChunk ) );
         }
 
         // Backgroundable depth compression
-        void bgCompressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk );
+        void compressDepth( unsigned int handle, std::shared_ptr<Chunk> chunk );
 
-        void compressDepth( FieldHandle_t handle, const void *data )
+        void bgCompressDepth( FieldHandle_t handle, const void *data )
         {
           // This will do an extra copy (data -> Chunk)
           // is this avoidable?
           std::shared_ptr<Chunk> ptrChunk( new Chunk( data, _fields[handle].nBytes() ) );
-          _compressors[handle]->send( std::bind( &LogWriter::bgCompressDepth, this, handle, ptrChunk ) );
+          _compressors[handle]->send( std::bind( &LogWriter::compressDepth, this, handle, ptrChunk ) );
         }
 
 
@@ -135,8 +152,11 @@ class LogWriter
         //
         // const std::string file;
 
+
         FILE * fp;
         int32_t numFrames;
+        int _compressionLevel;
+
 
         // int currentFrame;
         // int width;

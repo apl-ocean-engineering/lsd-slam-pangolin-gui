@@ -22,6 +22,7 @@ include_directories(
   ${Boost_INCLUDE_DIR}
   # ${ZED_CAMERA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
+  ${SNAPPY_INCLUDE_DIRS}
 )
 
 # build shared library.
@@ -31,6 +32,7 @@ target_link_libraries(logger
   ${OpenCV_LIBS}
   # ${ZED_CAMERA_LIBRARIES}
   ${G3LOG_LIB}
+  ${SNAPPY_LIBRARIES}
 )
 
 set_target_properties( logger PROPERTIES COMPILE_FLAGS "-ggdb")

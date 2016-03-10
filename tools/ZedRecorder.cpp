@@ -56,6 +56,8 @@ int main( int argc, char** argv )
 		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Name of SVO file to read",false,"","SVO filename", cmd);
 		TCLAP::ValueArg<std::string> loggerOutputArg("l","logger-output","Name of SVO file to read",false,"","SVO filename", cmd);
 
+		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
+
 		TCLAP::ValueArg<std::string> imageOutputArg("","image-output","",false,"","SVO filename", cmd);
 
 		// TCLAP::SwitchArg noGuiSwitch("","no-gui","Don't show a GUI", cmd, false);
@@ -70,6 +72,20 @@ int main( int argc, char** argv )
 
 		doDepth = depthSwitch.getValue();
 		doRight = rightSwitch.getValue();
+
+		int compressLevel = logger::LogWriter::DefaultCompressLevel;
+		if( compressionArg.isSet() ) {
+			if( compressionArg.getValue() == "snappy" )
+				compressLevel = logger::LogWriter::SnappyCompressLevel;
+			else {
+				try {
+					compressLevel = std::stoi(compressionArg.getValue() );
+				} catch ( std::invalid_argument &e ) {
+					throw TCLAP::ArgException("Don't understand compression level.");
+				}
+
+			}
+		}
 
 		// Output validation
 		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() ) {
@@ -126,7 +142,7 @@ int main( int argc, char** argv )
 			exit(-1);
 		}
 
-		logger::LogWriter logWriter;
+		logger::LogWriter logWriter( compressLevel );
 		logger::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;
 		if( loggerOutputArg.isSet() ) {
 			sl::zed::resolution res( camera->getImageSize() );
@@ -205,7 +221,7 @@ int main( int argc, char** argv )
 					}
 
 					if( loggerOutputArg.isSet() ) {
-						const bool doBlock( dt_us == 0 );
+						const bool doBlock = false; //( dt_us == 0 );
 						if( !logWriter.writeFrame( doBlock ) ) {
 							LOG(WARNING) << "Error while writing frame...";
 						}
