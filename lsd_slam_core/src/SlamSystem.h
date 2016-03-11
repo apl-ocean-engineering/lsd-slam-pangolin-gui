@@ -24,6 +24,7 @@
 #include <thread>
 #include <condition_variable>
 #include <memory>
+#include <chrono>
 
 #include <boost/thread/shared_mutex.hpp>
 
@@ -35,6 +36,7 @@
 #include "util/MovingAverage.h"
 #include "util/Configuration.h"
 #include "util/Timer.h"
+#include "util/ThreadMutexObject.h"
 
 #include "Tracking/Relocalizer.h"
 
@@ -179,8 +181,9 @@ private:
 	float lastTrackingClosenessScore;
 
 	// for sequential operation. Set in Mapping, read in Tracking.
-	std::condition_variable  newFrameMappedSignal;
-	std::mutex newFrameMappedMutex;
+	ThreadSynchronizer newFrameMapped;
+	// std::condition_variable  newFrameMappedSignal;
+	// std::mutex newFrameMappedMutex;
 
 
 
@@ -204,15 +207,18 @@ private:
 
 
 	// PUSHED in tracking, READ & CLEARED in mapping
-	std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
-	std::mutex unmappedTrackedFramesMutex;
-	std::condition_variable  unmappedTrackedFramesSignal;
+	ThreadMutexObject< std::deque< std::shared_ptr<Frame> > > unmappedTrackedFrames;
+	// std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
+	// ThreadSynchronizer unmappedTrackedFramesSynchro;
+	// std::mutex unmappedTrackedFramesMutex;
+	// std::condition_variable  unmappedTrackedFramesSignal;
 
 
 	// PUSHED by Mapping, READ & CLEARED by constraintFinder
-	std::deque< Frame* > newKeyFrames;
-	std::mutex newKeyFrameMutex;
-	std::condition_variable newKeyFrameCreatedSignal;
+	ThreadMutexObject< std::deque< Frame* > > newKeyFrames;
+	// std::deque< Frame* > newKeyFrames;
+	// std::mutex newKeyFrameMutex;
+	// std::condition_variable newKeyFrameCreatedSignal;
 
 
 	// SET & READ EVERYWHERE

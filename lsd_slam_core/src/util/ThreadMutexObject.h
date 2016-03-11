@@ -19,6 +19,9 @@ template <class T>
 class ThreadMutexObject
 {
     public:
+
+      typedef std::lock_guard<std::mutex> scoped_lock;
+
         ThreadMutexObject()
         {}
 
@@ -27,28 +30,42 @@ class ThreadMutexObject
            lastCopy(initialValue)
         {}
 
-        typedef std::lock_guard<std::mutex> scoped_lock;
-
         void assignValue(T newValue)
         {
-            scoped_lock lock(mutex);
+            scoped_lock lock(_mutex);
             object = lastCopy = newValue;
         }
 
         std::mutex & getMutex()
         {
-            return mutex;
+            return _mutex;
         }
+
+        void lock( void ) { _mutex.lock(); }
+        void unlock( void ) { _mutex.unlock(); }
+
+        std::mutex & mutex()
+        {
+            return _mutex;
+        }
+
+        std::condition_variable_any &cv( void )
+        { return signal; }
 
         T & getReference()
         {
             return object;
         }
 
+        T *operator->( void )
+        {
+          return &object;
+        }
+
         void assignAndNotifyAll(T newValue)
         {
             {
-              scoped_lock lock(mutex);
+              scoped_lock lock(_mutex);
               object = newValue;
             }
             signal.notify_all();
@@ -61,17 +78,36 @@ class ThreadMutexObject
             signal.notify_all();
         }
 
+        void notify()
+        {
+            // std::lock_guard lock(mutex);
+            signal.notify_all();
+        }
+
         T getValue()
         {
-            scoped_lock lock(mutex);
+            scoped_lock lock(_mutex);
             lastCopy = object;
             return lastCopy;
         }
 
+        template< class Rep, class Period >
+        void wait_for( const std::chrono::duration<Rep, Period> &dur )
+        {
+          std::unique_lock<std::mutex> lk(_mutex);
+          signal.wait_for(lk, dur);
+        }
+
+        void wait( void )
+        {
+          scoped_lock lock(_mutex);
+          signal.wait(_mutex);
+      }
+
         T waitForSignal()
         {
-          scoped_lock lock(mutex);
-          signal.wait(mutex);
+          scoped_lock lock(_mutex);
+          signal.wait(_mutex);
           lastCopy = object;
           return lastCopy;
         }
@@ -79,7 +115,7 @@ class ThreadMutexObject
         T getValueWait(int wait = 33000)
         {
             boost::this_thread::sleep(boost::posix_time::microseconds(wait));
-            scoped_lock lock(mutex);
+            scoped_lock lock(_mutex);
             lastCopy = object;
             return lastCopy;
         }
@@ -87,21 +123,21 @@ class ThreadMutexObject
         T & getReferenceWait(int wait = 33000)
         {
             boost::this_thread::sleep(boost::posix_time::microseconds(wait));
-            scoped_lock lock(mutex);
+            scoped_lock lock(_mutex);
             lastCopy = object;
             return lastCopy;
         }
 
         void operator++(int)
         {
-            scoped_lock lock(mutex);
+            scoped_lock lock(_mutex);
             object++;
         }
 
     private:
         T object;
         T lastCopy;
-        std::mutex mutex;
+        std::mutex _mutex;
         std::condition_variable_any signal;
 };
 
@@ -122,10 +158,21 @@ public:
     _cv.notify_all();
   }
 
+  // The extra while(!_ready) handles other circumstances which might break the
+  // wait (signals?)
   void wait( void )
   {
     std::unique_lock<std::mutex> lk(_mutex);
     while(!_ready) {_cv.wait(lk); }
+  }
+
+  template< class Rep, class Period >
+  void wait_for( const std::chrono::duration<Rep, Period> &dur )
+  {
+    {
+      std::unique_lock<std::mutex> lk(_mutex);
+      _cv.wait_for(lk, dur);
+    }
   }
 
 private:
