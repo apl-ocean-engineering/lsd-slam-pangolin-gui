@@ -55,6 +55,7 @@ using namespace lsd_slam;
 
 SlamSystem::SlamSystem( const Configuration &conf, bool enableSLAM )
 : SLAMEnabled(enableSLAM), finalized(false), _perf(), relocalizer( conf ),
+	_optThread( NULL ),
 	_conf( conf )
 {
 
@@ -72,8 +73,8 @@ SlamSystem::SlamSystem( const Configuration &conf, bool enableSLAM )
 
 	map =  new DepthMap( conf );
 
-	newConstraintAdded = false;
-	haveUnmergedOptimizationOffset = false;
+	// newConstraintAdded = false;
+	//haveUnmergedOptimizationOffset = false;
 
 
 	tracker = new SE3Tracker( _conf.slamImage );
@@ -105,16 +106,17 @@ SlamSystem::SlamSystem( const Configuration &conf, bool enableSLAM )
 	outputWrapper = 0;
 
 	keepRunning = true;
-	doFinalOptimization = false;
 	depthMapScreenshotFlag = false;
 	lastTrackingClosenessScore = 0;
 
 	thread_mapping = std::thread(&SlamSystem::mappingThreadLoop, this);
 
+	_optThread = new OptimizationThread( keyFrameGraph, poseConsistencyMutex, SLAMEnabled );
+
 	if(SLAMEnabled)
 	{
 		thread_constraint_search = std::thread(&SlamSystem::constraintSearchThreadLoop, this);
-		thread_optimization = std::thread(&SlamSystem::optimizationThreadLoop, this);
+		// thread_optimization = std::thread(&SlamSystem::optimizationThreadLoop, this);
 	}
 
 	timeLastUpdate.start();
@@ -133,12 +135,12 @@ SlamSystem::~SlamSystem()
 
 	newKeyFrames.notifyAll();
 
-	newConstraintCreatedSignal.notify_all();
+	// newConstraintCreatedSignal.notify_all();
 
 	thread_mapping.join();
 	thread_constraint_search.join();
-	thread_optimization.join();
-	printf("DONE waiting for SlamSystem's threads to exit\n");
+	delete _optThread;
+	LOG(INFO) << "DONE waiting for SlamSystem's threads to exit";
 
 	if(trackableKeyFrameSearch != 0) delete trackableKeyFrameSearch;
 	if(constraintTracker != 0) delete constraintTracker;
@@ -178,22 +180,21 @@ void SlamSystem::mergeOptimizationOffset()
 	// update all vertices that are in the graph!
 	poseConsistencyMutex.lock();
 
-	bool needPublish = false;
-	if(haveUnmergedOptimizationOffset)
+	if(_optThread->haveUnmergedOptimizationOffset)
 	{
+
 		keyFrameGraph->keyframesAllMutex.lock_shared();
 		for(unsigned int i=0;i<keyFrameGraph->keyframesAll.size(); i++)
 			keyFrameGraph->keyframesAll[i]->pose->applyPoseGraphOptResult();
 		keyFrameGraph->keyframesAllMutex.unlock_shared();
 
-		haveUnmergedOptimizationOffset = false;
-		needPublish = true;
-	}
+		_optThread->haveUnmergedOptimizationOffset;
+		poseConsistencyMutex.unlock();
 
-	poseConsistencyMutex.unlock();
-
-	if(needPublish)
 		publishKeyframeGraph();
+	} else {
+		poseConsistencyMutex.unlock();
+	}
 }
 
 
@@ -233,17 +234,18 @@ void SlamSystem::finalize()
 	}
 
 
-	printf("Finalizing Graph... optimizing!!\n");
-	doFinalOptimization = true;
-	newConstraintMutex.lock();
-	newConstraintAdded = true;
-	newConstraintCreatedSignal.notify_all();
-	newConstraintMutex.unlock();
+	LOG(INFO) << "Finalizing Graph... optimizing!!";
+	_optThread->fgFinalOptimization();			// At present this is blocking/happens in foreground
+	// doFinalOptimization = true;
+	// newConstraintMutex.lock();
+	// newConstraintAdded = true;
+	// newConstraintCreatedSignal.notify_all();
+	// newConstraintMutex.unlock();
 
-	while(doFinalOptimization)
-	{
-		usleep(200000);
-	}
+	// while(doFinalOptimization)
+	// {
+	// 	usleep(200000);
+	// }
 
 	printf("Finalizing Graph... publishing!!\n");
 	unmappedTrackedFrames.notifyAll();
@@ -251,10 +253,10 @@ void SlamSystem::finalize()
 	// unmappedTrackedFramesSignal.notify_one();
 	// unmappedTrackedFramesMutex.unlock();
 
-	while(doFinalOptimization)
-	{
-		usleep(200000);
-	}
+	// while(doFinalOptimization)
+	// {
+	// 	usleep(200000);
+	// }
 
 	newFrameMapped.wait();
 	newFrameMapped.wait();
@@ -357,29 +359,7 @@ void SlamSystem::constraintSearchThreadLoop()
 	LOG(INFO) << "Exited constraint search thread";
 }
 
-void SlamSystem::optimizationThreadLoop()
-{
-	LOG(INFO) << "Started optimization thread";
 
-	while(keepRunning)
-	{
-		std::unique_lock<std::mutex> lock(newConstraintMutex);
-		if(!newConstraintAdded)
-			newConstraintCreatedSignal.wait_for(lock,std::chrono::milliseconds(2000));	// slight chance of deadlock otherwise
-		newConstraintAdded = false;
-		lock.unlock();
-
-		if(doFinalOptimization)
-		{
-			printf("doing final optimization iteration!\n");
-			optimizationIteration(50, 0.001);
-			doFinalOptimization = false;
-		}
-		while(optimizationIteration(5, 0.02));
-	}
-
-	LOG(INFO) << "Exited optimization thread";
-}
 
 void SlamSystem::publishKeyframeGraph()
 {
@@ -631,7 +611,7 @@ void SlamSystem::addTimingSamples()
 					map->_perf.create.ms()+map->_perf.finalize.ms(), map->_perf.create.rate(),
 					_perf.findReferences.ms(), _perf.findReferences.rate(),
 					trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->trackPermaRef.ms() : 0, trackableKeyFrameSearch != 0 ? trackableKeyFrameSearch->trackPermaRef.rate() : 0,
-					_perf.optimization.ms(), _perf.optimization.rate(),
+					_optThread->perf.ms(), _optThread->perf.rate(),
 					_perf.findConstraint.ms(), _perf.findConstraint.rate() );
 	}
 
@@ -1239,10 +1219,11 @@ void SlamSystem::testConstraint(
 int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent, bool useFABMAP, float closeCandidatesTH)
 {
 	if(!newKeyFrame->hasTrackingParent()) {
-		std::lock_guard<std::mutex> lock( newConstraintMutex );
-		keyFrameGraph->addKeyFrame(newKeyFrame);
-		newConstraintAdded = true;
-		newConstraintCreatedSignal.notify_all();
+		{
+			std::lock_guard<std::mutex> lock( _optThread->newConstraintMutex );
+			keyFrameGraph->addKeyFrame(newKeyFrame);
+		}
+		_optThread->bgNewConstraint();
 		return 0;
 	}
 
@@ -1585,16 +1566,20 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	}
 
 
-	newConstraintMutex.lock();
+	// newConstraintMutex.lock();
 
-	keyFrameGraph->addKeyFrame(newKeyFrame);
-	for(unsigned int i=0;i<constraints.size();i++)
-		keyFrameGraph->insertConstraint(constraints[i]);
+	{
+		std::lock_guard< std::mutex > lock(_optThread->newConstraintMutex);
+		keyFrameGraph->addKeyFrame(newKeyFrame);
+		for(unsigned int i=0;i<constraints.size();i++)
+			keyFrameGraph->insertConstraint(constraints[i]);
+	}
 
+	_optThread->bgNewConstraint();
 
-	newConstraintAdded = true;
-	newConstraintCreatedSignal.notify_all();
-	newConstraintMutex.unlock();
+	// newConstraintAdded = true;
+	// newConstraintCreatedSignal.notify_all();
+	// newConstraintMutex.unlock();
 
 	newKFTrackingReference->invalidate();
 	candidateTrackingReference->invalidate();
@@ -1604,92 +1589,6 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	return constraints.size();
 }
 
-
-
-
-bool SlamSystem::optimizationIteration(int itsPerTry, float minChange)
-{
-
-	Timer timer;
-
-	g2oGraphAccessMutex.lock();
-
-	// lock new elements buffer & take them over.
-	newConstraintMutex.lock();
-	keyFrameGraph->addElementsFromBuffer();
-	newConstraintMutex.unlock();
-
-
-	// Do the optimization. This can take quite some time!
-	int its = keyFrameGraph->optimize(itsPerTry);
-
-
-	// save the optimization result.
-	poseConsistencyMutex.lock_shared();
-	keyFrameGraph->keyframesAllMutex.lock_shared();
-	float maxChange = 0;
-	float sumChange = 0;
-	float sum = 0;
-	for(size_t i=0;i<keyFrameGraph->keyframesAll.size(); i++)
-	{
-		// set edge error sum to zero
-		keyFrameGraph->keyframesAll[i]->edgeErrorSum = 0;
-		keyFrameGraph->keyframesAll[i]->edgesNum = 0;
-
-		if(!keyFrameGraph->keyframesAll[i]->pose->isInGraph) continue;
-
-
-
-		// get change from last optimization
-		Sim3 a = keyFrameGraph->keyframesAll[i]->pose->graphVertex->estimate();
-		Sim3 b = keyFrameGraph->keyframesAll[i]->getScaledCamToWorld();
-		Sophus::Vector7f diff = (a*b.inverse()).log().cast<float>();
-
-
-		for(int j=0;j<7;j++)
-		{
-			float d = fabsf((float)(diff[j]));
-			if(d > maxChange) maxChange = d;
-			sumChange += d;
-		}
-		sum +=7;
-
-		// set change
-		keyFrameGraph->keyframesAll[i]->pose->setPoseGraphOptResult(
-				keyFrameGraph->keyframesAll[i]->pose->graphVertex->estimate());
-
-		// add error
-		for(auto edge : keyFrameGraph->keyframesAll[i]->pose->graphVertex->edges())
-		{
-			keyFrameGraph->keyframesAll[i]->edgeErrorSum += ((EdgeSim3*)(edge))->chi2();
-			keyFrameGraph->keyframesAll[i]->edgesNum++;
-		}
-	}
-
-	haveUnmergedOptimizationOffset = true;
-	keyFrameGraph->keyframesAllMutex.unlock_shared();
-	poseConsistencyMutex.unlock_shared();
-
-	g2oGraphAccessMutex.unlock();
-
-	if(enablePrintDebugInfo && printOptimizationInfo)
-		printf("did %d optimization iterations. Max Pose Parameter Change: %f; avgChange: %f. %s\n", its, maxChange, sumChange / sum,
-				maxChange > minChange && its == itsPerTry ? "continue optimizing":"Waiting for addition to graph.");
-
-
-
-	_perf.optimization.update( timer );
-
-	return maxChange > minChange && its == itsPerTry;
-}
-
-void SlamSystem::optimizeGraph()
-{
-	std::unique_lock<std::mutex> g2oLock(g2oGraphAccessMutex);
-	keyFrameGraph->optimize(1000);
-	g2oLock.unlock();
-	mergeOptimizationOffset();
-}
 
 
 SE3 SlamSystem::getCurrentPoseEstimate()

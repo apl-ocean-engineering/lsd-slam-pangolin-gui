@@ -40,7 +40,7 @@
 
 #include "Tracking/Relocalizer.h"
 
-
+#include "SlamSystem/OptimizationThread.h"
 
 namespace lsd_slam
 {
@@ -134,7 +134,7 @@ public:
 	struct PerformanceData {
 		PerformanceData( void ) {;}
 
-		MsRateAverage optimization, findConstraint, trackFrame, findReferences;
+		MsRateAverage findConstraint, trackFrame, findReferences;
 	} _perf;
 
 	Timer timeLastUpdate;
@@ -194,7 +194,7 @@ private:
 
 	// Individual / no locking
 	Output3DWrapper* outputWrapper;	// no lock required
-	KeyFrameGraph* keyFrameGraph;	// has own locks
+	KeyFrameGraph* keyFrameGraph;	  // has own locks
 
 
 
@@ -231,28 +231,28 @@ private:
 	// threads
 	std::thread thread_mapping;
 	std::thread thread_constraint_search;
-	std::thread thread_optimization;
+	//std::thread thread_optimization;
+
+	OptimizationThread *_optThread;
+
 	bool keepRunning; // used only on destruction to signal threads to finish.
 
 
 
 	// optimization thread
-	bool newConstraintAdded;
-	std::mutex newConstraintMutex;
-	std::condition_variable newConstraintCreatedSignal;
-	std::mutex g2oGraphAccessMutex;
+	// bool newConstraintAdded;
+	// std::mutex newConstraintMutex;
+	// std::condition_variable newConstraintCreatedSignal;
 
 
 
-	// optimization merging. SET in Optimization, merged in Mapping.
-	bool haveUnmergedOptimizationOffset;
+
+
 
 	// mutex to lock frame pose consistency. within a shared lock of this, *->getScaledCamToWorld() is
 	// GUARANTEED to give the same result each call, and to be compatible to each other.
 	// locked exclusively during the pose-update by Mapping.
 	boost::shared_mutex poseConsistencyMutex;
-
-
 
 	bool depthMapScreenshotFlag;
 	std::string depthMapScreenshotFilename;
@@ -297,7 +297,7 @@ private:
 			Sim3 candidateToFrame_initialEstimate,
 			float strictness);
 
-	void optimizationThreadLoop();
+	//void optimizationThreadLoop();
 
 
 

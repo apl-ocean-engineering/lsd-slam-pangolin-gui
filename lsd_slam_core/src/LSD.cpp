@@ -162,6 +162,8 @@ int main( int argc, char** argv )
   conf.slamImage  = undistorter->outputImageSize();
   conf.camera     = undistorter->getCamera();
 
+  LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
+
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
 	SlamSystem * system = new SlamSystem(conf, doSlam );
