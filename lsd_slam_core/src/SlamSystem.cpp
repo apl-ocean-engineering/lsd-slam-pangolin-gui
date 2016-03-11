@@ -344,7 +344,7 @@ void SlamSystem::constraintSearchThreadLoop()
 					added += findConstraintsForNewKeyFrames(keyFrameGraph->keyframesAll[i], false, false, 1.0);
 			}
 
-			LOG(INFO) << "Done optizing Full Map! Added " << added << " constraints.";
+			LOG(INFO) << "Done optimizing Full Map! Added " << added << " constraints.";
 
 			doFullReConstraintTrack = false;
 

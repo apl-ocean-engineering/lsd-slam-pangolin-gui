@@ -41,12 +41,13 @@ void OptimizationThread::fgFinalOptimization( void )
 //===== Callbacks for ActiveObject ======
 void OptimizationThread::callbackIdle( void )
 {
+	LOG(DEBUG) << "Running short optimization";
 	while(optimizationIteration(5, 0.02));
 }
 
 void OptimizationThread::callbackFinalOptimization( void )
 {
-	LOG(INFO) << "doing final optimization iteration!";
+	LOG(INFO) << "Running final optimization!";
 	optimizationIteration(50, 0.001);
 }
 
