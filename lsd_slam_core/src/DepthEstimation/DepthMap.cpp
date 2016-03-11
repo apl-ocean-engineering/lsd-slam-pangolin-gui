@@ -1172,44 +1172,40 @@ void DepthMap::updateKeyframe(std::deque< std::shared_ptr<Frame> > referenceFram
 		Util::displayImage( "Stereo Reference Frame", debugImageStereoLines, false );
 	}
 
+	LOGF_IF(DEBUG, enablePrintDebugInfo && printLineStereoStatistics,
+		"ST: calls %6d, comp %6d, int %7d; good %6d (%.0f%%), neg %6d (%.0f%%); interp %6d / %6d / %6d\n",
+		runningStats.num_stereo_calls,
+		runningStats.num_stereo_comparisons,
+		runningStats.num_pixelInterpolations,
+		runningStats.num_stereo_successfull,
+		100*runningStats.num_stereo_successfull / (float) runningStats.num_stereo_calls,
+		runningStats.num_stereo_negative,
+		100*runningStats.num_stereo_negative / (float) runningStats.num_stereo_successfull,
+		runningStats.num_stereo_interpPre,
+		runningStats.num_stereo_interpNone,
+		runningStats.num_stereo_interpPost);
 
+	LOGF_IF(DEBUG, enablePrintDebugInfo && printLineStereoFails,
+		"ST-ERR: oob %d (scale %d, inf %d, near %d); err %d (%d uncl; %d end; zro: %d btw, %d no, %d two; %d big)\n",
+		runningStats.num_stereo_rescale_oob+
+		runningStats.num_stereo_inf_oob+
+		runningStats.num_stereo_near_oob,
+		runningStats.num_stereo_rescale_oob,
+		runningStats.num_stereo_inf_oob,
+		runningStats.num_stereo_near_oob,
+		runningStats.num_stereo_invalid_unclear_winner+
+		runningStats.num_stereo_invalid_atEnd+
+		runningStats.num_stereo_invalid_inexistantCrossing+
+		runningStats.num_stereo_invalid_noCrossing+
+		runningStats.num_stereo_invalid_twoCrossing+
+		runningStats.num_stereo_invalid_bigErr,
+		runningStats.num_stereo_invalid_unclear_winner,
+		runningStats.num_stereo_invalid_atEnd,
+		runningStats.num_stereo_invalid_inexistantCrossing,
+		runningStats.num_stereo_invalid_noCrossing,
+		runningStats.num_stereo_invalid_twoCrossing,
+		runningStats.num_stereo_invalid_bigErr);
 
-	if(enablePrintDebugInfo && printLineStereoStatistics)
-	{
-		printf("ST: calls %6d, comp %6d, int %7d; good %6d (%.0f%%), neg %6d (%.0f%%); interp %6d / %6d / %6d\n",
-				runningStats.num_stereo_calls,
-				runningStats.num_stereo_comparisons,
-				runningStats.num_pixelInterpolations,
-				runningStats.num_stereo_successfull,
-				100*runningStats.num_stereo_successfull / (float) runningStats.num_stereo_calls,
-				runningStats.num_stereo_negative,
-				100*runningStats.num_stereo_negative / (float) runningStats.num_stereo_successfull,
-				runningStats.num_stereo_interpPre,
-				runningStats.num_stereo_interpNone,
-				runningStats.num_stereo_interpPost);
-	}
-	if(enablePrintDebugInfo && printLineStereoFails)
-	{
-		printf("ST-ERR: oob %d (scale %d, inf %d, near %d); err %d (%d uncl; %d end; zro: %d btw, %d no, %d two; %d big)\n",
-				runningStats.num_stereo_rescale_oob+
-					runningStats.num_stereo_inf_oob+
-					runningStats.num_stereo_near_oob,
-				runningStats.num_stereo_rescale_oob,
-				runningStats.num_stereo_inf_oob,
-				runningStats.num_stereo_near_oob,
-				runningStats.num_stereo_invalid_unclear_winner+
-					runningStats.num_stereo_invalid_atEnd+
-					runningStats.num_stereo_invalid_inexistantCrossing+
-					runningStats.num_stereo_invalid_noCrossing+
-					runningStats.num_stereo_invalid_twoCrossing+
-					runningStats.num_stereo_invalid_bigErr,
-				runningStats.num_stereo_invalid_unclear_winner,
-				runningStats.num_stereo_invalid_atEnd,
-				runningStats.num_stereo_invalid_inexistantCrossing,
-				runningStats.num_stereo_invalid_noCrossing,
-				runningStats.num_stereo_invalid_twoCrossing,
-				runningStats.num_stereo_invalid_bigErr);
-	}
 }
 
 void DepthMap::invalidate()
@@ -1342,18 +1338,16 @@ void DepthMap::addTimingSample()
 		// nAvgSetDepth = 0.8*nAvgSetDepth + 0.2*(nSetDepth / sPassed); nSetDepth = 0;
 		// lastHzUpdate = now;
 
-		if(enablePrintDebugInfo && printMappingTiming)
-		{
-			printf("Upd %3.1fms (%.1fHz); Create %3.1fms (%.1fHz); Final %3.1fms (%.1fHz) // Obs %3.1fms (%.1fHz); Reg %3.1fms (%.1fHz); Prop %3.1fms (%.1fHz); Fill %3.1fms (%.1fHz); Set %3.1fms (%.1fHz)\n",
-					_perf.update.ms(), _perf.update.rate(),
-					_perf.create.ms(), _perf.create.rate(),
-					_perf.finalize.ms(), _perf.finalize.rate(),
-					_perf.observe.ms(), _perf.observe.rate(),
-					_perf.regularize.ms(), _perf.regularize.rate(),
-					_perf.propagate.ms(), _perf.propagate.rate(),
-					_perf.fillHoles.ms(), _perf.fillHoles.rate(),
-					_perf.setDepth.ms(), _perf.setDepth.rate() );
-		}
+		LOGF_IF(DEBUG, enablePrintDebugInfo && printMappingTiming, "Upd %3.1fms (%.1fHz); Create %3.1fms (%.1fHz); Final %3.1fms (%.1fHz) // Obs %3.1fms (%.1fHz); Reg %3.1fms (%.1fHz); Prop %3.1fms (%.1fHz); Fill %3.1fms (%.1fHz); Set %3.1fms (%.1fHz)\n",
+				_perf.update.ms(), _perf.update.rate(),
+				_perf.create.ms(), _perf.create.rate(),
+				_perf.finalize.ms(), _perf.finalize.rate(),
+				_perf.observe.ms(), _perf.observe.rate(),
+				_perf.regularize.ms(), _perf.regularize.rate(),
+				_perf.propagate.ms(), _perf.propagate.rate(),
+				_perf.fillHoles.ms(), _perf.fillHoles.rate(),
+				_perf.setDepth.ms(), _perf.setDepth.rate() );
+
 	}
 
 
@@ -1374,7 +1368,7 @@ void DepthMap::finalizeKeyFrame()
 
 	{
 		Timer time;
-	regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
+		regularizeDepthMap(false, VAL_SUM_MIN_FOR_KEEP);
 		_perf.regularize.update( time );
 	}
 
