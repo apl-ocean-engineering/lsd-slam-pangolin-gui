@@ -27,7 +27,7 @@ UndistorterZED::UndistorterZED( sl::zed::Camera *camera  )
 		_finalSize = SlamImageSize( _cropSize.width / 2, _cropSize.height / 2 );
 	} else if( h==480 && w == 640 ) {
 		_cropSize = ImageSize( 640, 480 );
-		_finalSize = SlamImageSize( _cropSize.height, _cropSize.width );
+		_finalSize = SlamImageSize( _cropSize.width, _cropSize.height );
 	} else {
 		LOG(FATAL) << "Don't know how to handle Zed resolution " << w << " x " << h;
 	}
