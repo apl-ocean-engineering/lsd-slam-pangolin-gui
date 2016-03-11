@@ -13,10 +13,10 @@ namespace lsd_slam
 {
 
 
-UndistorterLogger::UndistorterLogger( const ImageSize &inputSize, const ImageSize &cropSize, const ImageSize &finalSize, const Camera &cam  )
+UndistorterLogger::UndistorterLogger( const ImageSize &inputSize, const Camera &cam  )
 	: _inputSize( inputSize ),
-		_cropSize( cropSize ),
-		_finalSize( finalSize ),
+		_cropSize( inputSize ),
+		_finalSize( inputSize ),
 		_originalCamera( cam ),
 		_valid( true )
 {

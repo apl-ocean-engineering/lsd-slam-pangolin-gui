@@ -13,9 +13,24 @@
 namespace lsd_slam
 {
 
-UndistorterZED::UndistorterZED( sl::zed::Camera *camera, const ImageSize &cropSize, const ImageSize &finalSize )
-	: UndistorterLogger( camera->getImageSize(), cropSize, finalSize, camera->getParameters() )
+UndistorterZED::UndistorterZED( sl::zed::Camera *camera  )
+	: UndistorterLogger( camera->getImageSize(), camera->getParameters() )
 {
+	unsigned int h = camera->getImageSize().height,
+							 w = camera->getImageSize().width;
+
+	if(  h==1080 && w ==1920 ) {
+		_cropSize = ImageSize( 1920, 1056 );
+		_finalSize = SlamImageSize( _cropSize.width / 2, _cropSize.height / 2 );
+	} else if( h==720 && w==1280 ) {
+		_cropSize = ImageSize( 1280, 704 );
+		_finalSize = SlamImageSize( _cropSize.width / 2, _cropSize.height / 2 );
+	} else if( h==480 && w == 640 ) {
+		_cropSize = ImageSize( 640, 480 );
+		_finalSize = SlamImageSize( _cropSize.height, _cropSize.width );
+	} else {
+		LOG(FATAL) << "Don't know how to handle Zed resolution " << w << " x " << h;
+	}
 }
 
 UndistorterZED::~UndistorterZED()

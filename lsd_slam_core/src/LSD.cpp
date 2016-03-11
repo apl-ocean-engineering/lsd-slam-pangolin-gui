@@ -74,7 +74,7 @@ int main( int argc, char** argv )
 
 #ifdef USE_ZED
       TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
-      TCLAP::ValueArg<std::string> svoFileArg("","svo","Name of SVO file to read",false,"","SVO filename", cmd);
+      TCLAP::ValueArg<std::string> svoFileArg("","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
       TCLAP::SwitchArg depthSwitch("","depth","Use depth data", cmd, false);
 #endif
 
@@ -96,7 +96,6 @@ int main( int argc, char** argv )
           conf.doDepth = Configuration::STEREO_ZED;
         }
 
-        const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
         const sl::zed::MODE zedMode = ( conf.doDepth == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
         const int whichGpu = -1;
         const bool verboseInit = true;
@@ -108,6 +107,7 @@ int main( int argc, char** argv )
           LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
           camera = new sl::zed::Camera( svoFileArg.getValue() );
       	} else {
+          const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
           LOG(INFO) << "Using live Zed data";
           camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
           conf.stopOnFailedRead = false;
@@ -120,25 +120,9 @@ int main( int argc, char** argv )
           exit(-1);
         }
 
-        ImageSize cropSize;
-        SlamImageSize slamSize;
-
-        if( zedResolution == sl::zed::HD1080 ) {
-          cropSize = ImageSize( 1920, 1056 );
-          slamSize = SlamImageSize( cropSize.width / 2, cropSize.height / 2 );
-        } else if( zedResolution == sl::zed::HD720) {
-          cropSize = ImageSize( 1280, 704 );
-          slamSize = SlamImageSize( cropSize.width / 2, cropSize.height / 2 );
-        } else if( zedResolution == sl::zed::HD720) {
-          cropSize = ImageSize( 640, 480 );
-          slamSize = SlamImageSize( cropSize.height, cropSize.width );
-        } else {
-          LOG(FATAL) << "Don't know how to handle Zed resolution" << resolutionToString( zedResolution );
-        }
-
         dataSource = new ZedSource( camera, conf.doDepth == Configuration::STEREO_ZED );
         if( fpsArg.isSet() && svoFileArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
-        undistorter = new UndistorterZED( camera, cropSize, slamSize );
+        undistorter = new UndistorterZED( camera );
       } else
 #endif
       {
@@ -174,8 +158,8 @@ int main( int argc, char** argv )
   CHECK( undistorter != NULL ) << "Undistorter doesn't exist.";
   CHECK( dataSource != NULL ) << "Data source doesn't exist.";
 
-  conf.inputImage = ImageSize( undistorter->getInputWidth(), undistorter->getInputHeight() );
-  conf.slamImage  = SlamImageSize( undistorter->getOutputWidth(), undistorter->getOutputHeight() );
+  conf.inputImage = undistorter->inputImageSize();
+  conf.slamImage  = undistorter->outputImageSize();
   conf.camera     = undistorter->getCamera();
 
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";

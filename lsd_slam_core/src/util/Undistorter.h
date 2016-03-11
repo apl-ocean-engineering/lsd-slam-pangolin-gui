@@ -57,6 +57,9 @@ public:
 	 */
 	virtual const cv::Mat getOriginalK() const = 0;
 
+	virtual ImageSize outputImageSize( void ) const
+		{ return ImageSize( getOutputWidth(), getOutputHeight() ); }
+
 	/**
 	 * Returns the width of the undistorted images in pixels.
 	 */
@@ -66,6 +69,9 @@ public:
 	 * Returns the height of the undistorted images in pixels.
 	 */
 	virtual int getOutputHeight() const = 0;
+
+	virtual ImageSize inputImageSize( void ) const
+		{ return ImageSize( getInputWidth(), getInputHeight() ); }
 
 	/**
 	 * Returns the width of the input images in pixels.
@@ -300,7 +306,7 @@ public:
 
 protected:
 
-	UndistorterLogger( const ImageSize &inputSize, const ImageSize &cropSize, const ImageSize &finalSize, const Camera &cam  );
+	UndistorterLogger( const ImageSize &inputSize, const Camera &cam  );
 
 	ImageSize _inputSize, _cropSize, _finalSize;
 	Camera _originalCamera;
@@ -315,14 +321,10 @@ class UndistorterZED : public UndistorterLogger
 public:
 	/**
 	 * Creates an Undistorter by reading the distortion parameters from a file.
-	 *
-	 * The file format is as follows:
-	 * d1 d2 d3 d4 d5
-	 * inputWidth inputHeight
-	 * crop / full / none
-	 * outputWidth outputHeight
+	 * for a Zed camera.  Determines cropped and final size automatically
+	 * from input resolution.
 	 */
-	UndistorterZED( sl::zed::Camera *camera, const ImageSize &cropSize, const ImageSize &finalSize );
+	UndistorterZED( sl::zed::Camera *camera );
 
 	/**
 	 * Destructor.

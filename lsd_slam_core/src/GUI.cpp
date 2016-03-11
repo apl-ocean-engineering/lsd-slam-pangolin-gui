@@ -29,6 +29,7 @@ GUI::GUI( const lsd_slam::Configuration &conf )
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
+    LOG(INFO) << "AR: " << _conf.slamImage.aspectRatio();
     pangolin::Display("LiveImage").SetAspect( _conf.slamImage.aspectRatio() );
     pangolin::Display("DepthImage").SetAspect( _conf.slamImage.aspectRatio() );
 
