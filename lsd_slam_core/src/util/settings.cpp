@@ -51,7 +51,7 @@ bool printLineStereoFails = true;
 bool printTrackingIterationInfo = true;
 
 bool printFrameBuildDebugInfo = true;
-bool printMemoryDebugInfo = true;
+bool printMemoryDebugInfo = false;
 
 bool printKeyframeSelectionInfo = true;
 bool printConstraintSearchInfo = true;
