@@ -160,7 +160,7 @@ int main( int argc, char** argv )
         }
 
         undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
-        CHECK(undistorter);
+        CHECK(undistorter != NULL);
       }
 
       doGui = !noGuiSwitch.getValue();

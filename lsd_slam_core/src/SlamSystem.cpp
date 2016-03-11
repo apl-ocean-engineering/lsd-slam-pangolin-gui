@@ -128,7 +128,7 @@ SlamSystem::~SlamSystem()
 	// make sure no-one is waiting for something.
 	LOG(INFO) << "... waiting for SlamSystem's threads to exit";
 	newFrameMapped.notify();
-	unmappedTrackedFrames.notify();
+	unmappedTrackedFrames.notifyAll();
 	// unmappedTrackedFramesSignal.notify_all();
 
 	newKeyFrames.notifyAll();
@@ -152,7 +152,7 @@ SlamSystem::~SlamSystem()
 	delete tracker;
 
 	// make shure to reset all shared pointers to all frames before deleting the keyframegraph!
-	unmappedTrackedFrames->clear();
+	unmappedTrackedFrames().clear();
 
 	latestFrameTriedForReloc.reset();
 	latestTrackedFrame.reset();
@@ -207,7 +207,7 @@ void SlamSystem::mappingThreadLoop()
 			unmappedTrackedFrames.wait_for( std::chrono::milliseconds(200) );
 		// {
 		// 	std::unique_lock<std::mutex> lock(unmappedTrackedFramesMutex);
-		// 	unmappedTrackedFramesSignal.wait_for(lock,);	// slight chance of deadlock otherwise
+		// 	unmappedTrackedFramesSignal.wait_for(lock,std::chrono::milliseconds(200));	// slight chance of deadlock otherwise
 		// }
 
 
@@ -246,7 +246,7 @@ void SlamSystem::finalize()
 	}
 
 	printf("Finalizing Graph... publishing!!\n");
-	unmappedTrackedFrames.notify();
+	unmappedTrackedFrames.notifyAll();
 	// unmappedTrackedFramesMutex.lock();
 	// unmappedTrackedFramesSignal.notify_one();
 	// unmappedTrackedFramesMutex.unlock();
@@ -273,7 +273,7 @@ void SlamSystem::constraintSearchThreadLoop()
 
 	while(keepRunning)
 	{
-		if(newKeyFrames->size() == 0)
+		if(newKeyFrames().size() == 0)
 		{
 			lock.unlock();
 			keyFrameGraph->keyframesForRetrackMutex.lock();
@@ -311,8 +311,8 @@ void SlamSystem::constraintSearchThreadLoop()
 		}
 		else
 		{
-			Frame* newKF = newKeyFrames->front();
-			newKeyFrames->pop_front();
+			Frame* newKF = newKeyFrames().front();
+			newKeyFrames().pop_front();
 			lock.unlock();
 
 
@@ -417,8 +417,8 @@ void SlamSystem::finishCurrentKeyframe()
 
 			{
 				newKeyFrames.lock();
-				newKeyFrames->push_back(currentKeyFrame.get());
-				newKeyFrames.notify();
+				newKeyFrames().push_back(currentKeyFrame.get());
+				newKeyFrames.notifyAll();
 				newKeyFrames.unlock();
 			}
 		}
@@ -547,22 +547,22 @@ bool SlamSystem::updateKeyframe()
 	unmappedTrackedFrames.lock();
 
 	// remove frames that have a different tracking parent.
-	while(unmappedTrackedFrames->size() > 0 &&
-			(!unmappedTrackedFrames->front()->hasTrackingParent() ||
-					unmappedTrackedFrames->front()->getTrackingParent() != currentKeyFrame.get()))
+	while(unmappedTrackedFrames().size() > 0 &&
+			(!unmappedTrackedFrames().front()->hasTrackingParent() ||
+					unmappedTrackedFrames().front()->getTrackingParent() != currentKeyFrame.get()))
 	{
-		unmappedTrackedFrames->front()->clear_refPixelWasGood();
-		unmappedTrackedFrames->pop_front();
+		unmappedTrackedFrames().front()->clear_refPixelWasGood();
+		unmappedTrackedFrames().pop_front();
 	}
 
 	// clone list
-	if(unmappedTrackedFrames->size() > 0)
+	if(unmappedTrackedFrames().size() > 0)
 	{
-		for(unsigned int i=0;i<unmappedTrackedFrames->size(); i++)
-			references.push_back(unmappedTrackedFrames[i]);
+		for(unsigned int i=0;i<unmappedTrackedFrames().size(); i++)
+			references.push_back(unmappedTrackedFrames()[i]);
 
-		std::shared_ptr<Frame> popped = unmappedTrackedFrames.front();
-		unmappedTrackedFrames->pop_front();
+		std::shared_ptr<Frame> popped = unmappedTrackedFrames().front();
+		unmappedTrackedFrames().pop_front();
 		unmappedTrackedFrames.unlock();
 
 		if(enablePrintDebugInfo && printThreadingInfo)
@@ -654,7 +654,7 @@ void SlamSystem::debugDisplayDepthMap()
 	snprintf(buf1,200,"Map: Upd %3.0fms (%2.0fHz); Trk %3.0fms (%2.0fHz); %d / %d / %d",
 			map->_perf.update.ms(), map->_perf.update.rate(),
 			_perf.trackFrame.ms(), _perf.trackFrame.rate(),
-			currentKeyFrame->numFramesTrackedOnThis, currentKeyFrame->numMappedOnThis, (int)unmappedTrackedFrames.size());
+			currentKeyFrame->numFramesTrackedOnThis, currentKeyFrame->numMappedOnThis, (int)unmappedTrackedFrames().size());
 
 	snprintf(buf2,200,"dens %2.0f%%; good %2.0f%%; scale %2.2f; res %2.1f/; usg %2.0f%%; Map: %d F, %d KF, %d E, %.1fm Pts",
 			100*currentKeyFrame->numPoints/(float)(_conf.slamImage.area()),
@@ -713,8 +713,8 @@ void SlamSystem::takeRelocalizeResult()
 
 		{
 			std::lock_guard<std::mutex> lock( unmappedTrackedFrames.mutex() );
-			if(unmappedTrackedFrames->size() < 50)
-				unmappedTrackedFrames->push_back(succFrame);
+			if(unmappedTrackedFrames().size() < 50)
+				unmappedTrackedFrames().push_back(succFrame);
 		}
 
 		{
@@ -901,7 +901,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 	{
 		relocalizer.updateCurrentFrame(trackingNewFrame);
 
-		unmappedTrackedFrames.notify();
+		unmappedTrackedFrames.notifyAll();
 
 		// {
 		// 	std::lock_guard< std::mutex > lock( unmappedTrackedFramesMutex );
@@ -962,7 +962,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 		trackingIsGood = false;
 		nextRelocIdx = -1;
 
-		unamppedTrackedFrames.notify();
+		unmappedTrackedFrames.notifyAll();
 
 		// unmappedTrackedFramesMutex.lock();
 		// unmappedTrackedFramesSignal.notify_one();
@@ -1029,11 +1029,11 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 
 	{
 		std::lock_guard< std::mutex > lock( unmappedTrackedFrames.mutex() );
-		if(unmappedTrackedFrames->size() < 50 || (unmappedTrackedFrames->size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
-				unmappedTrackedFrames->push_back(trackingNewFrame);
+		if(unmappedTrackedFrames().size() < 50 || (unmappedTrackedFrames().size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
+				unmappedTrackedFrames().push_back(trackingNewFrame);
 	}
 
-		unmappedTrackedFramesSynchro.notify();
+		unmappedTrackedFrames.notifyAll();
 		// unmappedTrackedFramesSignal.notify_one();
 	// }
 
@@ -1043,18 +1043,18 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 		int utf = 0;
 		{
 			std::unique_lock< std::mutex > lock( unmappedTrackedFrames.mutex() );
-			utf = unmappedTrackedFrames->size();
+			utf = unmappedTrackedFrames().size();
 		}
 
 		// std::unique_lock<std::mutex> lock(newFrameMappedMutex);
 		while(utf > 0)
 		{
 			LOGF(INFO, "TRACKING IS BLOCKING, waiting for %d frames to finish mapping.", (int)utf);
-			newFrameMapped.wait(lock);
+			newFrameMapped.wait();
 
 			{
 				std::unique_lock< std::mutex > lock( unmappedTrackedFrames.mutex() );
-				utf = unmappedTrackedFrames->size();
+				utf = unmappedTrackedFrames().size();
 			}
 		}
 	}

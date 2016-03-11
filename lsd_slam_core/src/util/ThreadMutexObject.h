@@ -57,9 +57,9 @@ class ThreadMutexObject
             return object;
         }
 
-        T *operator->( void )
+        T &operator()( void )
         {
-          return &object;
+            return object;
         }
 
         void assignAndNotifyAll(T newValue)
@@ -73,12 +73,6 @@ class ThreadMutexObject
         }
 
         void notifyAll()
-        {
-            // std::lock_guard lock(mutex);
-            signal.notify_all();
-        }
-
-        void notify()
         {
             // std::lock_guard lock(mutex);
             signal.notify_all();
@@ -148,6 +142,9 @@ public:
   ThreadSynchronizer( void )
     : _ready(false)
   {;}
+
+  void lock( void ) { _mutex.lock(); }
+  void unlock( void ) { _mutex.unlock(); }
 
   void notify( void )
   {

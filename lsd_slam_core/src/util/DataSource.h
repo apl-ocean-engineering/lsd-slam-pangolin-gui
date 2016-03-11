@@ -126,7 +126,7 @@ public:
 
   virtual bool grab( void )
   {
-    _reader.grab();
+    return _reader.grab();
   }
 
   virtual int getImage( int i, cv::Mat &mat )

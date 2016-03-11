@@ -128,15 +128,14 @@ bool LogReader::close( void )
 }
 
 
-void LogReader::grab()
+bool LogReader::grab()
 {
   currentFrame++;
 
   for( unsigned int i = 0; i < _fields.size(); ++i ) {
     unsigned int len;
-    CHECK( fread( &len, sizeof(uint32_t), 1, fp ));
-
-    CHECK( fread( _compressed[i].data.get(), sizeof( unsigned char), len, fp ));
+    CHECK( fread( &len, sizeof(uint32_t), 1, fp ) == sizeof(uint32_t) );
+    CHECK( fread( _compressed[i].data.get(), sizeof( unsigned char), len, fp ) == len*sizeof(unsigned char));
     _compressed[i].size = len;
   }
 
@@ -168,6 +167,8 @@ void LogReader::grab()
     CHECK( destLen == _fields[i].nBytes() );
   }
 
+  return true;
+
 //     assert(fread(&timestamp, sizeof(int64_t), 1, fp));
 //
 //     assert(fread(&depthSize, sizeof(int32_t), 1, fp));
@@ -175,20 +176,7 @@ void LogReader::grab()
 //
 //     assert(fread(depthReadBuffer, depthSize, 1, fp));
 //
-//     if(imageSize > 0)
-//     {
-//         assert(fread(imageReadBuffer, imageSize, 1, fp));
-//     }
-//
-//     if(depthSize == numPixels * 2)
-//     {
-//         memcpy(&decompressionBuffer[0], depthReadBuffer, numPixels * 2);
-//     }
-//     else
-//     {
-//         unsigned long decompLength = numPixels * 2;
-//         uncompress(&decompressionBuffer[0], (unsigned long *)&decompLength, (const Bytef *)depthReadBuffer, depthSize);
-//     }
+
 //
 //     unsigned short * depthBuffer = (unsigned short *)&decompressionBuffer[0];
 //     unsigned short maxVal = 0;

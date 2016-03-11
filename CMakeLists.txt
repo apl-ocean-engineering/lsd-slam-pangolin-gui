@@ -79,12 +79,14 @@ if( USE_GOOGLE_SNAPPY )
                       CONFIGURE_COMMAND ./autogen.sh && ./configure --prefix=${SNAPPY_INSTALL_DIR}
                       BUILD_COMMAND make -j -C ${SNAPPY_SOURCE_DIR} )
 
-  find_path( SNAPPY_INCLUDE_DIRS snappy.h
-                PATHS ${SNAPPY_INSTALL_DIR}/include )
+  set( SNAPPY_INCLUDE_DIRS ${SNAPPY_INSTALL_DIR}/include )
 
   ## This doesn't seem right.
-  find_library( SNAPPY_LIBRARIES libsnappy.so
-                PATHS ${SNAPPY_INSTALL_DIR}/lib )
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set( SNAPPY_LIBRARIES ${SNAPPY_INSTALL_DIR}/lib/libsnappy.dylib )
+  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set( SNAPPY_LIBRARIES ${SNAPPY_INSTALL_DIR}/lib/libsnappy.so )
+  endif()
 endif()
 
 ## Architecture detection

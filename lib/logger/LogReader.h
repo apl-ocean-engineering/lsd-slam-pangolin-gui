@@ -29,7 +29,7 @@ class LogReader
 
         FieldHandle_t findField( const std::string &field );
 
-        void grab();
+        bool grab();
 
         cv::Mat retrieve( FieldHandle_t handle );
 
