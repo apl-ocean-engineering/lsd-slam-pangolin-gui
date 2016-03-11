@@ -80,7 +80,7 @@ void GUI::initImages()
     depthImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
     depthImgBuffer.assignValue(new unsigned char[_conf.slamImage.area() * 3]);
 
-    liveImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_LUMINANCE8, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    liveImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_LUMINANCE, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
     liveImgBuffer.assignValue(new unsigned char[_conf.slamImage.area()]);
 }
 
@@ -173,7 +173,7 @@ void GUI::drawKeyframes()
 
     for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
     {
-        //Don't render first five, according to original code
+        // Don't render first five, according to original code
         if(i->second->initId >= 5)
         {
             if(!i->second->hasVbo || i->second->needsUpdate)
