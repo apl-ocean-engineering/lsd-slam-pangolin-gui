@@ -14,12 +14,15 @@
 
 #pragma once
 
+#include <iostream>
+
 #include <queue>
 #include <mutex>
 #include <exception>
 #include <condition_variable>
 
-namespace logger {
+namespace active_object {
+
 /** Multiple producer, multiple consumer thread safe queue
 * Since 'return by reference' is used this queue won't throw */
 template<typename T>
@@ -47,6 +50,25 @@ public:
     if(queue_.empty()){
       return false;
     }
+    popped_item=queue_.front();
+    queue_.pop();
+    return true;
+  }
+
+  /// Try to retrieve, if no items, wait till an item is available and try again
+  template< class Rep, class Period = std::ratio<1> >
+  bool wait_for_pop(T& popped_item, const std::chrono::duration<Rep,Period> &timeout ) {
+    std::unique_lock<std::mutex> lock(m_);
+
+    while(queue_.empty()) {
+      if( timeout.count() > 0 ) {
+        if( data_cond_.wait_for(lock, timeout) == std::cv_status::timeout )
+          return false;
+      } else {
+        data_cond_.wait(lock);
+      }
+    }
+
     popped_item=queue_.front();
     queue_.pop();
     return true;

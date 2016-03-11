@@ -1049,7 +1049,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 		// std::unique_lock<std::mutex> lock(newFrameMappedMutex);
 		while(utf > 0)
 		{
-			LOGF(INFO, "TRACKING IS BLOCKING, waiting for %d frames to finish mapping.", (int)utf);
+			LOGF(DEBUG, "TRACKING IS BLOCKING, waiting for %d frames to finish mapping.", (int)utf);
 			newFrameMapped.wait();
 
 			{

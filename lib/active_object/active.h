@@ -26,12 +26,13 @@
 #include <condition_variable>
 #include <mutex>
 #include <memory>
+#include <chrono>
 
 #include "shared_queue.h"
 
 // n.b. I've re-namespaced this from kjellkod not for nefarious purposes but
 // to avoid conflict (or explicitly re-using) the version in g3log
-namespace logger {
+namespace active_object {
 typedef std::function<void()> Callback;
 
 class Active {
@@ -52,6 +53,30 @@ public:
   void send(Callback msg_);
   static std::unique_ptr<Active> createActive(); // Factory: safe construction & thread start
 };
+
+class ActiveIdle {
+private:
+  ActiveIdle(const ActiveIdle&) = delete;
+  ActiveIdle& operator=(const ActiveIdle&) = delete;
+
+  // Construction ONLY through factory createActiveIdle();
+  ActiveIdle( Callback idleCb, const std::chrono::milliseconds timeout);
+
+  void doDone(){done_ = true;}
+  void run();
+  shared_queue<Callback> mq_;
+  std::thread thd_;
+  bool done_;  // finished flag to be set through msg queue by ~Active
+  std::chrono::milliseconds timeout_;
+
+  Callback idleCb_;
+
+public:
+  virtual ~ActiveIdle();
+  void send(Callback msg_);
+  static std::unique_ptr<ActiveIdle> createActiveIdle( Callback idleCb, const std::chrono::milliseconds timeout	); // Factory: safe construction & thread start
+};
+
 } // end namespace kjellkod
 
 

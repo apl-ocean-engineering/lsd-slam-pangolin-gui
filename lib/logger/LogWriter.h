@@ -1,8 +1,5 @@
 /*
- * RawLogReader.h
- *
- *  Created on: 19 Nov 2012
- *      Author: thomas
+ * Was once based roughly on Thomas Whelan's RawLogReader.h
  */
 
 #pragma once
@@ -20,7 +17,7 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-#include "active.h"
+#include "active_object/active.h"
 #include "LogFields.h"
 
 namespace logger {
@@ -69,8 +66,8 @@ class LogWriter
 
         Fields _fields;
 
-        std::unique_ptr<logger::Active> _writer;
-        std::deque< std::unique_ptr<logger::Active> > _compressors;
+        std::unique_ptr<active_object::Active> _writer;
+        std::deque< std::unique_ptr<active_object::Active> > _compressors;
         std::deque< std::shared_ptr<Chunk> > _compressorOutput;
         std::deque< bool > _compressorDone, _fieldUpdated;
         std::deque< std::mutex > _compressorMutex;

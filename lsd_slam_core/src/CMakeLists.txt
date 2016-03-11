@@ -72,11 +72,13 @@ target_link_libraries(lsdslam
   ${G2O_TYPES_SIM3}
   cxsparse
   ${G3LOG_LIB}
-  logger )
+  logger
+  active_object )
 
+# Not on (my) OS X w/ suitesparse from Homebrew
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries( lsdslam
-                        csparse )
+                         csparse )
 ENDIF()
 
 # build image node

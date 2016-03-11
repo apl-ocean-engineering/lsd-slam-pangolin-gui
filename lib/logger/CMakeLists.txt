@@ -1,26 +1,16 @@
 
-
-
-if( USE_ZED_CAMERA )
-  # set( ZED_SRCS
-  #     ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterZED.cpp )
-endif()
-
-
 # Set source files
 set(logger_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/LogReader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/LogWriter.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/active.cpp
-  # ${ZED_SRCS}
 )
 
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/lib
   ${OpenCV_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
-  # ${ZED_CAMERA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
   ${SNAPPY_INCLUDE_DIRS}
 )
@@ -33,6 +23,5 @@ target_link_libraries(logger
   # ${ZED_CAMERA_LIBRARIES}
   ${G3LOG_LIB}
   ${SNAPPY_LIBRARIES}
+  active_object
 )
-
-set_target_properties( logger PROPERTIES COMPILE_FLAGS "-ggdb")

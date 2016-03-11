@@ -109,7 +109,13 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
 endif()
 
 
+add_subdirectory("lib/active_object")
 add_subdirectory("lib/logger")
 add_subdirectory("lsd_slam_core/src")
 
 add_subdirectory("tools")
+
+option( BUILD_UNIT_TESTS "Build unit tests" ON )
+if( BUILD_UNIT_TESTS )
+  add_subdirectory( test/unit/active_object )
+endif()

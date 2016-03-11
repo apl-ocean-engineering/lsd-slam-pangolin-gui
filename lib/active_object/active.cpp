@@ -21,7 +21,7 @@
 #include "active.h"
 #include <cassert>
 
-using namespace logger;
+namespace active_object {
 
 Active::Active(): done_(false){}
 
@@ -55,4 +55,6 @@ std::unique_ptr<Active> Active::createActive(){
   std::unique_ptr<Active> aPtr(new Active());
   aPtr->thd_ = std::thread(&Active::run, aPtr.get());
   return aPtr;
+}
+
 }

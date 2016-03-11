@@ -12,6 +12,7 @@ namespace logger {
 
 	const uint16_t LogFormatVersion = 1;
 
+	using active_object::Active;
 
 LogWriter::LogWriter( int level )
 	: _writer( Active::createActive() ),

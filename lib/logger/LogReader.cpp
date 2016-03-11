@@ -5,6 +5,10 @@
  *      Author: thomas
  */
 
+
+// TODO:   Currently single threaded.  Uncompression could be parallelized
+// in manner similar to LogWriter...
+
 #include "LogReader.h"
 
 #ifdef USE_SNAPPY
