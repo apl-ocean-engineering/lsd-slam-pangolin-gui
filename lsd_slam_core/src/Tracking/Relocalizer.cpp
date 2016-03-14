@@ -129,22 +129,26 @@ bool Relocalizer::waitResult(int milliseconds)
 	resultReadySignal.timed_wait(lock, boost::posix_time::milliseconds(milliseconds));
 	return hasResult;
 }
-void Relocalizer::getResult(Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe)
+
+RelocalizerResult Relocalizer::getResult( void ) //Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe)
 {
 	boost::unique_lock<boost::mutex> lock(exMutex);
 	if(hasResult)
 	{
-		out_keyframe = resultKF;
-		out_successfulFrameID = resultFrameID;
-		out_frameToKeyframe = resultFrameToKeyframe;
-		frame = resultRelocFrame;
+		return RelocalizerResult( resultKF, resultRelocFrame, resultFrameID, resultFrameToKeyframe );
+		// out_keyframe = resultKF;
+		// out_successfulFrameID = resultFrameID;
+		// out_frameToKeyframe = resultFrameToKeyframe;
+		// frame = resultRelocFrame;
 	}
 	else
 	{
-		out_keyframe = 0;
-		out_successfulFrameID = -1;
-		out_frameToKeyframe = SE3();
-		frame.reset();
+		std::shared_ptr< Frame > empty( NULL );
+		return RelocalizerResult( NULL, empty, -1, SE3() );
+		// out_keyframe = 0;
+		// out_successfulFrameID = -1;
+		// out_frameToKeyframe = SE3();
+		// frame.reset();
 	}
 }
 

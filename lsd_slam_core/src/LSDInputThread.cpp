@@ -39,7 +39,7 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
 
           CHECK(image.type() == CV_8U);
 
-          std::shared_ptr<Frame> frame( system->newFrame( image.data, runningIdx, fakeTimeStamp ));
+          std::shared_ptr<Frame> frame( new Frame( runningIdx, system->conf(), fakeTimeStamp, image.data ));
 
           if( doDepth ) {
             cv::Mat depthOrig, depth;
@@ -63,7 +63,7 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
           }
           else
           {
-              system->trackFrame(image.data, runningIdx, fps == 0, fakeTimeStamp);
+              system->trackFrame( frame, fps == 0 );
           }
 
           if( gui ){
@@ -77,8 +77,8 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
 
           if(fullResetRequested)
           {
-              SlamSystem *newSystem = new SlamSystem( system->conf(), system->SLAMEnabled );
-              newSystem->set3DOutputWrapper( system->get3DOutputWrapper() );
+              SlamSystem *newSystem = new SlamSystem( system->conf() );
+              newSystem->set3DOutputWrapper( system->outputWrapper() );
 
               LOG(WARNING) << "FULL RESET!";
               delete system;

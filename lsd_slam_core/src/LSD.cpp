@@ -166,7 +166,7 @@ int main( int argc, char** argv )
 
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
-	SlamSystem * system = new SlamSystem(conf, doSlam );
+	SlamSystem * system = new SlamSystem(conf);
 
   if( doGui ) {
     LOG(INFO) << "Starting GUI thread";

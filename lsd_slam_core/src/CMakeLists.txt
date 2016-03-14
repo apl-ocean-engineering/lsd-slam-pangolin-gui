@@ -36,6 +36,9 @@ set(lsdslam_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/g2oTypeSim3Sophus.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/GlobalMapping/TrackableKeyFrameSearch.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/SlamSystem/OptimizationThread.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/SlamSystem/MappingThread.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/SlamSystem/TrackingThread.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/SlamSystem/ConstraintSearchThread.cpp
   ${ZED_SRCS}
   ${GUI_SRCS}
 )

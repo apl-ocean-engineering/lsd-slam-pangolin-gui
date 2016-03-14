@@ -44,6 +44,7 @@ private:
 
   void doDone(){done_ = true;}
   void run();
+
   shared_queue<Callback> mq_;
   std::thread thd_;
   bool done_;  // finished flag to be set through msg queue by ~Active
@@ -51,6 +52,9 @@ private:
 public:
   virtual ~Active();
   void send(Callback msg_);
+
+  // std::unique_ptr< std::lock_guard< std::mutex > > lock_guard() { return mq_.lock_guard(); }
+
   static std::unique_ptr<Active> createActive(); // Factory: safe construction & thread start
 };
 
@@ -64,6 +68,7 @@ private:
 
   void doDone(){done_ = true;}
   void run();
+
   shared_queue<Callback> mq_;
   std::thread thd_;
   bool done_;  // finished flag to be set through msg queue by ~Active
@@ -74,6 +79,9 @@ private:
 public:
   virtual ~ActiveIdle();
   void send(Callback msg_);
+
+  // std::unique_ptr< std::lock_guard< std::mutex > > lock_guard() { return mq_.lock_guard(); }
+
   static std::unique_ptr<ActiveIdle> createActiveIdle( Callback idleCb, const std::chrono::milliseconds timeout	); // Factory: safe construction & thread start
 };
 

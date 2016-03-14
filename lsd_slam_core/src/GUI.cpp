@@ -61,7 +61,7 @@ GUI::~GUI()
         delete [] liveImgBuffer.getValue();
 
     {
-      std::lock_guard<std::mutex> lock(keyframes.getMutex());
+      std::lock_guard<std::mutex> lock(keyframes.mutex());
 
       for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
       {
@@ -87,14 +87,14 @@ void GUI::initImages()
 
 void GUI::updateDepthImage(unsigned char * data)
 {
-  std::lock_guard<std::mutex> lock(depthImgBuffer.getMutex());
+  std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
   memcpy(depthImgBuffer.getReference(), data, _conf.slamImage.area() * 3);
 }
 
 // Expects CV_8UC1 data
 void GUI::updateLiveImage(unsigned char * data)
 {
-  std::lock_guard<std::mutex> lock(liveImgBuffer.getMutex());
+  std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
   memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
 }
 
@@ -105,7 +105,7 @@ void GUI::updateFrameNumber( int fn )
 
 void GUI::addKeyframe(Keyframe * newFrame)
 {
-  std::lock_guard<std::mutex> lock(keyframes.getMutex());
+  std::lock_guard<std::mutex> lock(keyframes.mutex());
 
   //Exists
   if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
@@ -123,7 +123,7 @@ void GUI::addKeyframe(Keyframe * newFrame)
 
 void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
 {
-  std::lock_guard<std::mutex> lock(keyframes.getMutex());
+  std::lock_guard<std::mutex> lock(keyframes.mutex());
 
   for(int i = 0; i < num; i++)
   {
@@ -149,7 +149,7 @@ void GUI::preCall()
 void GUI::drawImages()
 {
     {
-      std::lock_guard<std::mutex> lock(depthImgBuffer.getMutex());
+      std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
       depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
     }
 
@@ -157,7 +157,7 @@ void GUI::drawImages()
     depthImg->RenderToViewport(true);
 
     {
-      std::lock_guard<std::mutex> lock(liveImgBuffer.getMutex());
+      std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
       liveImg->Upload(liveImgBuffer.getReference(), GL_LUMINANCE, GL_UNSIGNED_BYTE);
     }
 
@@ -167,7 +167,7 @@ void GUI::drawImages()
 
 void GUI::drawKeyframes()
 {
-   std::lock_guard<std::mutex> lock(keyframes.getMutex());
+   std::lock_guard<std::mutex> lock(keyframes.mutex());
 
     glEnable(GL_MULTISAMPLE);
     glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);

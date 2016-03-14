@@ -33,6 +33,18 @@ namespace lsd_slam
 class Frame;
 class Sim3Tracker;
 
+struct RelocalizerResult {
+	RelocalizerResult( Frame *out_kf, std::shared_ptr<Frame> &f, int out_id, SE3 out_se3 )
+		: keyframe( out_kf ), successfulFrame( f ),
+			successfulFrameID( out_id ), successfulFrameToKeyframe( out_se3 )
+	{;}
+
+	Frame* &keyframe;
+	std::shared_ptr<Frame> &successfulFrame;
+	int &successfulFrameID;
+	SE3 successfulFrameToKeyframe;
+};
+
 class Relocalizer
 {
 public:
@@ -44,7 +56,7 @@ public:
 	void stop();
 
 	bool waitResult(int milliseconds);
-	void getResult(Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe);
+	RelocalizerResult getResult();  //Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe);
 
 	bool isRunning;
 private:

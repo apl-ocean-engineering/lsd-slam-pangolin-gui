@@ -38,6 +38,9 @@ class shared_queue
 public:
   shared_queue(){}
 
+  // std::unique_ptr< std::lock_guard< std::mutex > > lock_guard( void )
+  // { return std::unique_ptr< std::lock_guard< std::mutex > >(new std::lock_guard< std::mutex >( m_ )); }
+
   void push(T item){
     std::lock_guard<std::mutex> lock(m_);
     queue_.push(item);

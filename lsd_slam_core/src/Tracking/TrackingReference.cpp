@@ -72,7 +72,7 @@ void TrackingReference::importFrame(Frame* sourceKF)
 	boost::unique_lock<boost::mutex> lock(accessMutex);
 	keyframeLock = sourceKF->getActiveLock();
 	keyframe = sourceKF;
-	frameID=keyframe->id();
+	frameID = keyframe->id();
 
 
 	// reset allocation if dimensions differ (shouldnt happen usually)
