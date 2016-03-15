@@ -60,7 +60,7 @@ using namespace lsd_slam;
 TrackingThread::TrackingThread( SlamSystem &system )
 : _system( system ),
 	_currentKeyFrame( system.currentKeyFrame ),
-	_tracker( new SE3Tracker( _system.conf().slamImage ) ),
+	_tracker( new SE3Tracker( system.conf().slamImage ) ),
 	_trackingReference( new TrackingReference() ),
 	_trackingIsGood( true )
 {
@@ -130,6 +130,8 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	// Create new frame
 	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
 
+	LOG(INFO) << "In trackFrame";
+
 	if(!_trackingIsGood)
 	{
 		// Prod mapping to check the relocalizer
@@ -151,6 +153,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 
 		if(_trackingReference->frameID != _currentKeyFrame->id() || _currentKeyFrame->depthHasBeenUpdatedFlag)
 		{
+			LOG(DEBUG) << "Setting new tracking reference from frame " << _currentKeyFrame->id();
 			_trackingReference->importFrame( _currentKeyFrame.get() );
 			_currentKeyFrame->depthHasBeenUpdatedFlag = false;
 			_trackingReferenceFrameSharedPT = _currentKeyFrame.ptr();
@@ -162,7 +165,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 
 
 	// DO TRACKING & Show tracking result.
-	LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo) << "TRACKING frame " << newFrame->id() << " on " << _trackingReference->frameID;
+	LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo) << "TRACKING frame " << newFrame->id() << " onto ref. " << _trackingReference->frameID;
 
 
 	SE3 frameToReference_initialEstimate;
@@ -276,6 +279,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	// If blocking is requested...
 	if(blockUntilMapped && trackingIsGood() ){
 		while( _system.mapThread->unmappedTrackedFrames().size() > 0 ) {
+			LOG(INFO) << "Waiting for mapping to be done...";
 			_system.mapThread->unmappedTrackedFrames.wait( );
 		}
 	}

@@ -17,7 +17,7 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
     lsdReady.notify();
     startAll.wait();
 
-    int numFrames = dataSource->numFrames();
+    int numFrames = 100; //dataSource->numFrames();
     LOG_IF( INFO, numFrames > 0 ) << "Running for " << numFrames << " frames";
 
     cv::Mat image = cv::Mat(system->conf().slamImage.cvSize(), CV_8U);

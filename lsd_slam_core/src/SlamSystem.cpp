@@ -63,14 +63,16 @@ SlamSystem::SlamSystem( const Configuration &conf )
 : finalized(false),
 	perf(),
 	_conf( conf ),
-	optThread( new OptimizationThread( *this, conf.SLAMEnabled ) ),
-	mapThread( new MappingThread( *this ) ),
-	constraintThread( new ConstraintSearchThread( *this, conf.SLAMEnabled ) ),
-	trackingThread( new TrackingThread( *this ) ),
 	keyFrameGraph( new KeyFrameGraph ),
-	trackableKeyFrameSearch( new TrackableKeyFrameSearch( keyFrameGraph, _conf ) )
+	trackableKeyFrameSearch( new TrackableKeyFrameSearch( keyFrameGraph, conf ) )
 {
 
+	// Because some of these rely on conf(), need to explicitly call after
+ 	// static initialization
+	optThread =        new OptimizationThread( *this, conf.SLAMEnabled );
+	mapThread =        new MappingThread( *this );
+	constraintThread = new ConstraintSearchThread( *this, conf.SLAMEnabled );
+	trackingThread =   new TrackingThread( *this );
 
 	// this->width = w;
 	// this->height = h;
@@ -216,15 +218,9 @@ void SlamSystem::gtDepthInit( std::shared_ptr<Frame> frame )
 	// has been set explicitly
 	CHECK( frame->hasIDepthBeenSet() );
 
-	{
-		std::lock_guard<std::mutex> lock( currentKeyFrame.mutex() );
-
-		currentKeyFrame.set( frame );
-
-		mapThread->gtDepthInit( frame );
-
-		keyFrameGraph->addFrame( frame.get() );
-	}
+	currentKeyFrame.set( frame );
+	mapThread->gtDepthInit( frame );
+	keyFrameGraph->addFrame( frame.get() );
 
 	if( conf().SLAMEnabled) {
 		boost::lock_guard<boost::shared_mutex> lock( keyFrameGraph->idToKeyFrameMutex );
@@ -245,16 +241,12 @@ void SlamSystem::randomInit( std::shared_ptr<Frame> frame )
 	LOG(INFO) << "Doing Random initialization!";
 
 	if(! conf().doMapping)
-		LOG(WARNING) << "WARNING: mapping is disabled, but we just initialized... THIS WILL NOT WORK! Set doMapping to true.";
+		LOG(FATAL) << "WARNING: mapping is disabled, but we just initialized... THIS WILL NOT WORK! Set doMapping to true.";
 
-		{
-			std::lock_guard<std::mutex> lock( currentKeyFrame.mutex() );
+		currentKeyFrame.set( frame );
 
-			currentKeyFrame.set( frame );
-
-			mapThread->randomInit( frame );
-			keyFrameGraph->addFrame( frame.get() );
-		}
+		mapThread->randomInit( frame );
+		keyFrameGraph->addFrame( frame.get() );
 
 		if( conf().SLAMEnabled) {
 			boost::lock_guard<boost::shared_mutex> lock( keyFrameGraph->idToKeyFrameMutex );

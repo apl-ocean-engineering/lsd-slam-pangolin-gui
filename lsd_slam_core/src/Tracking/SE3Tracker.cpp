@@ -311,6 +311,7 @@ SE3 SE3Tracker::trackFrame(
 		{
 			diverged = true;
 			trackingWasGood = false;
+			LOG(DEBUG) << "Diverged!  Only " << buf_warped_size << " pixel to track.";
 			return SE3();
 		}
 
@@ -356,6 +357,7 @@ SE3 SE3Tracker::trackFrame(
 				{
 					diverged = true;
 					trackingWasGood = false;
+					LOG(DEBUG) << "Diverged!  Only " << buf_warped_size << " pixel to track.";
 					return SE3();
 				}
 
@@ -378,10 +380,10 @@ SE3 SE3Tracker::trackFrame(
 					if(enablePrintDebugInfo && printTrackingIterationInfo)
 					{
 						// debug output
-						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
+						LOGF(DEBUG,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 
-						printf("         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
+						LOGF(DEBUG,"         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
 								referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
 								referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5]);
 					}
@@ -391,7 +393,7 @@ SE3 SE3Tracker::trackFrame(
 					{
 						if(enablePrintDebugInfo && printTrackingIterationInfo)
 						{
-							printf("(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
+							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
 									lvl,iteration);
 						}
 						iteration = settings.maxItsPerLvl[lvl];
@@ -411,7 +413,7 @@ SE3 SE3Tracker::trackFrame(
 				{
 					if(enablePrintDebugInfo && printTrackingIterationInfo)
 					{
-						printf("(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
+						LOGF(DEBUG,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 					}
 
@@ -419,7 +421,7 @@ SE3 SE3Tracker::trackFrame(
 					{
 						if(enablePrintDebugInfo && printTrackingIterationInfo)
 						{
-							printf("(%d-%d): FINISHED pyramid level (stepsize too small).\n",
+							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (stepsize too small).\n",
 									lvl,iteration);
 						}
 						iteration = settings.maxItsPerLvl[lvl];
