@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "util/settings.h"
 #include "util/EigenCoreInclude.h"
 #include "util/SophusUtil.h"
+#include "util/Configuration.h"
 #include "Tracking/LGSX.h"
 
 
@@ -43,7 +44,7 @@ struct Sim3ResidualStruct
 	float meanD;
 	float meanP;
 	float mean;
-	
+
 	inline Sim3ResidualStruct()
 	{
 		meanD = 0;
@@ -59,13 +60,13 @@ class Sim3Tracker
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-	int width, height;
+	// int width, height;
 
 	// camera matrix
-	Eigen::Matrix3f K, KInv;
-	float fx,fy,cx,cy;
-	float fxi,fyi,cxi,cyi;
-	
+	// Eigen::Matrix3f K, KInv;
+	// float fx,fy,cx,cy;
+	// float fxi,fyi,cxi,cyi;
+
 	Matrix7x7 lastSim3Hessian;
 
 	DenseDepthTrackerSettings settings;
@@ -111,7 +112,7 @@ public:
 	int buf_warped_size;
 
 
-	Sim3Tracker(int w, int h, Eigen::Matrix3f K);
+	Sim3Tracker( const ImageSize &sz );
 	Sim3Tracker(const Sim3Tracker&) = delete;
 	Sim3Tracker& operator=(const Sim3Tracker&) = delete;
 	~Sim3Tracker();
@@ -136,6 +137,8 @@ public:
 
 
 private:
+
+	const ImageSize &_imgSize;
 
 	void calcSim3Buffers(
 			const TrackingReference* reference,
@@ -186,7 +189,7 @@ private:
 	void calcSim3LGSNEON(LGS7 &ls7);
 #endif
 
-	
+
 
 	void calcResidualAndBuffers_debugStart();
 	void calcResidualAndBuffers_debugFinish(int w);

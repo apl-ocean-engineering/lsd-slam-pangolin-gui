@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,17 @@
 
 #include <string.h>
 #include <string>
+#include <math.h>
 
+#ifdef __APPLE__
+	#define isnanf(x) std::isnan(x)
 
+	inline void *mempcpy(void *dest, const void *src, size_t n)
+	{
+		memcpy( dest, src, n );
+		return (void *)((unsigned char *)dest+n);
+	}
+#endif
 
 namespace lsd_slam
 {
@@ -238,9 +247,8 @@ extern float cameraPixelNoise2;
 extern float depthSmoothingFactor;
 
 extern bool useFabMap;
-extern bool doSlam;
-extern bool doKFReActivation;
-extern bool doMapping;
+// extern bool doSlam;
+// extern bool doMapping;
 
 extern bool saveKeyframes;
 extern bool saveAllTracked;

@@ -9,12 +9,15 @@
 
 #include <pangolin/display/device/display_glut.h>
 
-
-GUI::GUI()
- : depthImg(0),
-   depthImgBuffer(0)
+GUI::GUI( const lsd_slam::Configuration &conf )
+ : _conf( conf ),
+    liveImg(NULL),
+   depthImg(NULL),
+   liveImgBuffer(NULL),
+   depthImgBuffer(NULL)
 {
-    pangolin::CreateGlutWindowAndBind("Main", 1280 + 180, 960, GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
+    const int initialWidth = 800, initialHeight = 800;
+    pangolin::CreateGlutWindowAndBind("Main", initialWidth, initialHeight, GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
 
     glDisable(GL_MULTISAMPLE);
 
@@ -26,15 +29,19 @@ GUI::GUI()
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
-    pangolin::Display("Image").SetAspect(640.0f / 480.0f);
+    LOG(INFO) << "AR: " << _conf.slamImage.aspectRatio();
+    pangolin::Display("LiveImage").SetAspect( _conf.slamImage.aspectRatio() );
+    pangolin::Display("DepthImage").SetAspect( _conf.slamImage.aspectRatio() );
 
     pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
                               .SetLayout(pangolin::LayoutEqualHorizontal)
-                              .AddDisplay(pangolin::Display("Image"));
+                              .AddDisplay(pangolin::Display("LiveImage"))
+                              .AddDisplay(pangolin::Display("DepthImage"));
 
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
     gpuMem = new pangolin::Var<int>("ui.GPU memory free", 0);
+    frameNumber = new pangolin::Var<int>("ui.Frame number", 0);
 
     totalPoints = new pangolin::Var<std::string>("ui.Total points", "0");
 }
@@ -47,36 +54,87 @@ GUI::~GUI()
     if(depthImgBuffer.getValue())
         delete [] depthImgBuffer.getValue();
 
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
+    if(liveImg)
+        delete liveImg;
 
-    for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
+    if(liveImgBuffer.getValue())
+        delete [] liveImgBuffer.getValue();
+
     {
-        delete i->second;
+      std::lock_guard<std::mutex> lock(keyframes.mutex());
+
+      for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
+      {
+          delete i->second;
+      }
+
+      keyframes.getReference().clear();
     }
-
-    keyframes.getReference().clear();
-
-    lock.unlock();
 
     delete totalPoints;
     delete gpuMem;
+    delete frameNumber;
 }
 
 void GUI::initImages()
 {
-    depthImg = new pangolin::GlTexture(Resolution::getInstance().width(), Resolution::getInstance().height(), GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    depthImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    depthImgBuffer.assignValue(new unsigned char[_conf.slamImage.area() * 3]);
 
-    depthImgBuffer.assignValue(new unsigned char[Resolution::getInstance().numPixels() * 3]);
+    liveImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_LUMINANCE, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    liveImgBuffer.assignValue(new unsigned char[_conf.slamImage.area()]);
 }
 
-void GUI::updateImage(unsigned char * data)
+void GUI::updateDepthImage(unsigned char * data)
 {
-    boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
-
-    memcpy(depthImgBuffer.getReference(), data, Resolution::getInstance().numPixels() * 3);
-
-    lock.unlock();
+  std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
+  memcpy(depthImgBuffer.getReference(), data, _conf.slamImage.area() * 3);
 }
+
+// Expects CV_8UC1 data
+void GUI::updateLiveImage(unsigned char * data)
+{
+  std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
+  memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
+}
+
+void GUI::updateFrameNumber( int fn )
+{
+  frameNumber->operator=(fn);
+}
+
+void GUI::addKeyframe(Keyframe * newFrame)
+{
+  std::lock_guard<std::mutex> lock(keyframes.mutex());
+
+  //Exists
+  if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
+  {
+      keyframes.getReference()[newFrame->id]->updatePoints(newFrame);
+
+      delete newFrame;
+  }
+  else
+  {
+      newFrame->initId = keyframes.getReference().size();
+      keyframes.getReference()[newFrame->id] = newFrame;
+  }
+}
+
+void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
+{
+  std::lock_guard<std::mutex> lock(keyframes.mutex());
+
+  for(int i = 0; i < num; i++)
+  {
+      if(keyframes.getReference().find(framePoseData[i].id) != keyframes.getReference().end())
+      {
+          memcpy(keyframes.getReference()[framePoseData[i].id]->camToWorld.data(), &framePoseData[i].camToWorld[0], sizeof(float) * 7);
+      }
+  }
+}
+
+//== Actual draw/render functions ==
 
 void GUI::preCall()
 {
@@ -88,64 +146,35 @@ void GUI::preCall()
     drawGrid();
 }
 
-void GUI::addKeyframe(Keyframe * newFrame)
-{
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
-
-    //Exists
-    if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
-    {
-        keyframes.getReference()[newFrame->id]->updatePoints(newFrame);
-
-        delete newFrame;
-    }
-    else
-    {
-        newFrame->initId = keyframes.getReference().size();
-        keyframes.getReference()[newFrame->id] = newFrame;
-    }
-
-    lock.unlock();
-}
-
-void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
-{
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
-
-    for(int i = 0; i < num; i++)
-    {
-        if(keyframes.getReference().find(framePoseData[i].id) != keyframes.getReference().end())
-        {
-            memcpy(keyframes.getReference()[framePoseData[i].id]->camToWorld.data(), &framePoseData[i].camToWorld[0], sizeof(float) * 7);
-        }
-    }
-
-    lock.unlock();
-}
-
 void GUI::drawImages()
 {
-    boost::mutex::scoped_lock lock(depthImgBuffer.getMutex());
+    {
+      std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
+      depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
+    }
 
-    depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
-
-    lock.unlock();
-
-    pangolin::Display("Image").Activate();
-
+    pangolin::Display("DepthImage").Activate();
     depthImg->RenderToViewport(true);
+
+    {
+      std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
+      liveImg->Upload(liveImgBuffer.getReference(), GL_LUMINANCE, GL_UNSIGNED_BYTE);
+    }
+
+    pangolin::Display("LiveImage").Activate();
+    liveImg->RenderToViewport(true);
 }
 
 void GUI::drawKeyframes()
 {
-    boost::mutex::scoped_lock lock(keyframes.getMutex());
+   std::lock_guard<std::mutex> lock(keyframes.mutex());
 
     glEnable(GL_MULTISAMPLE);
     glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 
     for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
     {
-        //Don't render first five, according to original code
+        // Don't render first five, according to original code
         if(i->second->initId >= 5)
         {
             if(!i->second->hasVbo || i->second->needsUpdate)
@@ -158,36 +187,37 @@ void GUI::drawKeyframes()
     }
 
     glDisable(GL_MULTISAMPLE);
-
-    lock.unlock();
 }
 
 void GUI::drawFrustum()
 {
-    glPushMatrix();
-    Sophus::Matrix4f m = pose.getValue().matrix();
-    glMultMatrixf((GLfloat*) m.data());
-    glColor3f(1, 0, 0);
-    glBegin(GL_LINES);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0, 0, 0);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (Resolution::getInstance().height() - 1 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (0 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-        glVertex3f(0.05 * (Resolution::getInstance().width() - 1 - Intrinsics::getInstance().cx()) / Intrinsics::getInstance().fx(), 0.05 * (0 - Intrinsics::getInstance().cy()) / Intrinsics::getInstance().fy(), 0.05);
-    glEnd();
-    glPopMatrix();
-    glColor3f(1, 1, 1);
+  lsd_slam::Camera c( _conf.camera );
+  lsd_slam::ImageSize img( _conf.slamImage );
+
+  glPushMatrix();
+  Sophus::Matrix4f m = pose.getValue().matrix();
+  glMultMatrixf((GLfloat*) m.data());
+  glColor3f(1, 0, 0);
+  glBegin(GL_LINES);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0, 0, 0);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (img.height - 1 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (0 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+      glVertex3f(0.05 * (img.width - 1 - c.cx) / c.fx, 0.05 * (0 - c.cy) / c.fy, 0.05);
+  glEnd();
+  glPopMatrix();
+  glColor3f(1, 1, 1);
 }
 
 void GUI::drawGrid()

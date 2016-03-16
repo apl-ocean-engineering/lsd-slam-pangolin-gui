@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,15 +27,16 @@ namespace lsd_slam
 {
 
 
-Relocalizer::Relocalizer(int w, int h, Eigen::Matrix3f K)
+Relocalizer::Relocalizer( const Configuration &conf )
+	: _conf( conf )
 {
 	for(int i=0;i<RELOCALIZE_THREADS;i++)
 		running[i] = false;
 
-
-	this->w = w;
-	this->h = h;
-	this->K = K;
+	//
+	// this->w = w;
+	// this->h = h;
+	// this->K = K;
 
 	KFForReloc.clear();
 	nextRelocIDX = maxRelocIDX = 0;
@@ -128,22 +129,26 @@ bool Relocalizer::waitResult(int milliseconds)
 	resultReadySignal.timed_wait(lock, boost::posix_time::milliseconds(milliseconds));
 	return hasResult;
 }
-void Relocalizer::getResult(Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe)
+
+RelocalizerResult Relocalizer::getResult( void ) //Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe)
 {
 	boost::unique_lock<boost::mutex> lock(exMutex);
 	if(hasResult)
 	{
-		out_keyframe = resultKF;
-		out_successfulFrameID = resultFrameID;
-		out_frameToKeyframe = resultFrameToKeyframe;
-		frame = resultRelocFrame;
+		return RelocalizerResult( resultKF, resultRelocFrame, resultFrameID, resultFrameToKeyframe );
+		// out_keyframe = resultKF;
+		// out_successfulFrameID = resultFrameID;
+		// out_frameToKeyframe = resultFrameToKeyframe;
+		// frame = resultRelocFrame;
 	}
 	else
 	{
-		out_keyframe = 0;
-		out_successfulFrameID = -1;
-		out_frameToKeyframe = SE3();
-		frame.reset();
+		std::shared_ptr< Frame > empty( NULL );
+		return RelocalizerResult( NULL, empty, -1, SE3() );
+		// out_keyframe = 0;
+		// out_successfulFrameID = -1;
+		// out_frameToKeyframe = SE3();
+		// frame.reset();
 	}
 }
 
@@ -152,7 +157,7 @@ void Relocalizer::threadLoop(int idx)
 {
 	if(!multiThreading && idx != 0) return;
 
-	SE3Tracker* tracker = new SE3Tracker(w,h,K);
+	SE3Tracker* tracker = new SE3Tracker(_conf.slamImage );
 
 	boost::unique_lock<boost::mutex> lock(exMutex);
 	while(continueRunning)

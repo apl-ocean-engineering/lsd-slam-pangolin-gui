@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -40,27 +40,27 @@ bool dumpMap = false;
 bool doFullReConstraintTrack = false;
 
 // dyn config
-bool printPropagationStatistics = false;
-bool printFillHolesStatistics = false;
-bool printObserveStatistics = false;
-bool printObservePurgeStatistics = false;
-bool printRegularizeStatistics = false;
-bool printLineStereoStatistics = false;
-bool printLineStereoFails = false;
+bool printPropagationStatistics = true;
+bool printFillHolesStatistics = true;
+bool printObserveStatistics = true;
+bool printObservePurgeStatistics = true;
+bool printRegularizeStatistics = true;
+bool printLineStereoStatistics = true;
+bool printLineStereoFails = true;
 
-bool printTrackingIterationInfo = false;
+bool printTrackingIterationInfo = true;
 
-bool printFrameBuildDebugInfo = false;
+bool printFrameBuildDebugInfo = true;
 bool printMemoryDebugInfo = false;
 
-bool printKeyframeSelectionInfo = false;
-bool printConstraintSearchInfo = false;
-bool printOptimizationInfo = false;
-bool printRelocalizationInfo = false;
+bool printKeyframeSelectionInfo = true;
+bool printConstraintSearchInfo = true;
+bool printOptimizationInfo = true;
+bool printRelocalizationInfo = true;
 
-bool printThreadingInfo = false;
-bool printMappingTiming = false;
-bool printOverallTiming = false;
+bool printThreadingInfo = true;
+bool printMappingTiming = true;
+bool printOverallTiming = true;
 
 bool plotTrackingIterationInfo = false;
 bool plotSim3TrackingIterationInfo = false;

@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "util/SophusUtil.h"
+#include "util/Configuration.h"
 
 
 namespace lsd_slam
@@ -32,10 +33,22 @@ namespace lsd_slam
 class Frame;
 class Sim3Tracker;
 
+struct RelocalizerResult {
+	RelocalizerResult( Frame *out_kf, std::shared_ptr<Frame> &f, int out_id, SE3 out_se3 )
+		: keyframe( out_kf ), successfulFrame( f ),
+			successfulFrameID( out_id ), successfulFrameToKeyframe( out_se3 )
+	{;}
+
+	Frame* &keyframe;
+	std::shared_ptr<Frame> &successfulFrame;
+	int &successfulFrameID;
+	SE3 successfulFrameToKeyframe;
+};
+
 class Relocalizer
 {
 public:
-	Relocalizer(int w, int h, Eigen::Matrix3f K);
+	Relocalizer( const Configuration &conf );
 	~Relocalizer();
 
 	void updateCurrentFrame(std::shared_ptr<Frame> currentFrame);
@@ -43,12 +56,14 @@ public:
 	void stop();
 
 	bool waitResult(int milliseconds);
-	void getResult(Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe);
+	RelocalizerResult getResult();  //Frame* &out_keyframe, std::shared_ptr<Frame> &frame, int &out_successfulFrameID, SE3 &out_frameToKeyframe);
 
 	bool isRunning;
 private:
-	int w, h;
-	Eigen::Matrix3f K;
+	const Configuration &_conf;
+
+	// int w, h;
+	// Eigen::Matrix3f K;
 	boost::thread relocThreads[RELOCALIZE_THREADS];
 	bool running[RELOCALIZE_THREADS];
 

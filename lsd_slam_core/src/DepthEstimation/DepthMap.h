@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,9 @@
 #include "util/settings.h"
 #include "util/IndexThreadReduce.h"
 #include "util/SophusUtil.h"
+#include "util/Configuration.h"
+#include "util/MovingAverage.h"
+#include "util/Timer.h"
 
 
 
@@ -42,14 +45,14 @@ class KeyFrameGraph;
 class DepthMap
 {
 public:
-	DepthMap(int w, int h, const Eigen::Matrix3f& K);
+	DepthMap(const Configuration &conf );
 	DepthMap(const DepthMap&) = delete;
 	DepthMap& operator=(const DepthMap&) = delete;
 	~DepthMap();
 
 	/** Resets everything. */
 	void reset();
-	
+
 	/**
 	 * does obervation and regularization only.
 	 **/
@@ -59,7 +62,7 @@ public:
 	 * does propagation and whole-filling-regularization (no observation, for that need to call updateKeyframe()!)
 	 **/
 	void createKeyFrame(Frame* new_keyframe);
-	
+
 	/**
 	 * does one fill holes iteration
 	 */
@@ -82,13 +85,20 @@ public:
 	void setFromExistingKF(Frame* kf);
 
 	void addTimingSample();
-	float msUpdate, msCreate, msFinalize;
-	float msObserve, msRegularize, msPropagate, msFillHoles, msSetDepth;
-	int nUpdate, nCreate, nFinalize;
-	int nObserve, nRegularize, nPropagate, nFillHoles, nSetDepth;
-	struct timeval lastHzUpdate;
-	float nAvgUpdate, nAvgCreate, nAvgFinalize;
-	float nAvgObserve, nAvgRegularize, nAvgPropagate, nAvgFillHoles, nAvgSetDepth;
+	Timer timeLastUpdate;
+	// float msUpdate, msCreate, msFinalize;
+	// float msObserve, msRegularize, msPropagate, msFillHoles, msSetDepth;
+	// int nUpdate, nCreate, nFinalize;
+	// int nObserve, nRegularize, nPropagate, nFillHoles, nSetDepth;
+	// struct timeval lastHzUpdate;
+	// float nAvgUpdate, nAvgCreate, nAvgFinalize;
+	// float nAvgObserve, nAvgRegularize, nAvgPropagate, nAvgFillHoles, nAvgSetDepth;
+
+	struct PerformanceData {
+		PerformanceData( void ) {;}
+
+		MsRateAverage update, create, finalize, observe, regularize, propagate, fillHoles, setDepth;
+	} _perf;
 
 
 
@@ -96,12 +106,7 @@ public:
 	IndexThreadReduce threadReducer;
 
 private:
-	// camera matrix etc.
-	Eigen::Matrix3f K, KInv;
-	float fx,fy,cx,cy;
-	float fxi,fyi,cxi,cyi;
-	int width, height;
-
+	const Configuration &_conf;
 
 	// ============= parameter copies for convenience ===========================
 	// these are just copies of the pointers given to this function, for convenience.
@@ -122,7 +127,7 @@ private:
 	DepthMapPixelHypothesis* currentDepthMap;
 	int* validityIntegralBuffer;
 
-	
+
 
 	// ============ internal functions ==================================================
 	// does the line-stereo seeking.
@@ -136,7 +141,7 @@ private:
 
 
 	void propagateDepth(Frame* new_keyframe);
-	
+
 
 	void observeDepth();
 	void observeDepthRow(int yMin, int yMax, RunningStats* stats);

@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,9 @@
 #include "DepthEstimation/DepthMapPixelHypothesis.h"
 #include "Tracking/TrackingReference.h"
 
+#include <g3log/g3log.hpp>
+
+
 namespace lsd_slam
 {
 
@@ -32,10 +35,12 @@ int privateFrameAllocCount = 0;
 
 
 
-Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image)
+Frame::Frame(int id, const Configuration &conf,
+							double timestamp, const unsigned char* image )
+	: _conf( conf )
 {
-	initialize(id, width, height, K, timestamp);
-	
+	initialize(id, timestamp);
+
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
 	float* maxPt = data.image[0] + data.width[0]*data.height[0];
 
@@ -49,29 +54,33 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 
 	privateFrameAllocCount++;
 
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+	LOG_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo)
+						<< "ALLOCATED frame " << this->id()
+						<< ", now there are " << privateFrameAllocCount;
 }
 
-Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const float* image)
+Frame::Frame(int id, const Configuration &conf,
+							double timestamp, const float* image )
+	: _conf( conf )
+
 {
-	initialize(id, width, height, K, timestamp);
-	
+	initialize(id, timestamp);
+
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
 	memcpy(data.image[0], image, data.width[0]*data.height[0] * sizeof(float));
 	data.imageValid[0] = true;
 
 	privateFrameAllocCount++;
 
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+	LOG_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo)
+						<< "ALLOCATED frame " << this->id()
+						<< ", now there are " << privateFrameAllocCount;
 }
 
 Frame::~Frame()
 {
 
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETING frame %d\n", this->id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printMemoryDebugInfo,"DELETING frame %d\n", this->id());
 
 	FrameMemory::getInstance().deactivateFrame(this);
 
@@ -99,8 +108,7 @@ Frame::~Frame()
 		delete permaRef_posData;
 
 	privateFrameAllocCount--;
-	if(enablePrintDebugInfo && printMemoryDebugInfo)
-		printf("DELETED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+	LOGF_IF(DEBUG, enablePrintDebugInfo && printMemoryDebugInfo, "DELETED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
 }
 
 
@@ -210,7 +218,7 @@ void Frame::setDepth(const DepthMapPixelHypothesis* newDepth)
 	float* pyrIDepth = data.idepth[0];
 	float* pyrIDepthVar = data.idepthVar[0];
 	float* pyrIDepthMax = pyrIDepth + (data.width[0]*data.height[0]);
-	
+
 	float sumIdepth=0;
 	int numIdepth=0;
 
@@ -230,7 +238,7 @@ void Frame::setDepth(const DepthMapPixelHypothesis* newDepth)
 			*pyrIDepthVar = -1;
 		}
 	}
-	
+
 	meanIdepth = sumIdepth / numIdepth;
 	numPoints = numIdepth;
 
@@ -283,7 +291,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 			++ pyrIDepthVar;
 		}
 	}
-	
+
 	data.idepthValid[0] = true;
 	data.idepthVarValid[0] = true;
 // 	data.refIDValid[0] = true;
@@ -379,8 +387,7 @@ bool Frame::minimizeInMemory()
 	if(activeMutex.timed_lock(boost::posix_time::milliseconds(10)))
 	{
 		buildMutex.lock();
-		if(enablePrintDebugInfo && printMemoryDebugInfo)
-			printf("minimizing frame %d\n",id());
+		LOGF_IF(DEBUG, enablePrintDebugInfo && printMemoryDebugInfo, "minimizing frame %d\n",id());
 
 		release(IMAGE | IDEPTH | IDEPTH_VAR, true, false);
 		release(GRADIENTS | MAX_GRADIENTS, false, false);
@@ -394,38 +401,38 @@ bool Frame::minimizeInMemory()
 	return false;
 }
 
-void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp)
+void Frame::initialize(int id, double timestamp)
 {
 	data.id = id;
-	
+
 	pose = new FramePoseStruct(this);
 
-	data.K[0] = K;
-	data.fx[0] = K(0,0);
-	data.fy[0] = K(1,1);
-	data.cx[0] = K(0,2);
-	data.cy[0] = K(1,2);
-	
-	data.KInv[0] = K.inverse();
-	data.fxInv[0] = data.KInv[0](0,0);
-	data.fyInv[0] = data.KInv[0](1,1);
-	data.cxInv[0] = data.KInv[0](0,2);
-	data.cyInv[0] = data.KInv[0](1,2);
-	
+	data.camera[0] = _conf.camera;
+	// data.fx[0] = K(0,0);
+	// data.fy[0] = K(1,1);
+	// data.cx[0] = K(0,2);
+	// data.cy[0] = K(1,2);
+	//
+	// data.KInv[0] = K.inverse();
+	// data.fxInv[0] = data.KInv[0](0,0);
+	// data.fyInv[0] = data.KInv[0](1,1);
+	// data.cxInv[0] = data.KInv[0](0,2);
+	// data.cyInv[0] = data.KInv[0](1,2);
+
 	data.timestamp = timestamp;
 
 	data.hasIDepthBeenSet = false;
 	depthHasBeenUpdatedFlag = false;
-	
+
 	referenceID = -1;
 	referenceLevel = -1;
-	
+
 	numMappablePixels = -1;
 
 	for (int level = 0; level < PYRAMID_LEVELS; ++ level)
 	{
-		data.width[level] = width >> level;
-		data.height[level] = height >> level;
+		data.width[level] = _conf.slamImage.width >> level;
+		data.height[level] = _conf.slamImage.height >> level;
 
 		data.imageValid[level] = false;
 		data.gradientsValid[level] = false;
@@ -441,21 +448,10 @@ void Frame::initialize(int id, int width, int height, const Eigen::Matrix3f& K, 
 		data.reActivationDataValid = false;
 
 // 		data.refIDValid[level] = false;
-		
+
 		if (level > 0)
 		{
-			data.fx[level] = data.fx[level-1] * 0.5;
-			data.fy[level] = data.fy[level-1] * 0.5;
-			data.cx[level] = (data.cx[0] + 0.5) / ((int)1<<level) - 0.5;
-			data.cy[level] = (data.cy[0] + 0.5) / ((int)1<<level) - 0.5;
-
-			data.K[level]  << data.fx[level], 0.0, data.cx[level], 0.0, data.fy[level], data.cy[level], 0.0, 0.0, 1.0;	// synthetic
-			data.KInv[level] = (data.K[level]).inverse();
-
-			data.fxInv[level] = data.KInv[level](0,0);
-			data.fyInv[level] = data.KInv[level](1,1);
-			data.cxInv[level] = data.KInv[level](0,2);
-			data.cyInv[level] = data.KInv[level](1,2);
+			data.camera[level] = data.camera[0].scale( 1.0f / (int)(1<<level) );
 		}
 	}
 
@@ -492,18 +488,17 @@ void Frame::buildImage(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::buildImage(0): Loading image from disk is not implemented yet! No-op.\n");
+		LOG(WARNING) << "Frame::buildImage(0): Loading image from disk is not implemented yet! No-op.";
 		return;
 	}
-	
+
 	require(IMAGE, level - 1);
 	boost::unique_lock<boost::mutex> lock2(buildMutex);
 
 	if(data.imageValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE Image lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE Image lvl %d for frame %d", level, id());
 
 	int width = data.width[level - 1];
 	int height = data.height[level - 1];
@@ -562,36 +557,36 @@ void Frame::buildImage(int level)
 		int height_iteration_count = height / 2;
 		const float* cur_px = source;
 		const float* next_row_px = source + width;
-		
+
 		__asm__ __volatile__
 		(
 			"vldmia %[p025], {q10}                        \n\t" // p025(q10)
-			
+
 			".height_loop:                                \n\t"
-			
+
 				"mov r5, %[width_iteration_count]             \n\t" // store width_iteration_count
 				".width_loop:                                 \n\t"
-				
+
 					"vldmia   %[cur_px]!, {q0-q1}             \n\t" // top_left(q0), top_right(q1)
 					"vldmia   %[next_row_px]!, {q2-q3}        \n\t" // bottom_left(q2), bottom_right(q3)
-		
+
 					"vadd.f32 q0, q0, q2                      \n\t" // left(q0)
 					"vadd.f32 q1, q1, q3                      \n\t" // right(q1)
-		
+
 					"vpadd.f32 d0, d0, d1                     \n\t" // pairwise add into sum(q0)
 					"vpadd.f32 d1, d2, d3                     \n\t"
 					"vmul.f32 q0, q0, q10                     \n\t" // multiply with 0.25 to get average
-					
+
 					"vstmia %[dest]!, {q0}                    \n\t"
-				
+
 				"subs     %[width_iteration_count], %[width_iteration_count], #1 \n\t"
 				"bne      .width_loop                     \n\t"
 				"mov      %[width_iteration_count], r5    \n\t" // restore width_iteration_count
-				
+
 				// Advance one more line
 				"add      %[cur_px], %[cur_px], %[rowSize]    \n\t"
 				"add      %[next_row_px], %[next_row_px], %[rowSize] \n\t"
-			
+
 			"subs     %[height_iteration_count], %[height_iteration_count], #1 \n\t"
 			"bne      .height_loop                       \n\t"
 
@@ -633,7 +628,7 @@ void Frame::releaseImage(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseImage(0): Storing image on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseImage(0): Storing image on disk is not supported yet! No-op.";
 		return;
 	}
 	FrameMemory::getInstance().returnBuffer(data.image[level]);
@@ -648,8 +643,7 @@ void Frame::buildGradients(int level)
 	if(data.gradientsValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE Gradients lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE Gradients lvl %d for frame %d", level, id());
 
 	int width = data.width[level];
 	int height = data.height[level];
@@ -658,7 +652,7 @@ void Frame::buildGradients(int level)
 	const float* img_pt = data.image[level] + width;
 	const float* img_pt_max = data.image[level] + width*(height-1);
 	Eigen::Vector4f* gradxyii_pt = data.gradients[level] + width;
-	
+
 	// in each iteration i need -1,0,p1,mw,pw
 	float val_m1 = *(img_pt-1);
 	float val_00 = *img_pt;
@@ -694,14 +688,13 @@ void Frame::buildMaxGradients(int level)
 
 	if(data.maxGradientsValid[level]) return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE AbsGrad lvl %d for frame %d\n", level, id());
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE AbsGrad lvl %d for frame %d", level, id());
 
 	int width = data.width[level];
 	int height = data.height[level];
 	if (data.maxGradients[level] == 0)
 		data.maxGradients[level] = FrameMemory::getInstance().getFloatBuffer(width * height);
-	
+
 	float* maxGradTemp = FrameMemory::getInstance().getFloatBuffer(width * height);
 
 
@@ -776,27 +769,26 @@ void Frame::buildIDepthAndIDepthVar(int level)
 {
 	if (! data.hasIDepthBeenSet)
 	{
-		printfAssert("Frame::buildIDepthAndIDepthVar(): idepth has not been set yet!\n");
+		LOG(WARNING) << "Frame::buildIDepthAndIDepthVar(): idepth has not been set yet!";
 		return;
 	}
 	if (level == 0)
 	{
-		printf("Frame::buildIDepthAndIDepthVar(0): Loading depth from disk is not implemented yet! No-op.\n");
+		LOG(DEBUG) << "Frame::buildIDepthAndIDepthVar(0): Loading depth from disk is not implemented yet! No-op.";
 		return;
 	}
 
 	require(IDEPTH, level - 1);
 	boost::unique_lock<boost::mutex> lock2(buildMutex);
-	
+
 	if(data.idepthValid[level] && data.idepthVarValid[level])
 		return;
 
-	if(enablePrintDebugInfo && printFrameBuildDebugInfo)
-		printf("CREATE IDepth lvl %d for frame %d\n", level, id());
-	
+	LOGF_IF(DEBUG,enablePrintDebugInfo && printFrameBuildDebugInfo,"CREATE IDepth lvl %d for frame %d", level, id());
+
 	int width = data.width[level];
 	int height = data.height[level];
-	
+
 	if (data.idepth[level] == 0)
 		data.idepth[level] = FrameMemory::getInstance().getFloatBuffer(width * height);
 	if (data.idepthVar[level] == 0)
@@ -808,7 +800,7 @@ void Frame::buildIDepthAndIDepthVar(int level)
 	const float* idepthVarSource = data.idepthVar[level - 1];
 	float* idepthDest = data.idepth[level];
 	float* idepthVarDest = data.idepthVar[level];
-	
+
 	for(int y=0;y<height;y++)
 	{
 		for(int x=0;x<width;x++)
@@ -857,7 +849,7 @@ void Frame::buildIDepthAndIDepthVar(int level)
 				idepthSumsSum += ivar * idepthSource[idx+sw+1];
 				num++;
 			}
-			
+
 			if(num > 0)
 			{
 				float depth = ivarSumsSum / idepthSumsSum;
@@ -880,10 +872,10 @@ void Frame::releaseIDepth(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseIDepth(0): Storing depth on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseIDepth(0): Storing depth on disk is not supported yet! No-op.";
 		return;
 	}
-	
+
 	FrameMemory::getInstance().returnBuffer(data.idepth[level]);
 	data.idepth[level] = 0;
 }
@@ -893,16 +885,11 @@ void Frame::releaseIDepthVar(int level)
 {
 	if (level == 0)
 	{
-		printf("Frame::releaseIDepthVar(0): Storing depth variance on disk is not supported yet! No-op.\n");
+		LOG(WARNING) << "Frame::releaseIDepthVar(0): Storing depth variance on disk is not supported yet! No-op.";
 		return;
 	}
 	FrameMemory::getInstance().returnBuffer(data.idepthVar[level]);
 	data.idepthVar[level] = 0;
 }
 
-void Frame::printfAssert(const char* message) const
-{
-	assert(!message);
-	printf("%s\n", message);
-}
 }

@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "util/SophusUtil.h"
+#include "util/Configuration.h"
 
 #ifdef HAVE_FABMAP
 	#include "GlobalMapping/FabMap.h"
 #endif
 
+#include "util/MovingAverage.h"
 #include "util/settings.h"
 
 
@@ -58,16 +60,16 @@ class TrackableKeyFrameSearch
 {
 public:
 	/** Constructor. */
-	TrackableKeyFrameSearch(KeyFrameGraph* graph, int w, int h, Eigen::Matrix3f K);
+	TrackableKeyFrameSearch(KeyFrameGraph* graph, const Configuration &conf );
 	~TrackableKeyFrameSearch();
-	
+
 	/**
 	 * Finds candidates for trackable frames.
 	 * Returns the most likely candidates first.
 	 */
 	std::unordered_set<Frame*> findCandidates(Frame* keyframe, Frame* &fabMapResult_out, bool includeFABMAP=true, bool closenessTH=1.0);
 	Frame* findRePositionCandidate(Frame* frame, float maxScore=1);
-	
+
 
 	inline float getRefFrameScore(float distanceSquared, float usage)
 	{
@@ -75,9 +77,9 @@ public:
 				+ (1-usage)*(1-usage) * KFUsageWeight * KFUsageWeight;
 	}
 
-	float msTrackPermaRef;
-	int nTrackPermaRef;
-	float nAvgTrackPermaRef;
+	MsRateAverage trackPermaRef;
+
+
 private:
 	/**
 	 * Returns a possible loop closure for the keyframe or nullptr if none is found.

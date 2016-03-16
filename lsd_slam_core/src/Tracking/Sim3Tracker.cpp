@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -42,64 +42,50 @@ namespace lsd_slam
 
 
 
-Sim3Tracker::Sim3Tracker(int w, int h, Eigen::Matrix3f K)
+Sim3Tracker::Sim3Tracker( const ImageSize &sz )
+	: _imgSize( sz )
 {
-	width = w;
-	height = h;
-
-	this->K = K;
-	fx = K(0,0);
-	fy = K(1,1);
-	cx = K(0,2);
-	cy = K(1,2);
-
 	settings = DenseDepthTrackerSettings();
 
+	int area = _imgSize.area();
 
-	KInv = K.inverse();
-	fxi = KInv(0,0);
-	fyi = KInv(1,1);
-	cxi = KInv(0,2);
-	cyi = KInv(1,2);
+	buf_warped_residual = new float[area];
+	buf_warped_weights = new float[area];
+	buf_warped_dx = new float[area];
+	buf_warped_dy = new float[area];
+	buf_warped_x = new float[area];
+	buf_warped_y = new float[area];
+	buf_warped_z = new float[area];
 
+	buf_d = new float[area];
+	buf_residual_d = new float[area];
+	buf_idepthVar = new float[area];
+	buf_warped_idepthVar = new float[area];
+	buf_weight_p = new float[area];
+	buf_weight_d = new float[area];
 
-	buf_warped_residual = new float[w*h];
-	buf_warped_weights = new float[w*h];
-	buf_warped_dx = new float[w*h];
-	buf_warped_dy = new float[w*h];
-	buf_warped_x = new float[w*h];
-	buf_warped_y = new float[w*h];
-	buf_warped_z = new float[w*h];
-
-	buf_d = new float[w*h];
-	buf_residual_d = new float[w*h];
-	buf_idepthVar = new float[w*h];
-	buf_warped_idepthVar = new float[w*h];
-	buf_weight_p = new float[w*h];
-	buf_weight_d = new float[w*h];
-
-	buf_weight_Huber = new float[w*h];
-	buf_weight_VarP = new float[w*h];
-	buf_weight_VarD = new float[w*h];
+	buf_weight_Huber = new float[area];
+	buf_weight_VarP = new float[area];
+	buf_weight_VarD = new float[area];
 
 	buf_warped_size = 0;
 
-	debugImageWeights = cv::Mat(height,width,CV_8UC3);
-	debugImageResiduals = cv::Mat(height,width,CV_8UC3);
-	debugImageSecondFrame = cv::Mat(height,width,CV_8UC3);
-	debugImageOldImageWarped = cv::Mat(height,width,CV_8UC3);
-	debugImageOldImageSource = cv::Mat(height,width,CV_8UC3);
-	debugImageExternalWeights = cv::Mat(height,width,CV_8UC3);
-	debugImageDepthResiduals = cv::Mat(height,width,CV_8UC3);
-	debugImageScaleEstimation = cv::Mat(height,width,CV_8UC3);
+	debugImageWeights = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageResiduals = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageSecondFrame = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageOldImageWarped = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageOldImageSource = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageExternalWeights = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageDepthResiduals = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageScaleEstimation = cv::Mat(_imgSize.cvSize(),CV_8UC3);
 
-	debugImageHuberWeight = cv::Mat(height,width,CV_8UC3);
-	debugImageWeightD = cv::Mat(height,width,CV_8UC3);
-	debugImageWeightP = cv::Mat(height,width,CV_8UC3);
-	debugImageWeightedResP = cv::Mat(height,width,CV_8UC3);
-	debugImageWeightedResD = cv::Mat(height,width,CV_8UC3);
+	debugImageHuberWeight = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageWeightD = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageWeightP = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageWeightedResP = cv::Mat(_imgSize.cvSize(),CV_8UC3);
+	debugImageWeightedResD = cv::Mat(_imgSize.cvSize(),CV_8UC3);
 
-	
+
 	lastResidual = 0;
 	iterationNumber = 0;
 	lastDepthResidual = lastPhotometricResidual = lastDepthResidualUnweighted = lastPhotometricResidualUnweighted = lastResidualUnweighted = 0;
@@ -184,7 +170,7 @@ Sim3 Sim3Tracker::trackFrameSim3(
 
 		// evaluate baseline-residual.
 		callOptimized(calcSim3Buffers, (reference, frame, referenceToFrame, lvl));
-		if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (width>>lvl)*(height>>lvl) || buf_warped_size < 10)
+		if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (_imgSize.width>>lvl)*(_imgSize.height>>lvl) || buf_warped_size < 10)
 		{
 			diverged = true;
 			return Sim3();
@@ -239,7 +225,7 @@ Sim3 Sim3Tracker::trackFrameSim3(
 
 				// re-evaluate residual
 				callOptimized(calcSim3Buffers,(reference, frame, new_referenceToFrame, lvl));
-				if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (width>>lvl)*(height>>lvl) || buf_warped_size < 10)
+				if(buf_warped_size < 0.5 * MIN_GOODPERALL_PIXEL_ABSMIN * (_imgSize.width>>lvl)*(_imgSize.height>>lvl) || buf_warped_size < 10)
 				{
 					diverged = true;
 					return Sim3();
@@ -546,6 +532,7 @@ void Sim3Tracker::calcSim3Buffers(
 		{
 			// for debug plot only: find x,y again.
 			// horribly inefficient, but who cares at this point...
+			int width = _imgSize.width;
 			Eigen::Vector3f point = KLvl * (*refPoint);
 			int x = point[0] / point[2] + 0.5f;
 			int y = point[1] / point[2] + 0.5f;
@@ -859,8 +846,8 @@ void Sim3Tracker::calcSim3LGSSSE(LGS7 &ls7)
 {
 	LGS4 ls4;
 	LGS6 ls6;
-	ls6.initialize(width*height);
-	ls4.initialize(width*height);
+	ls6.initialize( _imgSize.area() );
+	ls4.initialize( _imgSize.area() );
 
 	const __m128 zeros = _mm_set1_ps(0.0f);
 
@@ -993,8 +980,8 @@ void Sim3Tracker::calcSim3LGS(LGS7 &ls7)
 {
 	LGS4 ls4;
 	LGS6 ls6;
-	ls6.initialize(width*height);
-	ls4.initialize(width*height);
+	ls6.initialize(_imgSize.area());
+	ls4.initialize(_imgSize.area());
 
 	for(int i=0;i<buf_warped_size;i++)
 	{

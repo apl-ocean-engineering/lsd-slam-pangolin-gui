@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,35 +20,49 @@
 
 #pragma once
 #include <vector>
-#include <boost/thread.hpp>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include <memory>
+#include <chrono>
+
 #include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/locks.hpp>
+
 #include "util/settings.h"
 #include "IOWrapper/Timestamp.h"
 #include "opencv2/core/core.hpp"
 
+#include "IOWrapper/Output3DWrapper.h"
+
 #include "util/SophusUtil.h"
+#include "util/MovingAverage.h"
+#include "util/Configuration.h"
+#include "util/Timer.h"
+#include "util/ThreadMutexObject.h"
 
 #include "Tracking/Relocalizer.h"
-
-
+#include "DataStructures/CurrentKeyFrame.h"
 
 namespace lsd_slam
 {
 
-class TrackingReference;
+// class TrackingReference;
 class KeyFrameGraph;
-class SE3Tracker;
-class Sim3Tracker;
-class DepthMap;
-class Frame;
-class DataSet;
-class LiveSLAMWrapper;
+// class SE3Tracker;
+// class Sim3Tracker;
+// class DepthMap;
+// class Frame;
+// class DataSet;
+// class LiveSLAMWrapper;
 class Output3DWrapper;
-class TrackableKeyFrameSearch;
 class FramePoseStruct;
-struct KFConstraintStruct;
+class TrackableKeyFrameSearch;
+// struct KFConstraintStruct;
+
+	class TrackingThread;
+	class OptimizationThread;
+	class MappingThread;
+	class ConstraintSearchThread;
 
 
 typedef Eigen::Matrix<float, 7, 7> Matrix7x7;
@@ -60,220 +74,248 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	// settings. Constant from construction onward.
-	int width;
-	int height;
-	Eigen::Matrix3f K;
-	const bool SLAMEnabled;
+	// int width;
+	// int height;
+	// Eigen::Matrix3f K;
+	// const bool SLAMEnabled;
 
-	bool trackingIsGood;
+	// bool trackingIsGood;
 
 	bool finalized;
 
-	SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM = true);
-	SlamSystem(const SlamSystem&) = delete;
+	SlamSystem( const Configuration &conf );
+
+	SlamSystem( const SlamSystem&) = delete;
 	SlamSystem& operator=(const SlamSystem&) = delete;
+
 	~SlamSystem();
 
-	void randomInit(uchar* image, double timeStamp, int id);
-	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
 
-	
+	void randomInit(uchar* image, int id, double timeStamp);
+	void randomInit( std::shared_ptr<Frame> frame );
+	void gtDepthInit( std::shared_ptr<Frame> frame );
+
 
 	// tracks a frame.
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
-	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp);
+	void trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntilMapped );
+	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp );
+
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
 
 	/** Does an offline optimization step. */
-	void optimizeGraph();
+	// void optimizeGraph();
 
-	inline Frame* getCurrentKeyframe() {return currentKeyFrame.get();}	// not thread-safe!
+	// inline Frame* getCurrentKeyframe() {return currentKeyFrame.get();}	// not thread-safe!
 
 	/** Returns the current pose estimate. */
 	SE3 getCurrentPoseEstimate();
 
 	Sophus::Sim3f getCurrentPoseEstimateScale();
 
-	/** Sets the visualization where point clouds and camera poses will be sent to. */
-	void setVisualization(Output3DWrapper* outputWrapper);
+	//==== KeyFrame maintenance functions ====
+	void changeKeyframe( std::shared_ptr<Frame> frame, bool noCreate, bool force, float maxScore);
+	void loadNewCurrentKeyframe(Frame* keyframeToLoad);
+	void createNewCurrentKeyframe( std::shared_ptr<Frame> newKeyframeCandidate );
 
-	void requestDepthMapScreenshot(const std::string& filename);
 
-	bool doMappingIteration();
+	// void requestDepthMapScreenshot(const std::string& filename);
 
-	int findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent=true, bool useFABMAP=true, float closeCandidatesTH=1.0);
-	
-	bool optimizationIteration(int itsPerTry, float minChange);
-	
-	void publishKeyframeGraph();
-	
+	// int findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent=true, bool useFABMAP=true, float closeCandidatesTH=1.0);
+
 	std::vector<FramePoseStruct*> getAllPoses();
 
+	struct PerformanceData {
+		PerformanceData( void ) {;}
+
+		MsRateAverage findConstraint, findReferences;
+	} perf;
+
+	Timer timeLastUpdate;
+
+	// Output3DWrapper *get3DOutputWrapper( void ) const { return outputWrapper; }
+	const Configuration &conf( void ) const     { return _conf; }
+
+	//=== Debugging output functions =====
+	Output3DWrapper *outputWrapper( void )      { return _outputWrapper; }
+	void set3DOutputWrapper(Output3DWrapper* outputWrapper) {	_outputWrapper = outputWrapper; }
+
+	void publishTrackedFrame( Frame *frame )      { if( _outputWrapper ) _outputWrapper->publishTrackedFrame( frame ); }
+	void publishKeyframeGraph( void )             { if( _outputWrapper ) _outputWrapper->publishKeyframeGraph( keyFrameGraph ); }
+	void publishKeyframe(  Frame *frame )         { if( _outputWrapper ) _outputWrapper->publishKeyframe( frame ); }
+	void publishDepthImage( unsigned char* data  ) { if( _outputWrapper ) _outputWrapper->updateDepthImage( data ); }
 
 
-	float msTrackFrame, msOptimizationIteration, msFindConstraintsItaration, msFindReferences;
-	int nTrackFrame, nOptimizationIteration, nFindConstraintsItaration, nFindReferences;
-	float nAvgTrackFrame, nAvgOptimizationIteration, nAvgFindConstraintsItaration, nAvgFindReferences;
-	struct timeval lastHzUpdate;
-
-
-private:
-
-
-	// ============= EXCLUSIVELY TRACKING THREAD (+ init) ===============
-	TrackingReference* trackingReference; // tracking reference for current keyframe. only used by tracking.
-	SE3Tracker* tracker;
-
-
-
-	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
-	DepthMap* map;
-	TrackingReference* mappingTrackingReference;
-
-	// during re-localization used
-	std::vector<Frame*> KFForReloc;
-	int nextRelocIdx;
-	std::shared_ptr<Frame> latestFrameTriedForReloc;
-
-
-	// ============= EXCLUSIVELY FIND-CONSTRAINT THREAD (+ init) =============
-	TrackableKeyFrameSearch* trackableKeyFrameSearch;
-	Sim3Tracker* constraintTracker;
-	SE3Tracker* constraintSE3Tracker;
-	TrackingReference* newKFTrackingReference;
-	TrackingReference* candidateTrackingReference;
+	void updateDisplayDepthMap();
 
 
 
-	// ============= SHARED ENTITIES =============
-	float tracking_lastResidual;
-	float tracking_lastUsage;
-	float tracking_lastGoodPerBad;
-	float tracking_lastGoodPerTotal;
-
-	int lastNumConstraintsAddedOnFullRetrack;
-	bool doFinalOptimization;
-	float lastTrackingClosenessScore;
-
-	// for sequential operation. Set in Mapping, read in Tracking.
-	boost::condition_variable  newFrameMappedSignal;
-	boost::mutex newFrameMappedMutex;
-
-
-
-	// USED DURING RE-LOCALIZATION ONLY
-	Relocalizer relocalizer;
-
-
-
-	// Individual / no locking
-	Output3DWrapper* outputWrapper;	// no lock required
-	KeyFrameGraph* keyFrameGraph;	// has own locks
-
-
-
-	// Tracking: if (!create) set candidate, set create.
-	// Mapping: if (create) use candidate, reset create.
-	// => no locking required.
-	std::shared_ptr<Frame> latestTrackedFrame;
-	bool createNewKeyFrame;
-
-
-
-	// PUSHED in tracking, READ & CLEARED in mapping
-	std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
-	boost::mutex unmappedTrackedFramesMutex;
-	boost::condition_variable  unmappedTrackedFramesSignal;
-
-
-	// PUSHED by Mapping, READ & CLEARED by constraintFinder
-	std::deque< Frame* > newKeyFrames;
-	boost::mutex newKeyFrameMutex;
-	boost::condition_variable newKeyFrameCreatedSignal;
-
-
-	// SET & READ EVERYWHERE
-	std::shared_ptr<Frame> currentKeyFrame;	// changed (and, for VO, maybe deleted)  only by Mapping thread within exclusive lock.
-	std::shared_ptr<Frame> trackingReferenceFrameSharedPT;	// only used in odometry-mode, to keep a keyframe alive until it is deleted. ONLY accessed whithin currentKeyFrameMutex lock.
-	boost::mutex currentKeyFrameMutex;
-
-
-
-	// threads
-	boost::thread thread_mapping;
-	boost::thread thread_constraint_search;
-	boost::thread thread_optimization;
-	bool keepRunning; // used only on destruction to signal threads to finish.
-
-
-	
-	// optimization thread
-	bool newConstraintAdded;
-	boost::mutex newConstraintMutex;
-	boost::condition_variable newConstraintCreatedSignal;
-	boost::mutex g2oGraphAccessMutex;
-
-
-
-	// optimization merging. SET in Optimization, merged in Mapping.
-	bool haveUnmergedOptimizationOffset;
+	TrackingThread *trackingThread;
+	OptimizationThread *optThread;
+	MappingThread *mapThread;
+	ConstraintSearchThread *constraintThread;
 
 	// mutex to lock frame pose consistency. within a shared lock of this, *->getScaledCamToWorld() is
 	// GUARANTEED to give the same result each call, and to be compatible to each other.
 	// locked exclusively during the pose-update by Mapping.
 	boost::shared_mutex poseConsistencyMutex;
-	
-	
 
-	bool depthMapScreenshotFlag;
-	std::string depthMapScreenshotFilename;
+	KeyFrameGraph* keyFrameGraph;	  // has own locks
 
+	CurrentKeyFrame currentKeyFrame;
 
-	/** Merges the current keyframe optimization offset to all working entities. */
-	void mergeOptimizationOffset();
-	
-
-	void mappingThreadLoop();
-
-	void finishCurrentKeyframe();
-	void discardCurrentKeyframe();
-
-	void changeKeyframe(bool noCreate, bool force, float maxScore);
-	void createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate);
-	void loadNewCurrentKeyframe(Frame* keyframeToLoad);
+	TrackableKeyFrameSearch* trackableKeyFrameSearch;
 
 
-	bool updateKeyframe();
+private:
+
+	const Configuration &_conf;
+
+	// Individual / no locking
+	Output3DWrapper* _outputWrapper;	// no lock required
+
+
+
+	// ======= Functions =====
 
 	void addTimingSamples();
 
-	void debugDisplayDepthMap();
-
-	void takeRelocalizeResult();
-
-	void constraintSearchThreadLoop();
-	/** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */
-	float tryTrackSim3(
-			TrackingReference* A, TrackingReference* B,
-			int lvlStart, int lvlEnd,
-			bool useSSE,
-			Sim3 &AtoB, Sim3 &BtoA,
-			KFConstraintStruct* e1=0, KFConstraintStruct* e2=0);
-
-	void testConstraint(
-			Frame* candidate,
-			KFConstraintStruct* &e1_out, KFConstraintStruct* &e2_out,
-			Sim3 candidateToFrame_initialEstimate,
-			float strictness);
-
-	void optimizationThreadLoop();
 
 
-	
+
+	// ============= EXCLUSIVELY TRACKING THREAD (+ init) ===============
+	// TrackingReference* trackingReference; // tracking reference for current keyframe. only used by tracking.
+	// SE3Tracker* tracker;
+
+
+
+	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
+
+
+
+	// ============= EXCLUSIVELY FIND-CONSTRAINT THREAD (+ init) =============
+
+
+	//
+	//
+	// // ============= SHARED ENTITIES =============
+	// float tracking_lastResidual;
+	// float tracking_lastUsage;
+	// float tracking_lastGoodPerBad;
+	// float tracking_lastGoodPerTotal;
+	//
+	// int lastNumConstraintsAddedOnFullRetrack;
+	// bool doFinalOptimization;
+	// float lastTrackingClosenessScore;
+	//
+	// // for sequential operation. Set in Mapping, read in Tracking.
+	// // std::condition_variable  newFrameMappedSignal;
+	// // std::mutex newFrameMappedMutex;
+	//
+	//
+	//
+	// // USED DURING RE-LOCALIZATION ONLY
+	// Relocalizer relocalizer;
+	//
+	//
+	//
+	//
+	//
+	// // Tracking: if (!create) set candidate, set create.
+	// // Mapping: if (create) use candidate, reset create.
+	// // => no locking required.
+	// std::shared_ptr<Frame> latestTrackedFrame;
+	// bool createNewKeyFrame;
+	//
+	//
+	//
+	// // PUSHED in tracking, READ & CLEARED in mapping
+	// // std::deque< std::shared_ptr<Frame> > unmappedTrackedFrames;
+	// // ThreadSynchronizer unmappedTrackedFramesSynchro;
+	// // std::mutex unmappedTrackedFramesMutex;
+	// // std::condition_variable  unmappedTrackedFramesSignal;
+	//
+	//
+	// // PUSHED by Mapping, READ & CLEARED by constraintFinder
+	// ThreadMutexObject< std::deque< Frame* > > newKeyFrames;
+	// // std::deque< Frame* > newKeyFrames;
+	// // std::mutex newKeyFrameMutex;
+	// // std::condition_variable newKeyFrameCreatedSignal;
+	//
+	//
+	//
+	//
+	// // threads
+	// // std::thread thread_mapping;
+	// // std::thread thread_constraint_search;
+	// //std::thread thread_optimization;
+	//
+	// // bool keepRunning; // used only on destruction to signal threads to finish.
+	//
+	//
+	//
+	// // optimization thread
+	// // bool newConstraintAdded;
+	// // std::mutex newConstraintMutex;
+	// // std::condition_variable newConstraintCreatedSignal;
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	// bool depthMapScreenshotFlag;
+	// std::string depthMapScreenshotFilename;
+	//
+	// const Configuration &_conf;
+	//
+	//
+	// /** Merges the current keyframe optimization offset to all working entities. */
+	// void mergeOptimizationOffset();
+	//
+	//
+	// // void mappingThreadLoop();
+	//
+	// void finishCurrentKeyframe();
+	// void discardCurrentKeyframe();
+	//
+	// void changeKeyframe(bool noCreate, bool force, float maxScore);
+	// void createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate);
+	// void loadNewCurrentKeyframe(Frame* keyframeToLoad);
+	//
+	//
+	// bool updateKeyframe();
+	//
+	//
+	// void debugDisplayDepthMap();
+	//
+	// void takeRelocalizeResult();
+	//
+	// void constraintSearchThreadLoop();
+	// /** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */
+	// float tryTrackSim3(
+	// 		TrackingReference* A, TrackingReference* B,
+	// 		int lvlStart, int lvlEnd,
+	// 		bool useSSE,
+	// 		Sim3 &AtoB, Sim3 &BtoA,
+	// 		KFConstraintStruct* e1=0, KFConstraintStruct* e2=0);
+	//
+	// void testConstraint(
+	// 		Frame* candidate,
+	// 		KFConstraintStruct* &e1_out, KFConstraintStruct* &e2_out,
+	// 		Sim3 candidateToFrame_initialEstimate,
+	// 		float strictness);
+	//
+	// //void optimizationThreadLoop();
+
+
+
 };
 
 }

@@ -20,7 +20,7 @@ and use CMake to turn hardware-specific elements on and off.
 
 # 1. Quickstart / Minimal Setup
 
-Requires OpenCV 2.4 (with nonfree if you want FABMAP), Boost, Eigen, Pangolin and g2o.
+Requires OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen, Pangolin and g2o.
 
 I'm developing on Ubuntu 14.04.2 and OS X 10.11 with Homebrew.
 
@@ -30,7 +30,7 @@ Install everything from apt repos if you can, otherwise there are githubs for Pa
 
 I have not tested this on a clean install, but:
 
-    apt-get install libeigen3-dev libboost1.55-dev libopencv-dev ....
+    apt-get install libeigen3-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev libopencv-dev libtclap-dev ....
 
 or
 
@@ -38,11 +38,12 @@ or
 
 Then usual cmake building process.
 
+
 # 3. Running
 
-Supports raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
+Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
 
-./LSD -c ~/Mono_Logs/LSD_machine/cameraCalibration.cfg -f ~/Mono_Logs/LSD_machine/images/
+./LSD --calib ~/Mono_Logs/LSD_machine/cameraCalibration.cfg  ~/Mono_Logs/LSD_machine/images/
 
 # 4. Related Papers
 

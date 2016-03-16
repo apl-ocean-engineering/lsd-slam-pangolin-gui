@@ -16,8 +16,6 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "util/Resolution.h"
-#include "util/Intrinsics.h"
 #include "IOWrapper/Pangolin/Keyframe.h"
 #include "util/ThreadMutexObject.h"
 #include "DataStructures/Frame.h"
@@ -27,7 +25,7 @@
 class GUI
 {
     public:
-        GUI();
+        GUI( const lsd_slam::Configuration &conf );
 
         virtual ~GUI();
 
@@ -41,7 +39,8 @@ class GUI
 
         void addKeyframe(Keyframe * newFrame);
 
-        void updateImage(unsigned char * data);
+        void updateLiveImage(unsigned char * data);
+        void updateDepthImage(unsigned char * data);
 
         void updateKeyframePoses(GraphFramePose* framePoseData, int num);
 
@@ -49,16 +48,23 @@ class GUI
 
         void drawImages();
 
+        void updateFrameNumber( int frameNumber );
+
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:
+        const lsd_slam::Configuration &_conf;
+
         void drawGrid();
 
-        pangolin::GlTexture * depthImg;
+        pangolin::GlTexture *liveImg;
+        pangolin::GlTexture *depthImg;
 
+        ThreadMutexObject<unsigned char * > liveImgBuffer;
         ThreadMutexObject<unsigned char * > depthImgBuffer;
 
         pangolin::Var<int> * gpuMem;
+        pangolin::Var<int> * frameNumber;
 
         pangolin::Var<std::string> * totalPoints;
 

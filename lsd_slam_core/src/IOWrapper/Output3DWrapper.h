@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #pragma once
 #include <string>
+#include <vector>
 
 #include "util/SophusUtil.h"
 
@@ -51,7 +52,7 @@ public:
 	// publishes a keyframe. if that frame already existis, it is overwritten, otherwise it is added.
 	virtual void publishKeyframe(Frame* kf) {};
 
-	virtual void updateImage(unsigned char * data) {};
+	virtual void updateDepthImage(unsigned char * data) {};
 
 	// published a tracked frame that did not become a keyframe (yet; i.e. has no depth data)
 	virtual void publishTrackedFrame(Frame* kf) {};
@@ -60,7 +61,7 @@ public:
 	virtual void publishTrajectory(std::vector<Eigen::Matrix<float, 3, 1>> trajectory, std::string identifier) {};
 	virtual void publishTrajectoryIncrement(Eigen::Matrix<float, 3, 1> pt, std::string identifier) {};
 
-    virtual void publishDebugInfo(Eigen::Matrix<float, 20, 1> data) {};
+	virtual void publishDebugInfo(Eigen::Matrix<float, 20, 1> data) {};
 
 };
 }

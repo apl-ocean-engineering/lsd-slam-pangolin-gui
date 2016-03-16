@@ -1,2 +1,4 @@
+.AppleDouble/
 */build/
 *.so
+.DS_Store

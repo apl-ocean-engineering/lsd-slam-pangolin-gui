@@ -17,10 +17,9 @@
 namespace lsd_slam
 {
 
-PangolinOutput3DWrapper::PangolinOutput3DWrapper(int width, int height, GUI & gui)
- : width(width),
-   height(height),
-   gui(gui),
+PangolinOutput3DWrapper::PangolinOutput3DWrapper( const Configuration &conf, GUI & gui)
+ : _conf( conf ),
+   _gui(gui),
    publishLvl(0)
 {
 
@@ -31,9 +30,9 @@ PangolinOutput3DWrapper::~PangolinOutput3DWrapper()
 
 }
 
-void PangolinOutput3DWrapper::updateImage(unsigned char * data)
+void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
 {
-    gui.updateImage(data);
+    _gui.updateDepthImage(data);
 }
 
 void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
@@ -79,7 +78,7 @@ void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
 
     lock.unlock();
 
-    gui.addKeyframe(fMsg);
+    _gui.addKeyframe(fMsg);
 }
 
 void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
@@ -148,7 +147,7 @@ void PangolinOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
 
     graph->keyframesAllMutex.unlock_shared();
 
-    gui.updateKeyframePoses(framePoseData, num);
+    _gui.updateKeyframePoses(framePoseData, num);
 
     delete [] buffer;
 }
