@@ -1,20 +1,21 @@
 
 include_directories(
-  ../lsd_slam_core/src
-  ../lib
-  ${TCLAP_INCLUDE_DIR}
-  ${G3LOG_INCLUDE_DIR}
-  ${ZED_CAMERA_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-set(CMAKE_CXX_FLAGS
-   "${CMAKE_CXX_FLAGS} -ggdb"
-)
+# set(CMAKE_CXX_FLAGS
+#    "${CMAKE_CXX_FLAGS} -ggdb"
+# )
 
 if( USE_ZED_CAMERA )
 add_executable(ZedRecorder ZedRecorder.cpp)
 target_link_libraries(ZedRecorder lsdslam logger )
 set_target_properties( ZedRecorder PROPERTIES COMPILE_FLAGS "-ggdb")
 endif()
+
+
+# build image node
+add_executable(LSD LSD.cpp
+  LSDGuiThread.cpp
+  LSDInputThread.cpp)
+target_link_libraries(LSD lsdslam )

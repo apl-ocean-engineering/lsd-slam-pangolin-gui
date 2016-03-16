@@ -43,23 +43,6 @@ set(lsdslam_SOURCE_FILES
   ${GUI_SRCS}
 )
 
-set( LSDSLAM_INCLUDE_DIRS
-  ${CMAKE_SOURCE_DIR}/lib
-  ${EIGEN3_INCLUDE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${OpenCV_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIR}
-  ${Pangolin_INCLUDE_DIRS}
-  ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
-  ${G2O_INCLUDE_DIR}
-  ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
-  ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
-  ${ZED_CAMERA_INCLUDE_DIRS}
-  ${G3LOG_INCLUDE_DIR}
-)
-
-include_directories( ${LSDSLAM_INCLUDE_DIRS} )
-
 # build shared library.
 add_library(lsdslam SHARED ${lsdslam_SOURCE_FILES})
 target_link_libraries(lsdslam
@@ -84,9 +67,3 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries( lsdslam
                          csparse )
 ENDIF()
-
-# build image node
-add_executable(LSD LSD.cpp
-  LSDGuiThread.cpp
-  LSDInputThread.cpp)
-target_link_libraries(LSD lsdslam )
