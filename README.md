@@ -1,40 +1,61 @@
 # LSD-SLAM: Large-Scale Direct Monocular SLAM
 
-LSD-SLAM is a novel approach to real-time monocular SLAM. It is fully direct (i.e. does not use keypoints / features) and creates large-scale,
-semi-dense maps in real-time on a laptop. For more information see
-[http://vision.in.tum.de/lsdslam](http://vision.in.tum.de/lsdslam)
-where you can also find the corresponding publications and Youtube videos, as well as some
-example-input datasets, and the generated output as rosbag or .ply point cloud.
-
 This fork started from [Thomas Whelan's fork](https://github.com/mp3guy/lsd_slam) which "relieves the user of the horrors of a ROS dependency and uses the much nicer lightweight [Pangolin](https://github.com/stevenlovegrove/Pangolin) framework instead."
 
-It contains my experiments with LSD-SLAM.
+Here is Jakob's original description:
 
+> LSD-SLAM is a novel approach to real-time monocular SLAM. It is fully direct (i.e. does not use keypoints / features) and creates large-scale,
+> semi-dense maps in real-time on a laptop. For more information see
+> [http://vision.in.tum.de/lsdslam](http://vision.in.tum.de/lsdslam)
+> where you can also find the corresponding publications and Youtube videos, as well as some
+> example-input datasets, and the generated output as rosbag or .ply point cloud.
+
+This repo contains my experiments with LSD-SLAM, for performance, functionality
+and structure.   As of March 2016, it diverges significantly from either Jakob or Thomas's branches in structure (I refactored as a way of learning the code), but not significantly in terms of functionality.   
+
+**master**  is my working / stable-ish branch.   **aaron_dev** is my
+**really** unstable branch.   Other branches are for hardware-specific ports
+although in the long run I try to merge those functionalities into master
+and use CMake to turn hardware-specific elements on and off.
 
 # 1. Quickstart / Minimal Setup
 
-Requires OpenCV 3.0 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), [g3log](https://github.com/KjellKod/g3log),Boost, Eigen, Pangolin and g2o.
+Requires OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen, Pangolin and g2o.
+
+It includes the following third-party packages as git submodules: [g3log](https://github.com/KjellKod/g3log)
+
+It will optionally build [Google Snappy](https://github.com/google/snappy) for
+file compression.
+
+I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
 
 # 2. Installation
 
-Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o. Then usual cmake building process.
+Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o.
 
-(Incomplete list) for dependencies on clean install on a Jetson TX1:
+I have not tested this on a clean install, but:
 
-    sudo apt-get install libglm-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev
+    apt-get install libeigen3-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev libopencv-dev libtclap-dev ....
+
+or
+
+    brew install eigen boost ...
+
+Then usual cmake building process.
+
 
 # 3. Running
 
 Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
 
-./LSD --calib ~/Mono_Logs/LSD_machine/cameraCalibration.cfg  ~/Mono_Logs/LSD_machine/images/
+./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
-# 4. License
-
-LSD-SLAM is licensed under the GNU General Public License Version 3 (GPLv3), see http://www.gnu.org/licenses/gpl.html.
-
-### Related Papers
+# 4. Related Papers
 
 * **LSD-SLAM: Large-Scale Direct Monocular SLAM**, *J. Engel, T. Schöps, D. Cremers*, ECCV '14
 
 * **Semi-Dense Visual Odometry for a Monocular Camera**, *J. Engel, J. Sturm, D. Cremers*, ICCV '13
+
+# 5. License
+
+LSD-SLAM is licensed under the GNU General Public License Version 3 (GPLv3), see http://www.gnu.org/licenses/gpl.html.
