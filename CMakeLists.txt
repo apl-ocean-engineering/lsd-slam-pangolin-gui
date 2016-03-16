@@ -16,11 +16,7 @@ find_package(G2O REQUIRED)
 find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 find_package(TCLAP REQUIRED )
 
-# g3log
-set( ADD_FATAL_EXAMPLE OFF )
-add_subdirectory( ${PROJECT_SOURCE_DIR}/thirdparty/g3log )
-set( G3LOG_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/g3log/src)
-set( G3LOG_LIB g3logger_shared )
+include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
 
 # FabMap
 # uncomment this part to enable fabmap
@@ -31,63 +27,10 @@ set( G3LOG_LIB g3logger_shared )
 
 ## Enable support for the Zed stereo camera
 option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
-if( USE_ZED_CAMERA )
-  add_definitions( -DUSE_ZED )
-
-  IF(WIN32) # Windows
-    SET(ZED_INCLUDE_DIRS $ENV{ZED_INCLUDE_DIRS})
-        if (CMAKE_CL_64) # 64 bits
-            SET(ZED_LIBRARIES $ENV{ZED_LIBRARIES_64})
-        else(CMAKE_CL_64) # 32 bits
-            message("32bits compilation is no more available with CUDA7.0")
-        endif(CMAKE_CL_64)
-    SET(ZED_LIBRARY_DIR $ENV{ZED_LIBRARY_DIR})
-    SET(OPENCV_DIR $ENV{OPENCV_DIR})
-    find_package(CUDA 7.0 REQUIRED)
-  ELSE() # Linux
-    find_package(ZED REQUIRED)
-    find_package(CUDA 6.5 REQUIRED)
-  ENDIF(WIN32)
-
-  set( ZED_CAMERA_INCLUDE_DIRS ${ZED_INCLUDE_DIRS}
-                              ${CUDA_INCLUDE_DIRS} )
-
-  set( ZED_CAMERA_LIBRARY_DIRS ${ZED_LIBRARY_DIR}
-                                ${CUDA_LIBRARY_DIRS})
-
-  link_directories( ${ZED_CAMERA_LIBRARY_DIRS} )
-
-  set( ZED_CAMERA_LIBRARIES ${ZED_LIBRARIES}
-                            ${CUDA_LIBRARIES}
-                            ${CUDA_npps_LIBRARY}
-                            ${CUDA_nppi_LIBRARY} )
-endif()
+include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
 
 option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
-if( USE_GOOGLE_SNAPPY )
-  add_definitions( -DUSE_SNAPPY )
-
-  SET( SNAPPY_PREFIX_DIR ${PROJECT_BINARY_DIR}/google-snappy )
-  SET( SNAPPY_INSTALL_DIR ${SNAPPY_PREFIX_DIR} )
-  SET( SNAPPY_SOURCE_DIR ${SNAPPY_PREFIX_DIR}/src/snappy )
-  ExternalProject_Add( snappy
-                      GIT_REPOSITORY https://github.com/google/snappy.git
-                      PREFIX google-snappy
-                      SOURCE_DIR ${SNAPPY_SOURCE_DIR}
-                      BINARY_DIR ${SNAPPY_SOURCE_DIR}
-                      UPDATE_COMMAND ""
-                      CONFIGURE_COMMAND ./autogen.sh && ./configure --prefix=${SNAPPY_INSTALL_DIR}
-                      BUILD_COMMAND make -j -C ${SNAPPY_SOURCE_DIR} )
-
-  set( SNAPPY_INCLUDE_DIRS ${SNAPPY_INSTALL_DIR}/include )
-
-  ## This doesn't seem right.
-  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set( SNAPPY_LIBRARIES ${SNAPPY_INSTALL_DIR}/lib/libsnappy.dylib )
-  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set( SNAPPY_LIBRARIES ${SNAPPY_INSTALL_DIR}/lib/libsnappy.so )
-  endif()
-endif()
+include( ${PROJECT_SOURCE_DIR}/cmake/GoogleSnappy.cmake )
 
 ## Architecture detection
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
