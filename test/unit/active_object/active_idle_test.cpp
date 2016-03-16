@@ -59,7 +59,7 @@ private:
 
 
 TEST( ActiveIdleTest, TestConstructorDestructor ) {
-	Backgroundable bg();
+	Backgroundable bg;
 }
 
 TEST( ActiveIdleTest, TestZeroTimeout ) {

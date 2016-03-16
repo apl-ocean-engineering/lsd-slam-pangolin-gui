@@ -23,12 +23,14 @@ public:
 	{
 		std::lock_guard< std::mutex > lock( _mutex );
 		_ptr.reset( f );
+		return _ptr;
 	}
 
 	const std::shared_ptr<Frame>& set( const std::shared_ptr<Frame> &f )
 	{
 		std::lock_guard< std::mutex > lock( _mutex );
 		_ptr = f;
+		return _ptr;
 	}
 
 	Frame *operator->( void )

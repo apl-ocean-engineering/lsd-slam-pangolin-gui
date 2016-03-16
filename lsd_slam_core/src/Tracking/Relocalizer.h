@@ -39,9 +39,9 @@ struct RelocalizerResult {
 			successfulFrameID( out_id ), successfulFrameToKeyframe( out_se3 )
 	{;}
 
-	Frame* &keyframe;
-	std::shared_ptr<Frame> &successfulFrame;
-	int &successfulFrameID;
+	Frame* keyframe;
+	std::shared_ptr<Frame> successfulFrame;
+	int successfulFrameID;
 	SE3 successfulFrameToKeyframe;
 };
 

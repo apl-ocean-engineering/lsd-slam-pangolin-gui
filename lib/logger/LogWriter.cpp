@@ -23,13 +23,16 @@ LogWriter::LogWriter( int level )
 #ifdef USE_SNAPPY
 	CHECK( (_compressionLevel == SnappyCompressLevel) || (_compressionLevel == Z_DEFAULT_COMPRESSION) || (_compressionLevel >= Z_NO_COMPRESSION && _compressionLevel <= Z_BEST_COMPRESSION ) ) << "Unknown compression level " << _compressionLevel;
 
-	if( _compressionLevel == SnappyCompressLevel )
+	if( _compressionLevel == SnappyCompressLevel ) {
 		LOG(INFO) << "Using Snappy compression";
-	else
+	} else {
 		LOG(INFO) << "Using Zlib compression level " << _compressionLevel;
+	}
+
 #else
-	if( _compressionLevel == SnappyCompressLevel )
+	if( _compressionLevel == SnappyCompressLevel ) {
 			LOG(FATAL) << "Not compiled with Snappy compression";
+	}
 	CHECK( (_compressionLevel == Z_DEFAULT_COMPRESSION) || (_compressionLevel >= Z_NO_COMPRESSION && _compressionLevel <= Z_BEST_COMPRESSION) ) << "Unknown compression level " << _compressionLevel;
 #endif
 }
@@ -101,6 +104,7 @@ int LogWriter::newFrame( void )
 	for( unsigned int handle = 0; handle < _fields.size(); ++handle ) {
 		_fieldUpdated[handle] = false;
 	}
+	return 0;
 }
 
 void LogWriter::addField( FieldHandle_t handle, const void *data )
@@ -128,8 +132,13 @@ void LogWriter::addField( FieldHandle_t handle, const cv::Mat &mat )
 {
 	CHECK( handle >= 0 && handle < _fields.size() );
 	CHECK( mat.rows == _fields[handle].size.height && mat.cols == _fields[handle].size.width );
-	if( _fields[handle].type == FIELD_DEPTH_32F ) CHECK( mat.type() == CV_32FC1 );
-	else if( _fields[handle].type == FIELD_BGRA_8C ) CHECK( mat.type() == CV_8UC4 );
+
+	if( _fields[handle].type == FIELD_DEPTH_32F ) {
+		CHECK( mat.type() == CV_32FC1 );
+	} else if( _fields[handle].type == FIELD_BGRA_8C ){
+		CHECK( mat.type() == CV_8UC4 );
+	}
+
 	CHECK( mat.isContinuous() );
 
 	addField( handle, mat.ptr<void>(0) );
