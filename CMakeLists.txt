@@ -78,5 +78,8 @@ add_subdirectory("tools")
 
 option( BUILD_UNIT_TESTS "Build unit tests" ON )
 if( BUILD_UNIT_TESTS )
+  ## Build a local copy of gtest (as per the GTest FAQ)
+  include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
+
   add_subdirectory( test/unit/active_object )
 endif()
