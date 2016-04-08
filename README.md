@@ -33,11 +33,33 @@ I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://devel
 
 Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o.
 
-I have not tested this on a clean install, but:
+## On Jetson
 
-    apt-get install libeigen3-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev libopencv-dev libtclap-dev ....
+I have not tested this on a clean install, but on the Jetson, from a clean
+insall of Jetpack 2.1, and with the Zed 0.93 API installed, I needed to:
 
-or
+    apt-get --yes install cmake-curses-gui libeigen3-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev libopencv-dev libtclap-dev
+    git ....
+
+You then need to manually build [Pangolin](https://github.com/stevenlovegrove/Pangolin) and [g2o](https://github.com/RainerKuemmerle/g2o) using the standard CMake build procedure.  For g2o I need to install:
+
+    apt-get --yes install libgomp1 libsuitesparse-dev
+
+Then:
+
+    git clone -b jetson https://github.com/amarburg/lsd_slam.git
+    mkdir build_jetson
+    cd build_jetson
+
+I then needed to manually specify the path to the Boost libs which seems
+strange
+
+    BOOST_LIBRARYDIR=/usr/lib/arm-linux-gnueabihf/  cmake ..
+
+
+## On Mac
+
+or on the Mac using [Homebrew]()
 
     brew install eigen boost ...
 
