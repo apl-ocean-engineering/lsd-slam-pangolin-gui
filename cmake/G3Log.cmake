@@ -16,4 +16,9 @@ ExternalProject_Add( g3log
 
 ## g3log doesn't have an "install" target
 set( G3LOG_INCLUDE_DIR ${G3LOG_SOURCE_DIR}/src )
-set( G3LOG_LIB g3logger_shared )
+set( G3LOG_LIB_DIR ${G3LOG_PREFIX_DIR}/src/g3log-build/ )
+link_directories(
+  ${G3LOG_LIB_DIR}
+)
+
+set( G3LOG_LIB g3logger )

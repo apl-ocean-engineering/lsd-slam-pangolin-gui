@@ -33,15 +33,19 @@ I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://devel
 
 Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o.
 
-## On Jetson
+## On Jetson TX1
 
 I have not tested this on a clean install, but on the Jetson, from a clean
 insall of Jetpack 2.1, and with the Zed 0.93 API installed, I needed to:
 
-    apt-get --yes install cmake-curses-gui libeigen3-dev libboost-filesystem1.55-dev libboost-thread1.55-dev libboost-system1.55-dev libopencv-dev libtclap-dev
-    git ....
+    apt-get --yes install cmake git libeigen3-dev \
+      libboost-filesystem1.55-dev libboost-thread1.55-dev \
+      libboost-system1.55-dev libopencv-dev libtclap-dev \
+      libglm-dev autoconf
 
-You then need to manually build [Pangolin](https://github.com/stevenlovegrove/Pangolin) and [g2o](https://github.com/RainerKuemmerle/g2o) using the standard CMake build procedure.  For g2o I need to install:
+(autoconf is needed by Google Snappy, if enabled)
+
+You then need to manually build [Pangolin](https://github.com/stevenlovegrove/Pangolin) and [g2o](https://github.com/RainerKuemmerle/g2o) using the standard CMake build procedure.  For both I made "Release" and installed in /usr/local.   For g2o I needed to install:
 
     apt-get --yes install libgomp1 libsuitesparse-dev
 
@@ -64,6 +68,22 @@ or on the Mac using [Homebrew]()
     brew install eigen boost ...
 
 Then usual cmake building process.
+
+
+## Common problems
+
+    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::cs_chol_workspace(cs_di_sparse const*, cs_di_symbolic const*, int*, double*)'
+    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::cs_cholsolsymb(cs_di_sparse const*, double*, cs_di_symbolic const*, double*, int*)'
+    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::writeCs2Octave(char const*, cs_di_sparse const*, bool)'
+
+g2o should be built with the system libcsparse provided by the libsuitesparse-dev package.  Ensure the CMake variable  BUILD_CSPARSE=OFF, and that CSPARSE_INCLUDE_DIR and CSPARSE_LIBRARY point to system libraries, not the libraries included in the g2o source code.
+
+    ../lib/lsd_core/liblsdslam.so: undefined reference to `pangolin::CreateGlutWindowAndBind(std::string, int, int, unsigned int)'
+
+Thomas' Pangolin wrapper assumes Glut has been installed.  I needed to
+
+    cmake -DFORCE_GLUT=ON ..
+
 
 
 # 3. Running
