@@ -38,7 +38,9 @@ message( STATUS "Architecture: ${ARCHITECTURE}" )
 
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
   set(CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -O3 -std=c++11"
+      ## Unclear how many of these command line options are actually effective
+      ## Args current for gcc 4.8.4
+     "${CMAKE_CXX_FLAGS} -march=armv8-a -O3 -std=c++11"
   )
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   # SSE flags

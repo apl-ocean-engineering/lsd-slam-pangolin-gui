@@ -211,7 +211,11 @@ int main( int argc, char** argv )
 			if( (duration > 0) && (present > end) ) { keepGoing = false;  break; }
 
 			if( svoOutputArg.isSet() ) {
-				camera->record();
+				if( camera->record() ) {
+					LOG(WARNING) << "Error occured while recording from camera";
+				} else {
+					if( doGui ) camera->displayRecorded();
+				}
 			} else {
 				if( dataSource->grab() ) {
 
@@ -298,6 +302,10 @@ int main( int argc, char** argv )
 					keepGoing = false;
 				}
 		}
+
+
+		LOG(INFO) << "Cleaning up...";
+		camera->stopRecording();
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
 
