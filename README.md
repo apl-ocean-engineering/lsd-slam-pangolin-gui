@@ -11,7 +11,10 @@ Here is Jakob's original description:
 > example-input datasets, and the generated output as rosbag or .ply point cloud.
 
 This repo contains my experiments with LSD-SLAM, for performance, functionality
-and structure.   As of March 2016, it diverges significantly from either Jakob or Thomas's branches in structure (I refactored as a way of learning the code), but not significantly in terms of functionality.   
+and structure.   As of March 2016, it diverges significantly from either Jakob
+or Thomas's branches in structure (I refactored as a way of learning the code),
+but not significantly in terms of functionality.   
+
 
 **master**  is my working / stable-ish branch.   **aaron_dev** is my
 **really** unstable branch.   Other branches are for hardware-specific ports
@@ -36,7 +39,7 @@ Install everything from apt repos if you can, otherwise there are githubs for Pa
 ## On Jetson TX1
 
 I have not tested this on a clean install, but on the Jetson, from a clean
-insall of Jetpack 2.1, and with the Zed 0.93 API installed, I needed to:
+install of Jetpack 2.1, and with the Zed 0.93 API installed, I needed to:
 
     apt-get --yes install cmake git libeigen3-dev \
       libboost-filesystem1.55-dev libboost-thread1.55-dev \
