@@ -55,6 +55,12 @@ is used for parsing command line arguments.   Arguably I could use something
 more universally available, but it's in the APT repositories and I'm used to the
 API now.
 
+## google-test
+
+Google test is used for unit test.
+
+Google test is built as a cmake ExternalProject automatically as part of "make all".
+
 ## Google Snappy
 
 [Google Snappy](https://github.com/google/snappy) is speed-over-file-size compression library.   I use it in my proprietary video/stereo logging format to accelerate realtime compression.
