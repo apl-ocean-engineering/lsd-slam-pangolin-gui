@@ -32,7 +32,42 @@ file compression.
 
 I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
 
-# 2. Installation
+# 2. Third-party / Optional Libraries
+
+I use a few odd-ball third-party libraries.  A few notes on their role:
+
+## Pangolin (required)
+
+[Pangolin](https://github.com/stevenlovegrove/Pangolin) is a lightweight OpenGL
+interface.   I inherited this from [upstream](https://github.com/mp3guy/lsd_slam).
+
+The code currently uses a GLUT-specific function call, I need to build
+Pangolin with:
+
+    cmake -DFORCE_GLUT=ON ..
+
+to make it work on some platforms.
+
+## TCLAP
+
+[Templatized C++ Command Line Parser Library](http://tclap.sourceforge.net/) (TCLAP)
+is used for parsing command line arguments.   Arguably I could use something
+more universally available, but it's in the APT repositories and I'm used to the
+API now.
+
+## Google Snappy
+
+[Google Snappy](https://github.com/google/snappy) is speed-over-file-size compression library.   I use it in my proprietary video/stereo logging format to accelerate realtime compression.
+
+Google Snappy is built as a cmake ExternalProject automatically as part of "make all".
+
+## g3log
+
+[g3log](https://github.com/KjellKod/g3log) is a threaded logging toolkit -- I'm now using a [custom fork](https://github.com/amarburg/g3log) with fewer auto-generated files in the make process --- it was leading to lots of redundant rebuilds.   
+
+g3log is built as a cmake ExternalProject automatically as part of "make all".
+
+# 3. Installation
 
 Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o.
 
@@ -72,7 +107,6 @@ or on the Mac using [Homebrew]()
 
 Then usual cmake building process.
 
-
 ## Common problems
 
     ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::cs_chol_workspace(cs_di_sparse const*, cs_di_symbolic const*, int*, double*)'
@@ -89,18 +123,18 @@ Thomas' Pangolin wrapper assumes Glut has been installed.  I needed to
 
 
 
-# 3. Running
+# 4. Running
 
 Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
 
 ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
-# 4. Related Papers
+# 5. Related Papers
 
 * **LSD-SLAM: Large-Scale Direct Monocular SLAM**, *J. Engel, T. Schöps, D. Cremers*, ECCV '14
 
 * **Semi-Dense Visual Odometry for a Monocular Camera**, *J. Engel, J. Sturm, D. Cremers*, ICCV '13
 
-# 5. License
+# 6. License
 
 LSD-SLAM is licensed under the GNU General Public License Version 3 (GPLv3), see http://www.gnu.org/licenses/gpl.html.
