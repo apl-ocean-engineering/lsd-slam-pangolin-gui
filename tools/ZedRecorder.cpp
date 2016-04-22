@@ -53,28 +53,28 @@ int main( int argc, char** argv )
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
-		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
-		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0.0,"", cmd);
+		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","Zed resolution",false,"hd1080","hd2k,hd1080,hd720,vga", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","frame-rate","Video frame rate (fps)",false,0.0,"", cmd);
 
 		TCLAP::ValueArg<std::string> logInputArg("","log-input","Name of Logger file to read",false,"","Logger filename", cmd);
-		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
-		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Name of SVO file to read",false,"","SVO filename", cmd);
-		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Name of SVO file to read",false,"","SVO filename", cmd);
-		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Name of calibration file",false,"","Calib filename", cmd);
+		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","SVO input file",false,"","filename", cmd);
+		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","SVO output file",false,"","filename", cmd);
+		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Logger output file",false,"","filename", cmd);
+		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Name of calibration file",false,"","filename", cmd);
 
-		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> compressionArg("","compression","Compression algorithm and/or zlib compression level)",false,"snappy","snappy,0-9", cmd);
 
 		TCLAP::ValueArg<std::string> imageOutputArg("","image-output","",false,"","SVO filename", cmd);
 
 		// TCLAP::SwitchArg noGuiSwitch("","no-gui","Don't show a GUI", cmd, false);
 
-		TCLAP::SwitchArg depthSwitch("","depth","", cmd, false);
-		TCLAP::SwitchArg rightSwitch("","right","", cmd, false);
+		TCLAP::SwitchArg depthSwitch("","depth","Record depth information (only valid for logger output)", cmd, false);
+		TCLAP::SwitchArg rightSwitch("","right","Record right image (only valid for logger output)", cmd, false);
 
 		TCLAP::SwitchArg guiSwitch("","display","", cmd, false);
 
 
-		TCLAP::ValueArg<int> durationArg("","duration","Duration",false,0,"seconds", cmd);
+		TCLAP::ValueArg<int> durationArg("","duration","Total recording time",false,0,"seconds", cmd);
 
 		cmd.parse(argc, argv );
 
