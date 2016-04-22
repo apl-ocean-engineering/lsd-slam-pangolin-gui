@@ -84,4 +84,6 @@ if( BUILD_UNIT_TESTS )
   include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
 
   add_subdirectory( test/unit/active_object )
+  add_subdirectory( test/unit/logger )
+  add_subdirectory( test/unit/lsd_core )
 endif()
