@@ -95,6 +95,8 @@ Supports directories or sets of raw PNG images. For example, you can down any da
 
 ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
+I've started to record my performance results in [Performance.md](Performance.md)
+
 # 4. Related Papers
 
 * **LSD-SLAM: Large-Scale Direct Monocular SLAM**, *J. Engel, T. Schöps, D. Cremers*, ECCV '14
