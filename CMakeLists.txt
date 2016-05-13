@@ -15,6 +15,7 @@ find_package(Pangolin 0.1 REQUIRED)
 find_package(G2O REQUIRED)
 find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 find_package(TCLAP REQUIRED )
+find_package(ZLIB REQUIRED)
 
 include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
 
