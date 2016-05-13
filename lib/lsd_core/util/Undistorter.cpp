@@ -33,28 +33,15 @@ Undistorter::~Undistorter()
 
 Undistorter* Undistorter::getUndistorterForFile(const std::string &configFilename)
 {
-	printf("Reading Calibration from file %s",configFilename.c_str());
-
+	LOG(INFO) << "Reading Calibration from file " << configFilename;
 
 	std::ifstream f(configFilename.c_str());
 	if (!f.good())
 	{
+		LOG(FATAL) << " ... not found. Cannot operate without calibration, shutting down.";
 		f.close();
-
-		std::string altFilename = packagePath+"calib/"+configFilename;
-		printf(" ... not found!\n Trying %s", altFilename.c_str());
-
-		f.open(altFilename.c_str());
-
-		if (!f.good())
-		{
-			printf(" ... not found. Cannot operate without calibration, shutting down.\n");
-			f.close();
-			return 0;
-		}
+		return NULL;
 	}
-
-	printf(" ... found!\n");
 
 	std::string l1;
 	std::getline(f,l1);
@@ -72,15 +59,23 @@ Undistorter* Undistorter::getUndistorterForFile(const std::string &configFilenam
 		if(!u->isValid()) return 0;
 		return u;
 	}
+	else if(std::sscanf(l1.c_str(), "%f %f %f %f %f",
+				&ic[0], &ic[1], &ic[2], &ic[3], &ic[4]) == 5)
+	{
+		LOG(INFO) << "found PTAM camera model, building rectifier.";
+		Undistorter* u = new UndistorterPTAM(configFilename.c_str());
+		if(!u->isValid()) return 0;
+		return u;
+	}
 	else if(std::sscanf(l1.c_str(), "%f %f %f %f",
 				&ic[0], &ic[1], &ic[2], &ic[3]) == 4)
 	{
-		LOG(INFO) << "found Logger camera model, building rectifier.";
+		LOG(INFO) << "Found Logger camera model, building rectifier.";
 		Undistorter* u = new UndistorterLogger(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
-} else	{
-		LOG(INFO) << "found ATAN camera model, building rectifier.";
+	} else	{
+		LOG(INFO) << "Found ATAN camera model, building rectifier.";
 		Undistorter* u = new UndistorterPTAM(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
