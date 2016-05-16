@@ -50,7 +50,7 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   #    "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
   # )
   set(CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -ggdb -std=c++11"
+     "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -O3 -march=native -ggdb -std=c++11"
   )
 endif()
 
