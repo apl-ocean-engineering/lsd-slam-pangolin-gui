@@ -31,13 +31,14 @@ On the first build, use just 'make'.   Once the dependencies have been made
 
 Requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.
 
-And a few "non-standard" dependencies: Pangolin, g2o, [g3log](https://github.com/KjellKod/g3log),
+Requires these "non-standard" dependencies: Pangolin, g2o, [g3log](https://github.com/KjellKod/g3log),
 and optionally the [StereoLabs Zed](https://www.stereolabs.com/) SDK and
 [Google Snappy](https://github.com/google/snappy) for file compression.
-It will use CMake ExternalProjects to build each of these dependencies automatically.
-Use the CMake variables BUILD_LOCAL_* to disable local building.
+By default, LSD-SLAM It will use CMake ExternalProjects to build each of these
+dependencies automatically.
+Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable local building.
 
-I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
+My targeted environments are Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
 
 # 2. Installation
 

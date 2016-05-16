@@ -20,4 +20,5 @@ set( G2O_LIBRARIES
 		g2o_csparse_extension
 		g2o_solver_csparse
 		g2o_types_sba
-		g2o_types_sim3 )
+		g2o_types_sim3
+ 		cxsparse )

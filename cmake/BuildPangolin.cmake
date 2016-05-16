@@ -9,6 +9,16 @@ ExternalProject_Add( Pangolin
                       BUILD_COMMAND ${EXTERNAL_PROJECT_MAKE_COMMAND}
                       CMAKE_CACHE_ARGS -DCMAKE_BUILD_TYPE:string=Release
                               -DCMAKE_INSTALL_PREFIX:path=${PANGOLIN_INSTALL_DIR}
-                              -DBUILD_EXAMPLES:bool=OFF )
+                              -DBUILD_EXAMPLES:bool=OFF -DFORCE_GLUT:bool=ON )
 
 set( PANGOLIN_ROOT ${PANGOLIN_INSTALL_DIR} )
+set( Pangolin_LIBRARIES
+      -L${PANGOLIN_INSTALL_DIR}/lib
+      pangolin
+      glew )
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  LIST( APPEND Pangolin_LIBRARIES "-framework OpenGL")
+elseif()
+  LIST( APPEND Pangolin_LIBRARIES -lgl )
+endif()
