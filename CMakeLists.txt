@@ -17,6 +17,9 @@ find_package(ZLIB REQUIRED)
 
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
+## Command used to build the external projects
+set( EXTERNAL_PROJECT_MAKE_COMMAND make -j )
+
 # FabMap
 # uncomment this part to enable fabmap
 #add_subdirectory(${PROJECT_SOURCE_DIR}/thirdparty/openFabMap)
@@ -26,21 +29,25 @@ include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
 option( BUILD_LOCAL_G2O "Build a local copy of G2O" ON )
 if( BUILD_LOCAL_G2O )
+	option( G2O_USE_OPENMP "Configure local build of G2O to use OpenMP" ON )
+
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
 elseif()
 	find_package(G2O REQUIRED)
 	find_package(SuiteParse REQUIRED) # Apparently needed by g2o
+
+	# These are the G2O libraries I use
+	set( G2O_LIBRARIES
+		${G2O_CORE_LIBRARY}
+		${G2O_STUFF_LIBRARY}
+		${G2O_SOLVER_CSPARSE_EXTENSION}
+		${G2O_SOLVER_CSPARSE}
+		${G2O_TYPES_SBA}
+		${G2O_TYPES_SIM3}
+		cxsparse )
 endif()
 
-# These are the G2O libraries I use
-set( G2O_LIBRARIES
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_TYPES_SBA}
-	${G2O_TYPES_SIM3}
-	cxsparse )
+
 
 
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
