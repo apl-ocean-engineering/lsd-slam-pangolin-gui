@@ -1,0 +1,8 @@
+language: cpp
+sudo: false
+addons:
+  apt:
+    packages:
+      - cmake
+      - opencv-dev
+script: .travis/build.sh
