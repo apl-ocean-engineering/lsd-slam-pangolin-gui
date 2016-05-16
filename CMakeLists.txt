@@ -11,13 +11,11 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Pangolin 0.1 REQUIRED)
-find_package(G2O REQUIRED)
-find_package(SuiteParse REQUIRED) # Apparently needed by g2o
+
 find_package(TCLAP REQUIRED )
 find_package(ZLIB REQUIRED)
 
-include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
+include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
 # FabMap
 # uncomment this part to enable fabmap
@@ -26,12 +24,39 @@ include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
 
+option( BUILD_LOCAL_G2O "Build a local copy of G2O" ON )
+if( BUILD_LOCAL_G2O )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
+elseif()
+	find_package(G2O REQUIRED)
+	find_package(SuiteParse REQUIRED) # Apparently needed by g2o
+endif()
+
+# These are the G2O libraries I use
+set( G2O_LIBRARIES
+	${G2O_CORE_LIBRARY}
+	${G2O_STUFF_LIBRARY}
+	${G2O_SOLVER_CSPARSE_EXTENSION}
+	${G2O_SOLVER_CSPARSE}
+	${G2O_TYPES_SBA}
+	${G2O_TYPES_SIM3}
+	cxsparse )
+
+
+option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
+if( BUILD_LOCAL_PANGOLIN )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
+elseif()
+	find_package(Pangolin 0.1 REQUIRED)
+endif()
+
+
 ## Enable support for the Zed stereo camera
 option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
 include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
 
 option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
-include( ${PROJECT_SOURCE_DIR}/cmake/GoogleSnappy.cmake )
+include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
 
 ## Architecture detection
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )

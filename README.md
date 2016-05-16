@@ -23,12 +23,19 @@ and use CMake to turn hardware-specific elements on and off.
 
 # 1. Quickstart / Minimal Setup
 
-Requires OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen, Pangolin and g2o.
+**This build uses CMake ExternalProjects to build a number of non-standard
+(non-apt-gettable) dependencies.   CMake will not resolve these dependencies
+correctly when building in parallel ('make -j').
+On the first build, use just 'make'.   Once the dependencies have been made
+(they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
 
-It includes the following third-party packages as git submodules: [g3log](https://github.com/KjellKod/g3log)
+Requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.
 
-It will optionally build [Google Snappy](https://github.com/google/snappy) for
-file compression.
+And a few "non-standard" dependencies: Pangolin, g2o, [g3log](https://github.com/KjellKod/g3log),
+and optionally the [StereoLabs Zed](https://www.stereolabs.com/) SDK and
+[Google Snappy](https://github.com/google/snappy) for file compression.
+It will use CMake ExternalProjects to build each of these dependencies automatically.
+Use the CMake variables BUILD_LOCAL_* to disable local building.
 
 I'm developing and testing on Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
 

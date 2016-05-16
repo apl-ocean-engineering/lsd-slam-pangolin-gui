@@ -1,8 +1,33 @@
 language: cpp
-sudo: false
+
+os:
+  - linux
+#  - osx
+
+# Per-OS configuration
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: false
+    - os: osx
+      osx_image: xcode7.3
+
+## Install Linux deps using the apt plugin
 addons:
   apt:
     packages:
       - cmake
-      - opencv-dev
+      - libopencv-dev
+      - libboost-all-dev
+      - libeigen3-dev
+      - libtclap-dev
+      - libgomp1
+      - libsuitesparse-dev
+      - git
+
+## Install OSX deps using a script
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/before_install_osx.sh          ; fi
+
 script: .travis/build.sh

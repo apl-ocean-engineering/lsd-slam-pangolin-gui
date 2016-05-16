@@ -51,13 +51,7 @@ target_link_libraries(lsdslam
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
   ${ZED_CAMERA_LIBRARIES}
-  ${G2O_CORE_LIBRARY}
-  ${G2O_STUFF_LIBRARY}
-  ${G2O_SOLVER_CSPARSE_EXTENSION}
-  ${G2O_SOLVER_CSPARSE}
-  ${G2O_TYPES_SBA}
-  ${G2O_TYPES_SIM3}
-  cxsparse
+  ${G2O_LIBRARIES}
   ${G3LOG_LIB}
   logger
   active_object )
