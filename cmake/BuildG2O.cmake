@@ -22,3 +22,4 @@ set( G2O_LIBRARIES
 		g2o_types_sba
 		g2o_types_sim3
  		cxsparse )
+set( G2O_INCLUDE_DIR ${G2O_INSTALL_DIR}/include )

@@ -55,6 +55,8 @@ target_link_libraries(lsdslam
   ${G3LOG_LIB}
   logger
   active_object )
+include_directories( lsdslam
+	${G2O_INCLUDE_DIR} )
 
 # Not on (my) OS X w/ suitesparse from Homebrew
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
