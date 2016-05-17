@@ -15,8 +15,8 @@ matrix:
 
 ## Install OSX deps using a script
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then .travis/before_install_osx.sh        ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/before_install_trusty.sh     ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then .travis/install_deps_osx.sh        ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/install_deps_trusty.sh     ; fi
 
 script: .travis/build.sh
 

@@ -27,7 +27,7 @@ My targeted environments are Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://develo
 
 The most authoritative set of dependencies is stored in the [Travis CI](https://www.travis-ci.org) bootstrap files.  Do:
 
-    .travis/before_install_{osx,trusty}.sh     (may use sudo)
+    .travis/install_deps_{osx,trusty}.sh     (may use sudo)
     .travis/build.sh
 
 LSD-SLAM requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.   
