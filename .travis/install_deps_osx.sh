@@ -9,7 +9,7 @@ brew tap homebrew/x11
 for pkg in homebrew/science/opencv homebrew/science/suite-sparse cmake tclap eigen glew glm homebrew/x11/freeglut
 do
 	echo $pkg
-	brew outdated $pkg || brew upgrade $pkg
+	brew install $pkg ##|| brew upgrade $pkg
 done
 
 ## Eigen 3.2.8 has a very minor bug
