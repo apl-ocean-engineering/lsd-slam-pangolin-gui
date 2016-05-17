@@ -22,3 +22,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 elseif()
   LIST( APPEND Pangolin_LIBRARIES -lgl )
 endif()
+
+set( Pangolin_INCLUDE_DIRS 
+    ${PANGOLIN_INSTALL_DIR}/include )
