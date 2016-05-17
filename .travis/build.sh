@@ -1,5 +1,7 @@
 #! /usr/bin/env sh
 
+set -ev
+
 if [ ! -d build_ci ]; then
 	mkdir build_ci
 fi
