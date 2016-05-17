@@ -87,7 +87,7 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
 endif()
 
 
-
+## Set global include dirs
 set( LSDSLAM_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/lib
   ${CMAKE_SOURCE_DIR}/lib/lsd_core
