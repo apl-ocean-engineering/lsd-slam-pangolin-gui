@@ -2,6 +2,7 @@
 SET( PANGOLIN_PREFIX_DIR ${PROJECT_BINARY_DIR}/Pangolin )
 SET( PANGOLIN_INSTALL_DIR ${PANGOLIN_PREFIX_DIR} )
 
+find_package( GLEW REQUIRED )
 find_package( GLUT REQUIRED )
 find_package( GLM REQUIRED )
 
@@ -16,7 +17,8 @@ ExternalProject_Add( Pangolin
 
 set( Pangolin_LIBRARIES
       -L${PANGOLIN_INSTALL_DIR}/lib
-      pangolin )
+      pangolin
+      ${GLEW_LIBRARIES} )
 
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
   LIST( APPEND Pangolin_LIBRARIES "-framework OpenGL")
