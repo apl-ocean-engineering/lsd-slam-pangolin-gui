@@ -1,5 +1,9 @@
 language: cpp
 
+notifications:
+  email:
+    - amarburg@apl.washington.edu
+
 # Per-OS configuration
 matrix:
   include:
