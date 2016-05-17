@@ -5,7 +5,9 @@ set -ev
 brew update
 for pkg in homebrew/science/opencv homebrew/science/suite-sparse \
 					cmake tclap eigen glew glm homebrew/x11/freeglut
-do; brew outdated $pkg || brew upgrade $pkg; done
+do
+	brew outdated $pkg || brew upgrade $pkg
+done
 
 ## Eigen 3.2.8 has a very minor bug
 # (http://eigen.tuxfamily.org/bz/show_bug.cgi?id=537)
