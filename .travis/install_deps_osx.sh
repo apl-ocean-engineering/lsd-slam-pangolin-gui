@@ -3,6 +3,7 @@
 set -ev
 
 brew update
+brew tap homebrew/science
 for pkg in homebrew/science/opencv homebrew/science/suite-sparse \
 					cmake tclap eigen glew glm homebrew/x11/freeglut
 do
