@@ -27,9 +27,12 @@ set( EXTERNAL_PROJECT_MAKE_COMMAND make )   # make -j
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
 
+option( USE_OPENMP "Enable OpenMP (currently only in local copy of G2O)" OFF )
+
+##==== Option to build local copy of G2O ============================
 option( BUILD_LOCAL_G2O "Build a local copy of G2O" ON )
 if( BUILD_LOCAL_G2O )
-	option( G2O_USE_OPENMP "Configure local build of G2O to use OpenMP" ON )
+	set( G2O_USE_OPENMP ${USE_OPENMP} )
 
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
 elseif()
@@ -45,7 +48,7 @@ elseif()
 		${G2O_TYPES_SIM3} )
 endif()
 
-# To use G2O you need to be able to find the Suitesparse libs
+# To include/link G2O you need to be able to find the Suitesparse libs
 find_package(SuiteParse REQUIRED)
 list( APPEND G2O_LIBRARIES
 	${CSPARSE_LIBRARY} )
@@ -54,6 +57,7 @@ list( APPEND G2O_INCLUDE_DIR
 	${CHOLMOD_INCLUDE_DIR} )
 
 
+##====  Option to build local copy of Pangolin ======================
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
 if( BUILD_LOCAL_PANGOLIN )
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
@@ -62,20 +66,22 @@ elseif()
 endif()
 
 
-## Enable support for the Zed stereo camera
+##=====  Support for the Zed stereo camera ==========================
 option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
 include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
 
+##====== Support for Google Snappy compression lib ==================
 option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
 
-## Architecture detection
-EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
 
-## Cxx flags applied to all builds
+## C++ flags applied to all builds
 list( APPEND CMAKE_CXX_FLAGS -std=c++11)
 
+
+## Architecture-specific optimizations
+EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
+message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
 	## For compilation on Jetson TX1
 	list( APPEND CMAKE_CXX_FLAGS -march=armv8-a )
@@ -90,7 +96,7 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
 endif()
 
 
-## Set global include dirs
+## Set global include paths
 set( LSDSLAM_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/lib
   ${CMAKE_SOURCE_DIR}/lib/lsd_core
