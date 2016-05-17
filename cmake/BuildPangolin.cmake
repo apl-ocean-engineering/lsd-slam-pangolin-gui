@@ -2,6 +2,9 @@
 SET( PANGOLIN_PREFIX_DIR ${PROJECT_BINARY_DIR}/Pangolin )
 SET( PANGOLIN_INSTALL_DIR ${PANGOLIN_PREFIX_DIR} )
 
+find_package( GLEW REQUIRED )
+find_package( GLUT REQUIRED )
+find_package( GLM REQUIRED )
 
 ExternalProject_Add( Pangolin
                       GIT_REPOSITORY https://github.com/stevenlovegrove/Pangolin.git
