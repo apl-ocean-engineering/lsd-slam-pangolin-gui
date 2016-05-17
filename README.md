@@ -21,65 +21,31 @@ but not significantly in terms of functionality.
 although in the long run I try to merge those functionalities into master
 and use CMake to turn hardware-specific elements on and off.
 
-# 1. Quickstart / Minimal Setup
-
-**This build uses CMake ExternalProjects to build a number of non-standard
-(non-apt-gettable) dependencies.   CMake will not resolve these dependencies
-correctly when building in parallel ('make -j').
-On the first build, use just 'make'.   Once the dependencies have been made
-(they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
-
-Requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.
-
-Requires these "non-standard" dependencies: Pangolin, g2o, [g3log](https://github.com/KjellKod/g3log),
-and optionally the [StereoLabs Zed](https://www.stereolabs.com/) SDK and
-[Google Snappy](https://github.com/google/snappy) for file compression.
-By default, LSD-SLAM It will use CMake ExternalProjects to build each of these
-dependencies automatically.
-Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable local building.
+# 1. Quickstart
 
 My targeted environments are Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for Jetson TX1, and OS X 10.11 with Homebrew.
 
-# 2. Installation
+The most authoritative set of dependencies is stored in the [Travis CI](https://www.travis-ci.org) bootstrap files.  Do:
 
-Install everything from apt repos if you can, otherwise there are githubs for Pangolin and g2o.
+    .travis/before_install_{osx,trusty}.sh     (may use sudo)
+    .travis/build.sh
 
-## On Jetson TX1
+LSD-SLAM requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.   
 
-I have not tested this on a clean install, but on the Jetson, from a clean
-install of Jetpack 2.1, and with the Zed 0.93 API installed, I needed to:
+Also uses these "non-standard" dependencies: Pangolin, g2o,
+[g3log](https://github.com/KjellKod/g3log), and optionally the [StereoLabs
+Zed](https://www.stereolabs.com/) SDK and [Google
+Snappy](https://github.com/google/snappy) for file compression.
 
-    apt-get --yes install cmake git libeigen3-dev \
-      libboost-filesystem1.55-dev libboost-thread1.55-dev \
-      libboost-system1.55-dev libopencv-dev libtclap-dev \
-      libglm-dev autoconf
+By default, LSD-SLAM It will use CMake ExternalProjects to build each of these dependencies automatically.   Note this is the most repeatable path to building the software but will be relatively slow to re-compile as it will update each dependency every time.
+Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable local building.
 
-(autoconf is needed by Google Snappy, if enabled)
+**CMake will not resolve these dependencies correctly when building in parallel
+**('make -j'). On the first build, use just 'make'.   Once the dependencies have
+**been made (they should be reasonably stable), you can 'make -j' when
+**rebuilding just LSD-SLAM.**
 
-You then need to manually build [Pangolin](https://github.com/stevenlovegrove/Pangolin) and [g2o](https://github.com/RainerKuemmerle/g2o) using the standard CMake build procedure.  For both I made "Release" and installed in /usr/local.   For g2o I needed to install:
-
-    apt-get --yes install libgomp1 libsuitesparse-dev
-
-Then:
-
-    git clone -b jetson https://github.com/amarburg/lsd_slam.git
-    mkdir build_jetson
-    cd build_jetson
-
-I then needed to manually specify the path to the Boost libs which seems
-strange
-
-    BOOST_LIBRARYDIR=/usr/lib/arm-linux-gnueabihf/  cmake ..
-
-
-## On Mac
-
-or on the Mac using [Homebrew]()
-
-    brew install eigen boost ...
-
-Then usual cmake building process.
-
+If you want to build G2O, Pangolin, etc. yourself, see the `cmake/Build*` files for the CMake flags I use.
 
 ## Common problems
 
@@ -89,7 +55,7 @@ Then usual cmake building process.
 
 g2o should be built with the system libcsparse provided by the libsuitesparse-dev package.  Ensure the CMake variable  BUILD_CSPARSE=OFF, and that CSPARSE_INCLUDE_DIR and CSPARSE_LIBRARY point to system libraries, not the libraries included in the g2o source code.
 
-    ../lib/lsd_core/liblsdslam.so: undefined reference to `pangolin::CreateGlutWindowAndBind(std::string, int, int, unsigned int)'
+    ../lib/lsd_core/liblsdslam.so: undefined reference t to `pangolin::CreateGlutWindowAndBind(std::string, int, int, unsigned int)'
 
 Thomas' Pangolin wrapper assumes Glut has been installed.  I needed to
 
@@ -101,7 +67,7 @@ Thomas' Pangolin wrapper assumes Glut has been installed.  I needed to
 
 Supports directories or sets of raw PNG images. For example, you can down any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run like;
 
-./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
+    ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
 I've started to record my performance results in [Performance.md](Performance.md)
 

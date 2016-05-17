@@ -48,8 +48,6 @@ elseif()
 endif()
 
 
-
-
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
 if( BUILD_LOCAL_PANGOLIN )
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
