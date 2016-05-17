@@ -55,9 +55,3 @@ target_link_libraries(lsdslam
   ${G3LOG_LIB}
   logger
   active_object )
-
-# Not on (my) OS X w/ suitesparse from Homebrew
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  target_link_libraries( lsdslam
-                         csparse )
-ENDIF()
