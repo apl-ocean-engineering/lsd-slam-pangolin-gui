@@ -9,5 +9,5 @@ target_link_libraries( active_object_test
           active_object )
 
 # Don't use ctest, instead just execture the Google test binaries
-add_custom_target( test ${PROJECT_BINARY_DIR}/active_object_test
+add_custom_target( unit_test ${PROJECT_BINARY_DIR}/active_object_test
                     DEPENDS active_object_test )
