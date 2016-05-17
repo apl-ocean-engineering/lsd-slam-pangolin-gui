@@ -16,9 +16,11 @@ before_install:
 
 script: .travis/build.sh
 
+## Try caching these ExternalProjects.   I believe the CMake dependency
+## process will correctly rebuild these if upstream changes.
 cache:
   directories:
-  - build_ci/G2O
+  - build_ci/g2o
   - build_ci/g3log
   - build_ci/google-snappy
   - build_ci/Pangolin

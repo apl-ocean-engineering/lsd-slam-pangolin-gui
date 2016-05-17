@@ -1,10 +1,10 @@
 
-SET( G2O_PREFIX_DIR ${PROJECT_BINARY_DIR}/G2O )
+SET( G2O_PREFIX_DIR ${PROJECT_BINARY_DIR}/g2o )
 SET( G2O_INSTALL_DIR ${G2O_PREFIX_DIR} )
 
 ExternalProject_Add( G2O
               GIT_REPOSITORY https://github.com/RainerKuemmerle/g2o.git
-              PREFIX G2O
+              PREFIX g2o
               BUILD_COMMAND ${EXTERNAL_PROJECT_MAKE_COMMAND}
               CMAKE_CACHE_ARGS  -DCMAKE_BUILD_TYPE:string=Release
                       -DCMAKE_INSTALL_PREFIX:path=${G2O_INSTALL_DIR}
