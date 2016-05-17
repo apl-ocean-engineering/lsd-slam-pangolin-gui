@@ -155,8 +155,8 @@ int main( int argc, char** argv )
       exit(-1);
     }
 
-  CHECK( undistorter != NULL ) << "Undistorter doesn't exist.";
-  CHECK( dataSource != NULL ) << "Data source doesn't exist.";
+  CHECK( undistorter != NULL ) << "Could not create undistorter.";
+  CHECK( dataSource != NULL ) << "Could not create data source.";
 
   conf.inputImage = undistorter->inputImageSize();
   conf.slamImage  = undistorter->outputImageSize();

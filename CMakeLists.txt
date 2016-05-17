@@ -5,18 +5,27 @@ include(ExternalProject)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-cmake_minimum_required(VERSION 2.8.7)
+## Use ccache if available
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+		message( "Using ccache" )
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Pangolin 0.1 REQUIRED)
-find_package(G2O REQUIRED)
-find_package(SuiteParse REQUIRED) # Apparently needed by g2o
-find_package(TCLAP REQUIRED )
 
-include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
+find_package(TCLAP REQUIRED )
+find_package(ZLIB REQUIRED)
+
+include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
+
+## Command used to build the external projects
+set( EXTERNAL_PROJECT_MAKE_COMMAND make )   # make -j
 
 # FabMap
 # uncomment this part to enable fabmap
@@ -25,36 +34,76 @@ include( ${PROJECT_SOURCE_DIR}/cmake/G3Log.cmake )
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
 
-## Enable support for the Zed stereo camera
-option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
-include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
+option( USE_OPENMP "Enable OpenMP (currently only in local copy of G2O)" OFF )
 
-option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
-include( ${PROJECT_SOURCE_DIR}/cmake/GoogleSnappy.cmake )
+##==== Option to build local copy of G2O ============================
+option( BUILD_LOCAL_G2O "Build a local copy of G2O" ON )
+if( BUILD_LOCAL_G2O )
+	set( G2O_USE_OPENMP ${USE_OPENMP} )
 
-## Architecture detection
-EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
+elseif()
+	find_package(G2O REQUIRED)
 
-if( ${ARCHITECTURE} STREQUAL "aarch64" )
-  set(CMAKE_CXX_FLAGS
-      ## Unclear how many of these command line options are actually effective
-      ## Args current for gcc 4.8.4
-     "${CMAKE_CXX_FLAGS} -march=armv8-a -O3 -std=c++11"
-  )
-elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
-  # SSE flags
-  add_definitions("-DENABLE_SSE")
-  # set(CMAKE_CXX_FLAGS
-  #    "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
-  # )
-  set(CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -ggdb -std=c++11"
-  )
+	# These are the G2O libraries I use
+	set( G2O_LIBRARIES
+		${G2O_CORE_LIBRARY}
+		${G2O_STUFF_LIBRARY}
+		${G2O_SOLVER_CSPARSE_EXTENSION}
+		${G2O_SOLVER_CSPARSE}
+		${G2O_TYPES_SBA}
+		${G2O_TYPES_SIM3} )
+endif()
+
+# To include/link G2O you need to be able to find the Suitesparse libs
+find_package(SuiteParse REQUIRED)
+list( APPEND G2O_LIBRARIES
+	${CSPARSE_LIBRARY} )
+list( APPEND G2O_INCLUDE_DIR
+	${CSPARSE_INCLUDE_DIR}
+	${CHOLMOD_INCLUDE_DIR} )
+
+
+##====  Option to build local copy of Pangolin ======================
+option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
+if( BUILD_LOCAL_PANGOLIN )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
+elseif()
+	find_package(Pangolin 0.1 REQUIRED)
 endif()
 
 
+##=====  Support for the Zed stereo camera ==========================
+option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
+include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
 
+##====== Support for Google Snappy compression lib ==================
+option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
+include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
+
+
+## C++ flags applied to all builds
+list( APPEND CMAKE_CXX_FLAGS -std=c++11)
+
+
+## Architecture-specific optimizations
+EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
+message( STATUS "Architecture: ${ARCHITECTURE}" )
+if( ${ARCHITECTURE} STREQUAL "aarch64" )
+	## For compilation on Jetson TX1
+	list( APPEND CMAKE_CXX_FLAGS -march=armv8-a )
+  list( APPEND CMAKE_CXX_FLAGS_RELEASE -O3 )
+
+elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
+  # Note this enables Jakob's original SSE optimizations in his code,
+	# it has nothing to do with gcc
+  add_definitions("-DENABLE_SSE")
+  list( APPEND CMAKE_CXX_FLAGS_RELEASE -msse4.1 -msse3 -msse2 -msse -O3 -march=native )
+	list( APPEND CMAKE_CXX_FLAGS_DEBUG -ggdb )
+endif()
+
+
+## Set global include paths
 set( LSDSLAM_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/lib
   ${CMAKE_SOURCE_DIR}/lib/lsd_core
@@ -64,8 +113,6 @@ set( LSDSLAM_INCLUDE_DIRS
   ${Pangolin_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${G2O_INCLUDE_DIR}
-  ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
-  ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
   ${ZED_CAMERA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
 )

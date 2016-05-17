@@ -8,6 +8,7 @@ SET( G3LOG_SOURCE_DIR ${G3LOG_PREFIX_DIR}/src/g3log )
 ExternalProject_Add( g3log
 										GIT_REPOSITORY https://github.com/amarburg/g3log.git
 										PREFIX g3log
+										BUILD_COMMAND ${EXTERNAL_PROJECT_MAKE_COMMAND}
 										CMAKE_CACHE_ARGS -DADD_FATAL_EXAMPLE:bool=OFF
   									INSTALL_COMMAND "" )
 

@@ -13,7 +13,7 @@ if( USE_GOOGLE_SNAPPY )
                       BINARY_DIR ${SNAPPY_SOURCE_DIR}
                       UPDATE_COMMAND ""
                       CONFIGURE_COMMAND ./autogen.sh && ./configure --prefix=${SNAPPY_INSTALL_DIR}
-                      BUILD_COMMAND make -j -C ${SNAPPY_SOURCE_DIR} )
+                      BUILD_COMMAND ${EXTERNAL_PROJECT_MAKE_COMMAND} -C ${SNAPPY_SOURCE_DIR} )
 
   set( SNAPPY_INCLUDE_DIRS ${SNAPPY_INSTALL_DIR}/include )
 

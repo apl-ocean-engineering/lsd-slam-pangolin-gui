@@ -13,6 +13,7 @@ include_directories(
   ${Boost_INCLUDE_DIR}
   ${G3LOG_INCLUDE_DIR}
   ${SNAPPY_INCLUDE_DIRS}
+	${ZLIB_INCLUDE_DIRS}
 )
 
 # build shared library.
@@ -23,5 +24,6 @@ target_link_libraries(logger
   # ${ZED_CAMERA_LIBRARIES}
   ${G3LOG_LIB}
   ${SNAPPY_LIBRARIES}
+	${ZLIB_LIBRARIES}
   active_object
 )
