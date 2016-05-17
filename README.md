@@ -28,7 +28,7 @@ and use CMake to turn hardware-specific elements on and off.
 # 1. Quickstart
 
 
-My targeted environments are Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) for [Jetson TX1](http://www.nvidia.com/object/jetson-tx1-module.html), and OS X 10.11 with [Homebrew](http://brew.sh/).
+My targeted environments are Ubuntu 14.04.2, the [Jetson TX1](http://www.nvidia.com/object/jetson-tx1-module.html) using [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) , and OS X 10.11 with [Homebrew](http://brew.sh/).
 
 The most authoritative set of dependencies is stored in the [Travis CI](https://travis-ci.org/amarburg/lsd_slam) bootstrap files.  Do:
 
@@ -47,7 +47,7 @@ and optionally
   * the [StereoLabs Zed](https://www.stereolabs.com/) SDK
   * [Google Snappy](https://github.com/google/snappy) for file compression.
 
-By default, LSD-SLAM It will use CMake ExternalProjects to build each of these dependencies automatically.  This is the most repeatable path but will be slow to re-compile as it will update each dependency every time.
+By default, LSD-SLAM will use CMake ExternalProjects to build each of these dependencies automatically.  This is the most repeatable path but will be slow to re-compile as it will update each dependency every time.
 
 **CMake will not resolve these dependencies correctly when building in parallel ('make -j'). On the first build, use just 'make'.   Once the dependencies have been made (they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
 
