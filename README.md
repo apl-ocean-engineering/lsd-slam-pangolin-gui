@@ -37,13 +37,12 @@ Also uses these "non-standard" dependencies: Pangolin, g2o,
 Zed](https://www.stereolabs.com/) SDK and [Google
 Snappy](https://github.com/google/snappy) for file compression.
 
-By default, LSD-SLAM It will use CMake ExternalProjects to build each of these dependencies automatically.   Note this is the most repeatable path to building the software but will be relatively slow to re-compile as it will update each dependency every time.
+By default, LSD-SLAM It will use CMake ExternalProjects to build each of these dependencies automatically.   
+This is the most repeatable path but will be slow to re-compile as it will update each dependency every time.
+
 Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable local building.
 
-**CMake will not resolve these dependencies correctly when building in parallel
-**('make -j'). On the first build, use just 'make'.   Once the dependencies have
-**been made (they should be reasonably stable), you can 'make -j' when
-**rebuilding just LSD-SLAM.**
+**CMake will not resolve these dependencies correctly when building in parallel ('make -j'). On the first build, use just 'make'.   Once the dependencies have been made (they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
 
 If you want to build G2O, Pangolin, etc. yourself, see the `cmake/Build*` files for the CMake flags I use.
 
