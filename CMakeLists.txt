@@ -25,7 +25,12 @@ find_package(ZLIB REQUIRED)
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
 ## Command used to build the external projects
-set( EXTERNAL_PROJECT_MAKE_COMMAND make -j )   # make -j
+set( EXTERNAL_PROJECT_PARALLELISM 4 CACHE STRING "Level of parallelism when making ExternalProjects" )
+set( EXTERNAL_PROJECT_MAKE_COMMAND "make" )
+if( EXTERNAL_PROJECT_PARALLELISM GREATER 0 )
+	message( "Building ExternalProjects in Parallel")
+	set( EXTERNAL_PROJECT_MAKE_COMMAND make -j${EXTERNAL_PROJECT_PARALLELISM} )
+endif()
 
 # FabMap
 # uncomment this part to enable fabmap

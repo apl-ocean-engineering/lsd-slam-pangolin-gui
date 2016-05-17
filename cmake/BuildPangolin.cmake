@@ -14,6 +14,7 @@ ExternalProject_Add( Pangolin
                       CMAKE_CACHE_ARGS -DCMAKE_BUILD_TYPE:string=Release
                               -DCMAKE_INSTALL_PREFIX:path=${PANGOLIN_INSTALL_DIR}
                               -DBUILD_EXAMPLES:bool=OFF
+                              -DBUILD_PANGOLIN_VIDEO:bool=OFF
                               -DFORCE_GLUT:bool=ON )
 
 set( Pangolin_LIBRARIES
