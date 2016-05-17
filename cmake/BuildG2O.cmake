@@ -20,21 +20,20 @@ set( G2O_LIBRARIES
 		g2o_csparse_extension
 		g2o_solver_csparse
 		g2o_types_sba
-		g2o_types_sim3
- 		cxsparse )
+		g2o_types_sim3 )
 
 # Not on (my) OS X w/ suitesparse from Homebrew
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  list( APPEND G2O_LIBRARIES csparse )
-ENDIF()
+# IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+#   list( APPEND G2O_LIBRARIES csparse )
+# ENDIF()
 
 # Homebrew install cs.h in /usr/local/include,
 # but apt packages put it in /usr/include/suitesparse/
-find_file( SUITESPARSE_INCLUDE_DIR
- 					NAME cs.h
-					PATHS /usr/local/include/
-							  /usr/include/suitesparse/ )
+# find_path( SUITESPARSE_INCLUDE_DIR
+#  					NAME cs.h
+# 					PATHS /usr/include
+# 								/usr/local/include/
+# 							  /usr/include/suitesparse/ )
 
 set( G2O_INCLUDE_DIR
-		${G2O_INSTALL_DIR}/include
-		${SUITESPARSE_INCLUDE_DIR} )
+		${G2O_INSTALL_DIR}/include )
