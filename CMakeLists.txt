@@ -90,16 +90,16 @@ list( APPEND CMAKE_CXX_FLAGS -std=c++11)
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
+
 	## For compilation on Jetson TX1
-	list( APPEND CMAKE_CXX_FLAGS -march=armv8-a )
-  list( APPEND CMAKE_CXX_FLAGS_RELEASE -O3 )
+	set( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -march=armv8-a )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   # Note this enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with gcc
   add_definitions("-DENABLE_SSE")
-  list( APPEND CMAKE_CXX_FLAGS_RELEASE -msse4.1 -msse3 -msse2 -msse -O3 -march=native )
-	list( APPEND CMAKE_CXX_FLAGS_DEBUG -ggdb )
+
+  set( CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native )
 endif()
 
 
