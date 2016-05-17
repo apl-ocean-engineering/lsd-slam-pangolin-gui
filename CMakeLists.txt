@@ -34,7 +34,6 @@ if( BUILD_LOCAL_G2O )
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
 elseif()
 	find_package(G2O REQUIRED)
-	find_package(SuiteParse REQUIRED) # Apparently needed by g2o
 
 	# These are the G2O libraries I use
 	set( G2O_LIBRARIES
@@ -43,9 +42,16 @@ elseif()
 		${G2O_SOLVER_CSPARSE_EXTENSION}
 		${G2O_SOLVER_CSPARSE}
 		${G2O_TYPES_SBA}
-		${G2O_TYPES_SIM3}
-		cxsparse )
+		${G2O_TYPES_SIM3} )
 endif()
+
+# To use G2O you need to be able to find the Suitesparse libs
+find_package(SuiteParse REQUIRED)
+list( APPEND G2O_LIBRARIES
+	${CSPARSE_LIBRARY} )
+list( APPEND G2O_INCLUDE_DIR
+	${CSPARSE_INCLUDE_DIR}
+	${CHOLMOD_INCLUDE_DIR} )
 
 
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
@@ -67,21 +73,20 @@ include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 
+## Cxx flags applied to all builds
+list( APPEND CMAKE_CXX_FLAGS -std=c++11)
+
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
-  set(CMAKE_CXX_FLAGS
-      ## Unclear how many of these command line options are actually effective
-      ## Args current for gcc 4.8.4
-     "${CMAKE_CXX_FLAGS} -march=armv8-a -O3 -std=c++11"
-  )
+	## For compilation on Jetson TX1
+	list( APPEND CMAKE_CXX_FLAGS -march=armv8-a )
+  list( APPEND CMAKE_CXX_FLAGS_RELEASE -O3 )
+
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
-  # SSE flags
+  # Note this enables Jakob's original SSE optimizations in his code,
+	# it has nothing to do with gcc
   add_definitions("-DENABLE_SSE")
-  # set(CMAKE_CXX_FLAGS
-  #    "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -march=native -O3 -std=c++11"
-  # )
-  set(CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -msse4.1 -msse3 -msse2 -msse -O3 -march=native -ggdb -std=c++11"
-  )
+  list( APPEND CMAKE_CXX_FLAGS_RELEASE -msse4.1 -msse3 -msse2 -msse -O3 -march=native )
+	list( APPEND CMAKE_CXX_FLAGS_DEBUG -ggdb )
 endif()
 
 
@@ -95,8 +100,6 @@ set( LSDSLAM_INCLUDE_DIRS
   ${Pangolin_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${G2O_INCLUDE_DIR}
-  ${CSPARSE_INCLUDE_DIR} #Has been set by SuiteParse
-  ${CHOLMOD_INCLUDE_DIR} #Has been set by SuiteParse
   ${ZED_CAMERA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
 )
