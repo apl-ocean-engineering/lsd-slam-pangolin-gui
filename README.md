@@ -4,7 +4,8 @@ This fork started from [Thomas Whelan's fork](https://github.com/mp3guy/lsd_slam
 
 Here is Jakob's original description:
 
-> LSD-SLAM is a novel approach to real-time monocular SLAM. It is fully direct (i.e. does not use keypoints / features) and creates large-scale,
+> LSD-SLAM is a novel approach to real-time monocular SLAM. It is fully direct
+> (i.e. does not use keypoints / features) and creates large-scale,
 > semi-dense maps in real-time on a laptop. For more information see
 > [http://vision.in.tum.de/lsdslam](http://vision.in.tum.de/lsdslam)
 > where you can also find the corresponding publications and Youtube videos, as well as some
@@ -13,11 +14,12 @@ Here is Jakob's original description:
 This repo contains my experiments with LSD-SLAM, for performance, functionality
 and structure.   As of March 2016, it diverges significantly from either Jakob
 or Thomas's branches in structure (I refactored as a way of learning the code),
-but not significantly in terms of functionality.   
-
+but not significantly in terms of functionality (except for all the ways in which
+I've broken it in the refactoring).   
 
 **master**  is my working / stable-ish branch.   **aaron_dev** is my
-**really** unstable branch.   Other branches are for hardware-specific ports
+**really unstable** branch.   Other branches are for hardware- or feature-specific
+development
 although in the long run I try to merge those functionalities into master
 and use CMake to turn hardware-specific elements on and off.
 
@@ -27,12 +29,13 @@ My targeted environments are Ubuntu 14.04.2, [NVidia Jetpack 2.0](https://develo
 
 The most authoritative set of dependencies is stored in the [Travis CI](https://www.travis-ci.org) bootstrap files.  Do:
 
-    .travis/install_deps_{osx,trusty}.sh     (may use sudo)
+    .travis/install_deps_{osx,trusty}.sh
     .travis/build.sh
 
-LSD-SLAM requires these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP), [TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.   
+LSD-SLAM uses these "standard" dependencies: OpenCV 2.4 (with nonfree if you want FABMAP),
+[TCLAP](http://tclap.sourceforge.net/), Boost, Eigen.   
 
-Also uses these "non-standard" dependencies: Pangolin, g2o,
+LSD-SLAM also uses these "non-standard" dependencies: Pangolin, g2o,
 [g3log](https://github.com/KjellKod/g3log), and optionally the [StereoLabs
 Zed](https://www.stereolabs.com/) SDK and [Google
 Snappy](https://github.com/google/snappy) for file compression.
@@ -44,23 +47,9 @@ Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable local buildi
 
 **CMake will not resolve these dependencies correctly when building in parallel ('make -j'). On the first build, use just 'make'.   Once the dependencies have been made (they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
 
-If you want to build G2O, Pangolin, etc. yourself, see the `cmake/Build*` files for the CMake flags I use.
+If you want to build G2O, Pangolin, etc. yourself, see the `cmake/Build*` files for the CMake flags I used.
 
-## Common problems
-
-    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::cs_chol_workspace(cs_di_sparse const*, cs_di_symbolic const*, int*, double*)'
-    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::cs_cholsolsymb(cs_di_sparse const*, double*, cs_di_symbolic const*, double*, int*)'
-    ../lib/lsd_core/liblsdslam.so: undefined reference to `g2o::csparse_extension::writeCs2Octave(char const*, cs_di_sparse const*, bool)'
-
-g2o should be built with the system libcsparse provided by the libsuitesparse-dev package.  Ensure the CMake variable  BUILD_CSPARSE=OFF, and that CSPARSE_INCLUDE_DIR and CSPARSE_LIBRARY point to system libraries, not the libraries included in the g2o source code.
-
-    ../lib/lsd_core/liblsdslam.so: undefined reference t to `pangolin::CreateGlutWindowAndBind(std::string, int, int, unsigned int)'
-
-Thomas' Pangolin wrapper assumes Glut has been installed.  I needed to
-
-    cmake -DFORCE_GLUT=ON ..
-
-
+See also [doc/CommonProblems.md](doc/CommonProblems.md)
 
 # 3. Running
 
@@ -68,7 +57,7 @@ Supports directories or sets of raw PNG images. For example, you can down any da
 
     ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
-I've started to record my performance results in [Performance.md](Performance.md)
+I've started to record my performance results in [doc/Performance.md](doc/Performance.md)
 
 # 4. Related Papers
 
