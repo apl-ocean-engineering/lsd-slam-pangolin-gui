@@ -83,7 +83,7 @@ include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
 
 
 ## C++ flags applied to all builds
-set( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 
 ## Architecture-specific optimizations
@@ -92,14 +92,14 @@ message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
 
 	## For compilation on Jetson TX1
-	set( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-march=armv8-a" )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   # Note this enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with gcc
   add_definitions("-DENABLE_SSE")
 
-  set( CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} "-msse4.1 -msse3 -msse2 -msse -march=native" )
+  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native" )
 endif()
 
 
