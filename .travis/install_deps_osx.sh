@@ -18,6 +18,8 @@ done
 # has been accepted and is present in 3.2 HEAD as well
 # as devel
 EIGEN_VER=`brew info eigen | head -1 | awk '{print $3}'`
+EIGEN_PATH=`brew info eigen | grep 3.2.8  | grep local | awk '{print $1}'`
 if [[ $EIGEN_VER = "3.2.8" ]]; then
-	patch --forward -p1 -d /usr/local/include/eigen3 < .travis/eigen-3.2.8-patch.diff
+	echo "Pathing eigen at $EIGEN_PATH"
+	patch --forward -p1 -d $EIGEN_PATH/include/eigen3 < .travis/eigen-3.2.8-patch.diff
 fi
