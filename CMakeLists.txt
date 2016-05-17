@@ -18,7 +18,7 @@ find_package(ZLIB REQUIRED)
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
 ## Command used to build the external projects
-set( EXTERNAL_PROJECT_MAKE_COMMAND make -j )
+set( EXTERNAL_PROJECT_MAKE_COMMAND "make -j" )
 
 # FabMap
 # uncomment this part to enable fabmap
