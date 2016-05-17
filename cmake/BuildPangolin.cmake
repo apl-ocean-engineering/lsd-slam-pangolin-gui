@@ -2,9 +2,10 @@
 SET( PANGOLIN_PREFIX_DIR ${PROJECT_BINARY_DIR}/Pangolin )
 SET( PANGOLIN_INSTALL_DIR ${PANGOLIN_PREFIX_DIR} )
 
+## Check for dependencies (Pangolin doesn't seem do this very well)
 find_package( GLEW REQUIRED )
 find_package( GLUT REQUIRED )
-find_package( GLM REQUIRED )
+find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
 
 ExternalProject_Add( Pangolin
                       GIT_REPOSITORY https://github.com/stevenlovegrove/Pangolin.git
