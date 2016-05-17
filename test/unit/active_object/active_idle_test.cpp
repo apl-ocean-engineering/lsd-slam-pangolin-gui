@@ -72,7 +72,7 @@ TEST( ActiveIdleTest, TestZeroTimeout ) {
 
 TEST( ActiveIdleTest, TestJustIdle ) {
 	Backgroundable bg( std::chrono::milliseconds( 100 ) );
-	std::this_thread::sleep_for( std::chrono::milliseconds( 525) );
+	std::this_thread::sleep_for( std::chrono::milliseconds( 550 ) );
 
 	ASSERT_EQ( bg.active(), 0 );
 	ASSERT_EQ( bg.idle(), 5 );
