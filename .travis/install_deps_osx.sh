@@ -5,9 +5,10 @@ set -ev
 brew update
 brew tap homebrew/science
 brew tap homebrew/x11
-for pkg in homebrew/science/opencv homebrew/science/suite-sparse \
-					cmake tclap eigen glew glm homebrew/x11/freeglut
+
+for pkg in homebrew/science/opencv homebrew/science/suite-sparse cmake tclap eigen glew glm homebrew/x11/freeglut
 do
+	echo $pkg
 	brew outdated $pkg || brew upgrade $pkg
 done
 
