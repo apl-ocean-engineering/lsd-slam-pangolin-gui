@@ -83,7 +83,7 @@ include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
 
 
 ## C++ flags applied to all builds
-list( APPEND CMAKE_CXX_FLAGS -std=c++11)
+set( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
 
 ## Architecture-specific optimizations
