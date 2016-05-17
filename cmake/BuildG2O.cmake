@@ -25,7 +25,7 @@ set( G2O_LIBRARIES
 
 # Not on (my) OS X w/ suitesparse from Homebrew
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  list( append G2O_LIBRARIES csparse )
+  list( APPEND G2O_LIBRARIES csparse )
 ENDIF()
 
 # Homebrew install cs.h in /usr/local/include,
