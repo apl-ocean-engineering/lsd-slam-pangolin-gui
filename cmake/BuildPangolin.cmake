@@ -18,7 +18,7 @@ set( PANGOLIN_ROOT ${PANGOLIN_INSTALL_DIR} )
 set( Pangolin_LIBRARIES
       -L${PANGOLIN_INSTALL_DIR}/lib
       pangolin
-      glew )
+      ${GLEW_LIBRARIES} )
 
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
   LIST( APPEND Pangolin_LIBRARIES "-framework OpenGL")

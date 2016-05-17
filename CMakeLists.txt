@@ -60,7 +60,7 @@ list( APPEND G2O_INCLUDE_DIR
 ##====  Option to build local copy of Pangolin ======================
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
 if( BUILD_LOCAL_PANGOLIN )
-	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )	
 elseif()
 	find_package(Pangolin 0.1 REQUIRED)
 endif()
