@@ -28,7 +28,7 @@ include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 set( EXTERNAL_PROJECT_PARALLELISM 4 CACHE STRING "Level of parallelism when making ExternalProjects" )
 set( EXTERNAL_PROJECT_MAKE_COMMAND "make" )
 if( EXTERNAL_PROJECT_PARALLELISM GREATER 0 )
-	message( "Building ExternalProjects in Parallel")
+	message( "Building ExternalProjects in Parallel, to disable set EXTERNAL_PROJECT_PARALLELISM to 0")
 	set( EXTERNAL_PROJECT_MAKE_COMMAND make -j${EXTERNAL_PROJECT_PARALLELISM} )
 endif()
 

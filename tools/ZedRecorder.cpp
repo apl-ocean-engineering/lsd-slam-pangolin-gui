@@ -24,7 +24,7 @@ namespace fs = boost::filesystem;
 using namespace lsd_slam;
 
 #ifndef USE_ZED
-#error "This shouldn't be built unless USE_ZED is defined."
+	#error "ZedRecorder shouldn't be built unless USE_ZED is defined."
 #endif
 
 bool keepGoing = true;
@@ -53,28 +53,30 @@ int main( int argc, char** argv )
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
-		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","Zed resolution",false,"hd1080","hd2k,hd1080,hd720,vga", cmd);
-		TCLAP::ValueArg<float> fpsArg("f","frame-rate","Video frame rate (fps)",false,0.0,"", cmd);
+		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0.0,"", cmd);
 
-		TCLAP::ValueArg<std::string> logInputArg("","log-input","Name of Logger file to read",false,"","Logger filename", cmd);
-		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","SVO input file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","SVO output file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Logger output file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Name of calibration file",false,"","filename", cmd);
+		TCLAP::ValueArg<std::string> logInputArg("","log-input","Input Logger file",false,"","Logger filename", cmd);
+		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Input SVO file",false,"","Filename", cmd);
+		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Output SVO file",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Output Logger filename",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Output calibration file (from stereolabs SDK)",false,"","Calib filename", cmd);
 
-		TCLAP::ValueArg<std::string> compressionArg("","compression","Compression algorithm and/or zlib compression level)",false,"snappy","snappy,0-9", cmd);
+		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
 
 		TCLAP::ValueArg<std::string> imageOutputArg("","image-output","",false,"","SVO filename", cmd);
 
+		TCLAP::ValueArg<std::string> statisticsOutputArg("","statistics-output","",false,"","", cmd);
+
 		// TCLAP::SwitchArg noGuiSwitch("","no-gui","Don't show a GUI", cmd, false);
 
-		TCLAP::SwitchArg depthSwitch("","depth","Record depth information (only valid for logger output)", cmd, false);
-		TCLAP::SwitchArg rightSwitch("","right","Record right image (only valid for logger output)", cmd, false);
+		TCLAP::SwitchArg depthSwitch("","depth","", cmd, false);
+		TCLAP::SwitchArg rightSwitch("","right","", cmd, false);
 
 		TCLAP::SwitchArg guiSwitch("","display","", cmd, false);
 
 
-		TCLAP::ValueArg<int> durationArg("","duration","Total recording time",false,0,"seconds", cmd);
+		TCLAP::ValueArg<int> durationArg("","duration","Duration",false,0,"seconds", cmd);
 
 		cmd.parse(argc, argv );
 
@@ -211,12 +213,21 @@ int main( int argc, char** argv )
 			if( (duration > 0) && (present > end) ) { keepGoing = false;  break; }
 
 			if( svoOutputArg.isSet() ) {
+
 				if( camera->record() ) {
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
-					if( doGui ) camera->displayRecorded();
+					if( doGui ) {
+
+						// Canned routine from Stereolabs
+						camera->displayRecorded();
+					}
 				}
+
+
 			} else {
+
+
 				if( dataSource->grab() ) {
 
 					cv::Mat left;
@@ -312,19 +323,32 @@ int main( int argc, char** argv )
 		LOG(INFO) << "Recorded " << count << " frames in " <<   dur.count();
 		LOG(INFO) << " Average of " << (float)count / dur.count() << " FPS";
 
+		std::string fileName("");
 		if( svoOutputArg.isSet() ) {
-			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
-			unsigned int fileSizeMB = fileSize / (1024*1024);
-			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
-		}
-
-		if( loggerOutputArg.isSet() ) {
+			fileName = svoOutputArg.getValue();
+		} else if( loggerOutputArg.isSet() ) {
 			logWriter.close();
-
-			unsigned int fileSize = fs::file_size( fs::path(loggerOutputArg.getValue() ));
-			unsigned int fileSizeMB = fileSize / (1024*1024);
-			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
+			fileName = loggerOutputArg.getValue();
 		}
+
+		if( !fileName.empty() ) {
+			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
+			float fileSizeMB = float(fileSize) / (1024*1024);
+			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB";
+			LOG(INFO) << "     " << fileSizeMB/dur.count() << " MB/sec";
+			LOG(INFO) << "     " << fileSizeMB/count << " MB/frame";
+
+			if( statisticsOutputArg.isSet() ) {
+				ofstream out( statisticsOutputArg.getValue(), ios_base::out | ios_base::ate | ios_base::app );
+				if( out.is_open() ) {
+					out << resolutionToString( zedResolution ) << "," << fps << "," << count << "," << dur.count() << ","
+							<< fileSizeMB << endl;
+				}
+			}
+		}
+
+
+
 
 		if( dataSource ) delete dataSource;
 		if( camera ) delete camera;
