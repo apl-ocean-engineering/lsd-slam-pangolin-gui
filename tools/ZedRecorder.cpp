@@ -341,7 +341,7 @@ int main( int argc, char** argv )
 			if( statisticsOutputArg.isSet() ) {
 				ofstream out( statisticsOutputArg.getValue(), ios_base::out | ios_base::ate | ios_base::app );
 				if( out.is_open() ) {
-					out << resolutionToString( zedResolution ) << "," << fps << "," << count << "," << dur.count() << ","
+					out << resolutionToString( zedResolution ) << "," << fps << "," << (doGui.getValue() ? "display" : "") << "," << count << "," << dur.count() << ","
 							<< fileSizeMB << endl;
 				}
 			}
