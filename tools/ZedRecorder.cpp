@@ -220,15 +220,19 @@ int main( int argc, char** argv )
 					if( doGui ) {
 						// According to the docs, this:
 						//		[Gets] the current side by side YUV 4:2:2 frame, CPU buffer.
-						Mat rawImage( sl::slMat2cvMat( camera->getCurrentRawRecordedFrame() ));
+						sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
 
-						Mat leftRoi( rawImage, Rect(0,0, rawImage.size.width/2, rawImage.size.height ));
+						LOG(INFO) << slRawImage.channels << " " << slRawImage.data_type << " " << slRawImage.type;
 
-						Mat leftBgr;
-						cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGR_Y422 );
+						cv::Mat rawImage( sl::zed::slMat2cvMat( slRawImage ));
 
-						showWindow( "Left", leftBgr );
-						waitKey(1);
+						cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
+
+						cv::Mat leftBgr;
+						cv::cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGR_Y422 );
+
+						cv::imshow( "Left", leftBgr );
+						cv::waitKey(1);
 
 						// Canned routine from Stereolabs
 						//camera->displayRecorded();
@@ -352,7 +356,7 @@ int main( int argc, char** argv )
 			if( statisticsOutputArg.isSet() ) {
 				ofstream out( statisticsOutputArg.getValue(), ios_base::out | ios_base::ate | ios_base::app );
 				if( out.is_open() ) {
-					out << resolutionToString( zedResolution ) << "," << fps << "," << (doGui.getValue() ? "display" : "") << "," << count << "," << dur.count() << ","
+					out << resolutionToString( zedResolution ) << "," << fps << "," << (doGui ? "display" : "") << "," << count << "," << dur.count() << ","
 							<< fileSizeMB << endl;
 				}
 			}
