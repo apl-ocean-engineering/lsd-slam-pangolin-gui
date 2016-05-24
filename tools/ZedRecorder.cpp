@@ -218,9 +218,20 @@ int main( int argc, char** argv )
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
 					if( doGui ) {
+						// According to the docs, this:
+						//		[Gets] the current side by side YUV 4:2:2 frame, CPU buffer.
+						Mat rawImage( sl::slMat2cvMat( camera->getCurrentRawRecordedFrame() ));
+
+						Mat leftRoi( rawImage, Rect(0,0, rawImage.size.width/2, rawImage.size.height ));
+
+						Mat leftBgr;
+						cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGR_Y422 );
+
+						showWindow( "Left", leftBgr );
+						waitKey(1);
 
 						// Canned routine from Stereolabs
-						camera->displayRecorded();
+						//camera->displayRecorded();
 					}
 				}
 
