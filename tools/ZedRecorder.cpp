@@ -51,30 +51,66 @@ public:
 			_active( active_object::Active::createActive() )
 	{}
 
-	void showRGB( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRGB, this, img )); }
+	void showLeft( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowLeft, this, img )); }
 
-	void showStereoYUV( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowStereoYUV, this, img )); }
+	void showDepth( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowDepth, this, img )); }
+
+	void showRight( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRight, this, img )); }
+
+	void showRawStereoYUV( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRawStereoYUV, this, img )); }
+
+	void waitKey( int wk = 1 )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onWaitKey, this, wk )); }
 
 protected:
 
-	void onShowRGB( const Mat &img )
+	void onShowLeft( const Mat &img )
+	{
+		cv::Mat resized;
+		cv::resize( img, resized, _displaySize );
+		imshow( "Left", resized );
+	}
+
+	void onShowDepth( const Mat &img )
 	{
 		cv::Mat resized;
 		cv::resize( img, resized, _displaySize );
 		imshow( "Display", resized );
-		cv::waitKey(1);
 	}
 
-	void onShowStereoYUV( const Mat &img )
+	void onShowRight( const Mat &img )
 	{
+		cv::Mat resized;
+		cv::resize( img, resized, _displaySize );
+		imshow( "Right", resized );
+	}
+
+	void onShowRawStereoYUV( const Mat &img )
+	{
+		// Zed presents YUV data as 4 channels at {resolution} (e.g. 640x480)
+		// despite actually showing both Left and Right (e.g. 1280x480)
+		// This actually makes sense at YUV uses 4 bytes to show 2 pixels
+		// presumably the channels are ordered [U, Y1, V, Y2]
+		//
+		// OpenCV expects two channels of [U,Y1], [V,Y2] at the actual
+		// image resoluton (1280x480)
+		// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
+		// reshape (2 channel, rows=0 means retain # of rows) should suffice
+
 		cv::Mat leftRoi( img, cv::Rect(0,0, img.cols/2, img.rows ));
 		cv::Mat leftBgr;
 		cv::resize( leftRoi, leftBgr, _displaySize );
 		cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
-		imshow( "Display", leftBgr );
-		cv::waitKey(1);
+		imshow( "RawLeft", leftBgr );
+	}
+
+	void onWaitKey( unsigned int k )
+	{
+		cv::waitKey(k);
 	}
 
 	bool _doDisplay;
@@ -93,7 +129,7 @@ int main( int argc, char** argv )
 
 	signal( SIGINT, signal_handler );
 
-	bool doDepth = false, doRight = false, doGui = false;
+	bool doDepth = false, doRight = false;
 
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
@@ -127,7 +163,6 @@ int main( int argc, char** argv )
 
 		doDepth = depthSwitch.getValue();
 		doRight = rightSwitch.getValue();
-		doGui = guiSwitch.getValue();
 
 		Display display( guiSwitch.getValue() );
 
@@ -146,7 +181,7 @@ int main( int argc, char** argv )
 		}
 
 		// Output validation
-		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !doGui ) {
+		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !guiSwitch.isSet() ) {
 			LOG(WARNING) << "No output options set.";
 			exit(-1);
 		}
@@ -237,8 +272,8 @@ int main( int argc, char** argv )
 
 
 		int dt_us = (fps > 0) ? (1e6/fps) : 0;
-		const float sleepWiggle = 0.9;
-		dt_us *= sleepWiggle;
+		const float sleepFudge = 0.9;
+		dt_us *= sleepFudge;
 
 		LOG(INFO) << "Input is at " << resolutionToString( zedResolution ) << " at nominal " << fps << "FPS";
 
@@ -269,52 +304,18 @@ int main( int argc, char** argv )
 				if( camera->record() ) {
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
-					// if( doGui ) {
+					// According to the docs, this:
+					//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
+					sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
 
-//						std::chrono::steady_clock::time_point guiStart( std::chrono::steady_clock::now() );
-						// According to the docs, this:
-						//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
-						sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
-						// LOG(INFO) << slRawImage.width << " x " << slRawImage.height;
-						// LOG(INFO) << slRawImage.channels << " " << slRawImage.data_type << " " << slRawImage.type;
-
-						// Zed presents YUV data as 4 channels at {resolution} (e.g. 640x480)
-						// despite actually showing both Left and Right (e.g. 1280x480)
-						// This actually makes sense at YUV uses 4 bytes to show 2 pixels
-						// presumably the channels are ordered [U, Y1, V, Y2]
-						//
-						// OpenCV expects two channels of [U,Y1], [V,Y2] at the actual
-						// image resoluton (1280x480)
-						// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
-						// reshape (2 channel, rows=0 means retain # of rows) should suffice
-						Mat rawCopy;
-						sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 ).copyTo( rawCopy );
-						display.showStereoYUV( rawCopy );
-
-						// LOG(INFO) << "Raw image is now " << rawImage.cols << " x " << rawImage.rows;
-						// LOG(INFO) << rawImage.channels() << " " <<rawImage.depth() << " " << ((rawImage.type() == CV_8UC2) ? "CV_8UC2" : "not CV_8UC2");
-
-						// cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
-						//
-						// cv::Size displaySize( 640, 480);
-						// cv::Mat leftBgr;
-						// cv::resize( leftRoi, leftBgr, displaySize );
-						// cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
-
-						//cv::imshow( "Left", leftBgr );
-						//cv::waitKey(1);
-
-						// std::chrono::duration<float> dt(std::chrono::steady_clock::now() - guiStart);
-						// guiDuration.push_back( dt.count() * 1e6 );
-
-						// Canned routine from Stereolabs
-						//camera->displayRecorded();
-					//}
+					// Make a copy before enqueueing
+					Mat rawCopy;
+					sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 ).copyTo( rawCopy );
+					display.showRawStereoYUV( rawCopy );
 				}
 
 
 			} else {
-
 
 				if( dataSource->grab() ) {
 
@@ -331,6 +332,8 @@ int main( int argc, char** argv )
 						logWriter.addField( leftHandle, left );
 					}
 
+					display.showLeft( left );
+
 					if( doRight ) {
 						cv::Mat right;
 						dataSource->getImage( 1, right );
@@ -342,13 +345,8 @@ int main( int argc, char** argv )
 							logWriter.addField( rightHandle, right.data );
 						}
 
-						if( doGui ) {
-							if( right.empty() ) {
-								LOG(WARNING) << "Right image is empty, not displaying";
-							} else {
-								cv::imshow("Right", right);
-							}
-						}
+						display.showRight( right );
+
 					}
 
 					if( doDepth ) {
@@ -362,22 +360,7 @@ int main( int argc, char** argv )
 							logWriter.addField( depthHandle, depth.data );
 						}
 
-						if( doGui ) {
-							if( depth.empty() ) {
-								LOG(WARNING) << "Depth image is empty, not displaying";
-							} else {
-								cv::imshow("Depth", depth);
-							}
-						}
-					}
-
-					if( doGui ) {
-						if( left.empty() ) {
-							LOG(WARNING) << "Left image is empty, not displaying";
-						} else {
-							cv::imshow("Left", left);
-							cv::waitKey(1);
-						}
+						display.showDepth( depth );
 					}
 
 					if( loggerOutputArg.isSet() ) {
@@ -391,6 +374,8 @@ int main( int argc, char** argv )
 					LOG(WARNING) << "Problem grabbing from camera.";
 				}
 			}
+
+			display.waitKey();
 
 			if( dt_us > 0 ) {
 				std::chrono::steady_clock::time_point sleepTarget( loopStart + std::chrono::microseconds( dt_us ) );
@@ -432,7 +417,7 @@ int main( int argc, char** argv )
 			if( statisticsOutputArg.isSet() ) {
 				ofstream out( statisticsOutputArg.getValue(), ios_base::out | ios_base::ate | ios_base::app );
 				if( out.is_open() ) {
-					out << resolutionToString( zedResolution ) << "," << fps << "," << (doGui ? "display" : "") << "," << count << "," << dur.count() << ","
+					out << resolutionToString( zedResolution ) << "," << fps << "," << (guiSwitch.isSet() ? "display" : "") << "," << count << "," << dur.count() << ","
 							<< fileSizeMB << endl;
 				}
 			}

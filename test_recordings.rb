@@ -1,4 +1,4 @@
-#!/usr/bin/ruby2.0
+#!/usr/bin/env ruby
 
 stats_file = "recorder_stats.csv"
 
