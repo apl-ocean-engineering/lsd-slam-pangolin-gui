@@ -10,6 +10,8 @@ namespace fs = boost::filesystem;
 
 #include <zed/Camera.hpp>
 
+#include "active_object/active.h"
+
 #include <tclap/CmdLine.h>
 
 #include <g3log/g3log.hpp>
@@ -38,6 +40,50 @@ void signal_handler( int sig )
 	}
 }
 
+using cv::Mat;
+
+
+class Display {
+public:
+	Display( bool doDisplay )
+		: _doDisplay( doDisplay ),
+			_displaySize( 640, 480 ),
+			_active( active_object::Active::createActive() )
+	{}
+
+	void showRGB( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRGB, this, img )); }
+
+	void showStereoYUV( Mat img )
+	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowStereoYUV, this, img )); }
+
+protected:
+
+	void onShowRGB( const Mat &img )
+	{
+		cv::Mat resized;
+		cv::resize( img, resized, _displaySize );
+		imshow( "Display", resized );
+		cv::waitKey(1);
+	}
+
+	void onShowStereoYUV( const Mat &img )
+	{
+		cv::Mat leftRoi( img, cv::Rect(0,0, img.cols/2, img.rows ));
+		cv::Mat leftBgr;
+		cv::resize( leftRoi, leftBgr, _displaySize );
+		cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
+		imshow( "Display", leftBgr );
+		cv::waitKey(1);
+	}
+
+	bool _doDisplay;
+	cv::Size _displaySize;
+	std::unique_ptr<active_object::Active> _active;
+};
+
+
+
 int main( int argc, char** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
@@ -47,8 +93,7 @@ int main( int argc, char** argv )
 
 	signal( SIGINT, signal_handler );
 
-	bool doDepth = false, doRight = false;
-	bool doGui = false;
+	bool doDepth = false, doRight = false, doGui = false;
 
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
@@ -83,6 +128,8 @@ int main( int argc, char** argv )
 		doDepth = depthSwitch.getValue();
 		doRight = rightSwitch.getValue();
 		doGui = guiSwitch.getValue();
+
+		Display display( guiSwitch.getValue() );
 
 		int compressLevel = logger::LogWriter::DefaultCompressLevel;
 		if( compressionArg.isSet() ) {
@@ -190,6 +237,9 @@ int main( int argc, char** argv )
 
 
 		int dt_us = (fps > 0) ? (1e6/fps) : 0;
+		const float sleepWiggle = 0.9;
+		dt_us *= sleepWiggle;
+
 		LOG(INFO) << "Input is at " << resolutionToString( zedResolution ) << " at nominal " << fps << "FPS";
 
 		std::chrono::steady_clock::time_point start( std::chrono::steady_clock::now() );
@@ -219,9 +269,9 @@ int main( int argc, char** argv )
 				if( camera->record() ) {
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
-					if( doGui ) {
+					// if( doGui ) {
 
-						std::chrono::steady_clock::time_point guiStart( std::chrono::steady_clock::now() );
+//						std::chrono::steady_clock::time_point guiStart( std::chrono::steady_clock::now() );
 						// According to the docs, this:
 						//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
 						sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
@@ -237,26 +287,29 @@ int main( int argc, char** argv )
 						// image resoluton (1280x480)
 						// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
 						// reshape (2 channel, rows=0 means retain # of rows) should suffice
-						cv::Mat rawImage = sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 );
+						Mat rawCopy;
+						sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 ).copyTo( rawCopy );
+						display.showStereoYUV( rawCopy );
+
 						// LOG(INFO) << "Raw image is now " << rawImage.cols << " x " << rawImage.rows;
 						// LOG(INFO) << rawImage.channels() << " " <<rawImage.depth() << " " << ((rawImage.type() == CV_8UC2) ? "CV_8UC2" : "not CV_8UC2");
 
-						cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
-
-						cv::Size displaySize( 640, 480);
-						cv::Mat leftBgr;
-						cv::resize( leftRoi, leftBgr, displaySize );
-						cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
+						// cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
+						//
+						// cv::Size displaySize( 640, 480);
+						// cv::Mat leftBgr;
+						// cv::resize( leftRoi, leftBgr, displaySize );
+						// cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
 
 						//cv::imshow( "Left", leftBgr );
 						//cv::waitKey(1);
 
-						std::chrono::duration<float> dt(std::chrono::steady_clock::now() - guiStart);
-						guiDuration.push_back( dt.count() * 1e6 );
+						// std::chrono::duration<float> dt(std::chrono::steady_clock::now() - guiStart);
+						// guiDuration.push_back( dt.count() * 1e6 );
 
 						// Canned routine from Stereolabs
 						//camera->displayRecorded();
-					}
+					//}
 				}
 
 
@@ -341,7 +394,8 @@ int main( int argc, char** argv )
 
 			if( dt_us > 0 ) {
 				std::chrono::steady_clock::time_point sleepTarget( loopStart + std::chrono::microseconds( dt_us ) );
-				if( std::chrono::steady_clock::now() < sleepTarget ) std::this_thread::sleep_until( sleepTarget );
+				//if( std::chrono::steady_clock::now() < sleepTarget )
+				std::this_thread::sleep_until( sleepTarget );
 			}
 
 			count++;
