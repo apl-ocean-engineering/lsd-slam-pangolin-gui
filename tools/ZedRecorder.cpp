@@ -222,14 +222,36 @@ int main( int argc, char** argv )
 						//		[Gets] the current side by side YUV 4:2:2 frame, CPU buffer.
 						sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
 
+						LOG(INFO) << slRawImage.width << " x " << slRawImage.height;
 						LOG(INFO) << slRawImage.channels << " " << slRawImage.data_type << " " << slRawImage.type;
 
 						cv::Mat rawImage( sl::zed::slMat2cvMat( slRawImage ));
+						LOG(INFO) << "Raw image is " << rawImage.cols << " x " << rawImage.rows;
+						LOG(INFO) << rawImage.channels() << " " << rawImage.depth() << " " << ((rawImage.type() == CV_8UC4) ? "CV_8UC4" : "not CV_8UC4");
+
+// 						for( auto i = 0; i < 16; ++i ) {
+// for( auto j =0; j < 16; ++j ) {
+// LOG(INFO) << i << "," << j << "," <<  " : " << rawImage.at<cv::Vec4b>(i,j);
+// }
+// 						}
+
+						// Zed presents YUV data as 4 channels at {resolution} (e.g. 640x480)
+						// despite actually showing both Left and Right (e.g. 1280x480)
+						// This actually makes sense at YUV uses 4 bytes to show 2 pixels
+						// presumably the channels are ordered [U, Y1, V, Y2]
+						//
+						// OpenCV expects two channels of [U,Y1], [V,Y2] at the actual
+						// image resoluton (1280x480)
+						// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
+						// reshape (2 channel, rows=0 means retain # of rows) should suffice
+						rawImage = rawImage.reshape( 2, 0 );
+						LOG(INFO) << "Raw image is now " << rawImage.cols << " x " << rawImage.rows;
+						LOG(INFO) << rawImage.channels() << " " <<rawImage.depth() << " " << ((rawImage.type() == CV_8UC2) ? "CV_8UC2" : "not CV_8UC2");
 
 						cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
 
 						cv::Mat leftBgr;
-						cv::cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGR_Y422 );
+						cv::cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGRA_Y422 );
 
 						cv::imshow( "Left", leftBgr );
 						cv::waitKey(1);
