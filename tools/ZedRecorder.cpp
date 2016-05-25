@@ -196,6 +196,8 @@ int main( int argc, char** argv )
 		int duration = durationArg.getValue();
 		std::chrono::steady_clock::time_point end( start + std::chrono::seconds( duration ) );
 
+		std::vector< int > guiDuration;
+
 		if( duration > 0 )
 			LOG(INFO) << "Will log for " << duration << " seconds or press CTRL-C to stop.";
 		else
@@ -208,9 +210,9 @@ int main( int argc, char** argv )
 		while( keepGoing ) {
 			if( count > 0 && (count % 100)==0 ) LOG(INFO) << count << " frames";
 
-			std::chrono::steady_clock::time_point present( std::chrono::steady_clock::now() );
+			std::chrono::steady_clock::time_point loopStart( std::chrono::steady_clock::now() );
 
-			if( (duration > 0) && (present > end) ) { keepGoing = false;  break; }
+			if( (duration > 0) && (loopStart > end) ) { keepGoing = false;  break; }
 
 			if( svoOutputArg.isSet() ) {
 
@@ -218,22 +220,13 @@ int main( int argc, char** argv )
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
 					if( doGui ) {
+
+						std::chrono::steady_clock::time_point guiStart( std::chrono::steady_clock::now() );
 						// According to the docs, this:
-						//		[Gets] the current side by side YUV 4:2:2 frame, CPU buffer.
+						//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
 						sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
-
-						LOG(INFO) << slRawImage.width << " x " << slRawImage.height;
-						LOG(INFO) << slRawImage.channels << " " << slRawImage.data_type << " " << slRawImage.type;
-
-						cv::Mat rawImage( sl::zed::slMat2cvMat( slRawImage ));
-						LOG(INFO) << "Raw image is " << rawImage.cols << " x " << rawImage.rows;
-						LOG(INFO) << rawImage.channels() << " " << rawImage.depth() << " " << ((rawImage.type() == CV_8UC4) ? "CV_8UC4" : "not CV_8UC4");
-
-// 						for( auto i = 0; i < 16; ++i ) {
-// for( auto j =0; j < 16; ++j ) {
-// LOG(INFO) << i << "," << j << "," <<  " : " << rawImage.at<cv::Vec4b>(i,j);
-// }
-// 						}
+						// LOG(INFO) << slRawImage.width << " x " << slRawImage.height;
+						// LOG(INFO) << slRawImage.channels << " " << slRawImage.data_type << " " << slRawImage.type;
 
 						// Zed presents YUV data as 4 channels at {resolution} (e.g. 640x480)
 						// despite actually showing both Left and Right (e.g. 1280x480)
@@ -244,17 +237,22 @@ int main( int argc, char** argv )
 						// image resoluton (1280x480)
 						// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
 						// reshape (2 channel, rows=0 means retain # of rows) should suffice
-						rawImage = rawImage.reshape( 2, 0 );
-						LOG(INFO) << "Raw image is now " << rawImage.cols << " x " << rawImage.rows;
-						LOG(INFO) << rawImage.channels() << " " <<rawImage.depth() << " " << ((rawImage.type() == CV_8UC2) ? "CV_8UC2" : "not CV_8UC2");
+						cv::Mat rawImage = sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 );
+						// LOG(INFO) << "Raw image is now " << rawImage.cols << " x " << rawImage.rows;
+						// LOG(INFO) << rawImage.channels() << " " <<rawImage.depth() << " " << ((rawImage.type() == CV_8UC2) ? "CV_8UC2" : "not CV_8UC2");
 
 						cv::Mat leftRoi( rawImage, cv::Rect(0,0, rawImage.cols/2, rawImage.rows ));
 
+						cv::Size displaySize( 640, 480);
 						cv::Mat leftBgr;
-						cv::cvtColor( leftRoi, leftBgr, cv::COLOR_YUV2BGRA_Y422 );
+						cv::resize( leftRoi, leftBgr, displaySize );
+						cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
 
-						cv::imshow( "Left", leftBgr );
-						cv::waitKey(1);
+						//cv::imshow( "Left", leftBgr );
+						//cv::waitKey(1);
+
+						std::chrono::duration<float> dt(std::chrono::steady_clock::now() - guiStart);
+						guiDuration.push_back( dt.count() * 1e6 );
 
 						// Canned routine from Stereolabs
 						//camera->displayRecorded();
@@ -341,14 +339,16 @@ int main( int argc, char** argv )
 				}
 			}
 
-			if( dt_us > 0 )
-				std::this_thread::sleep_until( present + std::chrono::microseconds( dt_us ) );
+			if( dt_us > 0 ) {
+				std::chrono::steady_clock::time_point sleepTarget( loopStart + std::chrono::microseconds( dt_us ) );
+				if( std::chrono::steady_clock::now() < sleepTarget ) std::this_thread::sleep_until( sleepTarget );
+			}
 
-				count++;
+			count++;
 
-				if( numFrames > 0 && count >= numFrames ) {
-					keepGoing = false;
-				}
+			if( numFrames > 0 && count >= numFrames ) {
+				keepGoing = false;
+			}
 		}
 
 
@@ -385,6 +385,11 @@ int main( int argc, char** argv )
 		}
 
 
+		if( guiDuration.size() > 0 ) {
+			int total = std::accumulate( guiDuration.begin(), guiDuration.end(), 0 );
+
+			LOG(INFO) << "Gui required " << float(total)/guiDuration.size() << " us avg.";
+		}
 
 
 		if( dataSource ) delete dataSource;
