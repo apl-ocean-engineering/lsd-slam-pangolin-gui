@@ -10,8 +10,6 @@ namespace fs = boost::filesystem;
 
 #include <zed/Camera.hpp>
 
-#include "active_object/active.h"
-
 #include <tclap/CmdLine.h>
 
 #include <g3log/g3log.hpp>
@@ -22,6 +20,9 @@ namespace fs = boost::filesystem;
 #include "util/Undistorter.h"
 
 #include "logger/LogWriter.h"
+
+#include "ZedRecorder/Display.h"
+#include "ZedRecorder/ImageOutput.h"
 
 using namespace lsd_slam;
 
@@ -42,84 +43,6 @@ void signal_handler( int sig )
 
 using cv::Mat;
 
-
-class Display {
-public:
-	Display( bool doDisplay )
-		: _doDisplay( doDisplay ),
-			_displaySize( 640, 480 ),
-			_active( active_object::Active::createActive() )
-	{}
-
-	void showLeft( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowLeft, this, img )); }
-
-	void showDepth( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowDepth, this, img )); }
-
-	void showRight( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRight, this, img )); }
-
-	void showRawStereoYUV( Mat img )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onShowRawStereoYUV, this, img )); }
-
-	void waitKey( int wk = 1 )
-	{ if( _doDisplay ) _active->send( std::bind( &Display::onWaitKey, this, wk )); }
-
-protected:
-
-	void onShowLeft( const Mat &img )
-	{
-		cv::Mat resized;
-		cv::resize( img, resized, _displaySize );
-		imshow( "Left", resized );
-	}
-
-	void onShowDepth( const Mat &img )
-	{
-		cv::Mat resized;
-		cv::resize( img, resized, _displaySize );
-		imshow( "Display", resized );
-	}
-
-	void onShowRight( const Mat &img )
-	{
-		cv::Mat resized;
-		cv::resize( img, resized, _displaySize );
-		imshow( "Right", resized );
-	}
-
-	void onShowRawStereoYUV( const Mat &img )
-	{
-		// Zed presents YUV data as 4 channels at {resolution} (e.g. 640x480)
-		// despite actually showing both Left and Right (e.g. 1280x480)
-		// This actually makes sense at YUV uses 4 bytes to show 2 pixels
-		// presumably the channels are ordered [U, Y1, V, Y2]
-		//
-		// OpenCV expects two channels of [U,Y1], [V,Y2] at the actual
-		// image resoluton (1280x480)
-		// If the byte ordering (U,Y1,V,Y2) is the same, then a simple
-		// reshape (2 channel, rows=0 means retain # of rows) should suffice
-
-		cv::Mat leftRoi( img, cv::Rect(0,0, img.cols/2, img.rows ));
-		cv::Mat leftBgr;
-		cv::resize( leftRoi, leftBgr, _displaySize );
-		cv::cvtColor( leftBgr, leftBgr, cv::COLOR_YUV2BGRA_YUYV );
-		imshow( "RawLeft", leftBgr );
-	}
-
-	void onWaitKey( unsigned int k )
-	{
-		cv::waitKey(k);
-	}
-
-	bool _doDisplay;
-	cv::Size _displaySize;
-	std::unique_ptr<active_object::Active> _active;
-};
-
-
-
 int main( int argc, char** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
@@ -128,8 +51,6 @@ int main( int argc, char** argv )
 	g3::initializeLogging(worker.get());
 
 	signal( SIGINT, signal_handler );
-
-	bool doDepth = false, doRight = false;
 
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
@@ -161,11 +82,6 @@ int main( int argc, char** argv )
 
 		cmd.parse(argc, argv );
 
-		doDepth = depthSwitch.getValue();
-		doRight = rightSwitch.getValue();
-
-		Display display( guiSwitch.getValue() );
-
 		int compressLevel = logger::LogWriter::DefaultCompressLevel;
 		if( compressionArg.isSet() ) {
 			if( compressionArg.getValue() == "snappy" )
@@ -186,15 +102,8 @@ int main( int argc, char** argv )
 			exit(-1);
 		}
 
-		fs::path imageOutputDir( imageOutputArg.getValue() );
-		if( imageOutputArg.isSet() ) {
-			LOG(INFO) << "Recording to directory " << imageOutputDir.string();
-
-			if( !is_directory( imageOutputDir ) ) {
-				LOG(WARNING) << "Making directory " << imageOutputDir.string();
-				create_directory( imageOutputDir );
-			}
-		}
+		zed_recorder::Display display( guiSwitch.getValue() );
+		zed_recorder::ImageOutput imageOutput( imageOutputArg.getValue() );
 
 		const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
 		const sl::zed::MODE zedMode = sl::zed::MODE::NONE;
@@ -209,8 +118,8 @@ int main( int argc, char** argv )
 			LOG(INFO) << "Loading logger data from " << logInputArg.getValue();
 			dataSource = new LoggerSource( logInputArg.getValue() );
 
-			LOG_IF(FATAL, doDepth && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
-			LOG_IF(FATAL, doRight && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
+			LOG_IF(FATAL, depthSwitch.getValue() && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
+			LOG_IF(FATAL, rightSwitch.getValue() && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
 
 			if( calibOutputArg.isSet() )
 				LOG(WARNING) << "Can't create calibration file from a log file.";
@@ -231,7 +140,7 @@ int main( int argc, char** argv )
 				err = camera->init( sl::zed::PERFORMANCE, -1, true );
 			}
 
-			dataSource = new ZedSource( camera, doDepth );
+			dataSource = new ZedSource( camera, depthSwitch.getValue() );
 
 			if (err != sl::zed::SUCCESS) {
 				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
@@ -262,14 +171,17 @@ int main( int argc, char** argv )
 			cv::Size sz( res.width, res.height);
 
 			leftHandle = logWriter.registerField( "left", sz, logger::FIELD_BGRA_8C );
-			if( doDepth ) depthHandle = logWriter.registerField( "depth", sz, logger::FIELD_DEPTH_32F );
-			if( doRight ) rightHandle = logWriter.registerField( "right", sz, logger::FIELD_BGRA_8C );
+			if( depthSwitch.getValue() ) depthHandle = logWriter.registerField( "depth", sz, logger::FIELD_DEPTH_32F );
+			if( rightSwitch.getValue() ) rightHandle = logWriter.registerField( "right", sz, logger::FIELD_BGRA_8C );
 
 			if( !logWriter.open( loggerOutputArg.getValue() ) ) {
 				LOG(FATAL) << "Unable to open file " << loggerOutputArg.getValue() << " for logging.";
 			}
 		}
 
+		imageOutput.registerField( leftHandle, "left" );
+		imageOutput.registerField( rightHandle, "right" );
+		imageOutput.registerField( depthHandle, "depth" );
 
 		int dt_us = (fps > 0) ? (1e6/fps) : 0;
 		const float sleepFudge = 0.9;
@@ -280,8 +192,6 @@ int main( int argc, char** argv )
 		std::chrono::steady_clock::time_point start( std::chrono::steady_clock::now() );
 		int duration = durationArg.getValue();
 		std::chrono::steady_clock::time_point end( start + std::chrono::seconds( duration ) );
-
-		std::vector< int > guiDuration;
 
 		if( duration > 0 )
 			LOG(INFO) << "Will log for " << duration << " seconds or press CTRL-C to stop.";
@@ -322,11 +232,9 @@ int main( int argc, char** argv )
 					cv::Mat left;
 					dataSource->getImage( 0, left );
 
-					if( imageOutputArg.isSet() ) {
-						char filename[80];
-						snprintf(filename, 79, "left_%06d.png", count );
-						cv::imwrite( (imageOutputDir / filename).string(), left );
-					} else if( loggerOutputArg.isSet() ) {
+					imageOutput.write( leftHandle, left );
+
+					if( loggerOutputArg.isSet() ) {
 						logWriter.newFrame();
 						// This makes a copy of the data to send it to the compressor
 						logWriter.addField( leftHandle, left );
@@ -334,14 +242,13 @@ int main( int argc, char** argv )
 
 					display.showLeft( left );
 
-					if( doRight ) {
+					if( rightSwitch.getValue() ) {
 						cv::Mat right;
 						dataSource->getImage( 1, right );
-						if( imageOutputArg.isSet() ) {
-							char filename[80];
-							snprintf(filename, 79, "right_%06d.png", count );
-							cv::imwrite( (imageOutputDir / filename).string(), left );
-						} else if( loggerOutputArg.isSet() ) {
+
+						imageOutput.write( rightHandle, right );
+
+						if( loggerOutputArg.isSet() ) {
 							logWriter.addField( rightHandle, right.data );
 						}
 
@@ -349,14 +256,12 @@ int main( int argc, char** argv )
 
 					}
 
-					if( doDepth ) {
+					if( depthSwitch.getValue() ) {
 						cv::Mat depth;
 						dataSource->getDepth( depth );
-						if( imageOutputArg.isSet() ) {
-							char filename[80];
-							snprintf(filename, 79, "depth_%06d.png", count );
-							cv::imwrite( (imageOutputDir / filename).string(), left );
-						} else if( loggerOutputArg.isSet() ) {
+						imageOutput.write( depthHandle, depth );
+
+						if( loggerOutputArg.isSet() ) {
 							logWriter.addField( depthHandle, depth.data );
 						}
 
@@ -423,12 +328,6 @@ int main( int argc, char** argv )
 			}
 		}
 
-
-		if( guiDuration.size() > 0 ) {
-			int total = std::accumulate( guiDuration.begin(), guiDuration.end(), 0 );
-
-			LOG(INFO) << "Gui required " << float(total)/guiDuration.size() << " us avg.";
-		}
 
 
 		if( dataSource ) delete dataSource;

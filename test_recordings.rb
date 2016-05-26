@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-stats_file = "recorder_stats.csv"
+stats_file = "jetson_recorder_stats.csv"
 
 [ "hd1080", "hd720", "vga" ].each { |resolution|
 	[false, true].each { |do_display|
