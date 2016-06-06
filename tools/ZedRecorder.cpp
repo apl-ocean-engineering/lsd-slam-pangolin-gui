@@ -297,7 +297,7 @@ int main( int argc, char** argv )
 
 
 		LOG(INFO) << "Cleaning up...";
-		camera->stopRecording();
+		if( camera ) camera->stopRecording();
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
 
