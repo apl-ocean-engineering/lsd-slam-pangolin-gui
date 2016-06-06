@@ -19,12 +19,12 @@ On the Jetson TX1 writing to an Intel 710 SSD on SATA (achieved ~200MB/sec with 
 <table>
 	<tr><th>Resolution</th><th>Display?</th><th>Nom. FPS</th><th>Meas. FPS</th><th>File Size (MB)</th><th>Rate (MB/s)</th><th>Rate (MB/frame)</th><tr>
  	<tr><td>HD2K</td><td>n/a</td></tr>
-	<tr><td> HD1080 </td><td> -- </td><td> 15.0 </td><td> 12.9135419944 </td><td> 355.9581 </td><td> 35.4408625489 </td><td> 2.74447262914 </td></tr>
-<tr><td> HD1080 </td><td> VNC </td><td> 15.0 </td><td> 5.29516645092 </td><td> 404.2102 </td><td> 39.4900422539 </td><td> 7.45775276753 </td></tr>
-<tr><td> HD720 </td><td> -- </td><td> 30.0 </td><td> 26.1614965853 </td><td> 343.8303 </td><td> 34.319401829 </td><td> 1.31182869134 </td></tr>
-<tr><td> HD720 </td><td> VNC </td><td> 30.0 </td><td> 11.5067925911 </td><td> 341.7209 </td><td> 34.0148055392 </td><td> 2.95606314879 </td></tr>
-<tr><td> VGA </td><td> -- </td><td> 60.0 </td><td> 36.5160894882 </td><td> 384.03105 </td><td> 37.6616414343 </td><td> 1.03137115617 </td></tr>
-<tr><td> VGA </td><td> VNC </td><td> 60.0 </td><td> 23.9628071047 </td><td> 290.7481 </td><td> 27.9917261404 </td><td> 1.1681321816 </td></tr>
+	<tr><td> HD1080 </td><td> -- </td><td> 15.0 </td><td> 12.7063563011 </td><td> 735.6467 </td><td> 71.7925428718 </td><td> 5.65012826421 </td></tr>
+	<tr><td> HD1080 </td><td> VNC </td><td> 15.0 </td><td> 11.1310442493 </td><td> 775.1976 </td><td> 75.294579298 </td><td> 6.76437696335 </td></tr>
+	<tr><td> HD720 </td><td> -- </td><td> 30.0 </td><td> 26.0903853965 </td><td> 724.575 </td><td> 71.6077310556 </td><td> 2.74460227273 </td></tr>
+	<tr><td> HD720 </td><td> VNC </td><td> 30.0 </td><td> 22.7924848302 </td><td> 745.3174 </td><td> 72.8145543644 </td><td> 3.19467381054 </td></tr>
+	<tr><td> VGA </td><td> -- </td><td> 60.0 </td><td> 52.2519096223 </td><td> 560.81165 </td><td> 55.3993376518 </td><td> 1.06023565554 </td></tr>
+	<tr><td> VGA </td><td> VNC </td><td> 60.0 </td><td> 53.5902394152 </td><td> 583.1363 </td><td> 57.6788739917 </td><td> 1.07629438907 </td></tr>
 </table>
 
 
