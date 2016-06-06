@@ -47,11 +47,16 @@ and optionally
   * the [StereoLabs Zed](https://www.stereolabs.com/) SDK
   * [Google Snappy](https://github.com/google/snappy) for file compression.
 
-By default, LSD-SLAM will use CMake ExternalProjects to build each of these dependencies automatically.  This is the most repeatable path but will be slow to re-compile as it will update each dependency every time.
+LSD-SLAM will use CMake ExternalProjects to build each of these
+dependencies automatically.  **This no longer happens automatically as part
+of a `make` or `make all` ---** it was taking too long to re-check the dependencies
+every time.   Instead, `make dep` should be run the first time.  This will
+build just the dependencies.  CMake will (still) not resolve these dependencies
+correctly when building in parallel ('make -j').
 
-**CMake will not resolve these dependencies correctly when building in parallel ('make -j'). On the first build, use just 'make'.   Once the dependencies have been made (they should be reasonably stable), you can 'make -j' when rebuilding just LSD-SLAM.**
-
-Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable building local copies.  If you want to build G2O, Pangolin, etc. yourself, see the `cmake/Build*` files for the CMake flags I used.
+Set the appropriate CMake variable `BUILD_LOCAL_* = OFF` to disable building
+local copies.  If you want to build G2O, Pangolin, etc. yourself, see
+the `cmake/Build*` files for the CMake flags I used.
 
 See also [doc/CommonProblems.md](doc/CommonProblems.md)
 

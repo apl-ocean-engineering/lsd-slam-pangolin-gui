@@ -20,3 +20,5 @@ link_directories(
 )
 
 set( G3LOG_LIB g3logger )
+
+set_target_properties(g3log PROPERTIES EXCLUDE_FROM_ALL TRUE)

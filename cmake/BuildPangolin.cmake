@@ -30,3 +30,6 @@ endif()
 
 set( Pangolin_INCLUDE_DIRS
     ${PANGOLIN_INSTALL_DIR}/include )
+
+
+set_target_properties(Pangolin PROPERTIES EXCLUDE_FROM_ALL TRUE)
