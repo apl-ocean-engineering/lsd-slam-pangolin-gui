@@ -62,7 +62,8 @@ See also [doc/CommonProblems.md](doc/CommonProblems.md)
 
 # 4. Running
 
-Supports directories or sets of raw PNG images. For example, you can download any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run:
+Supports directories or sets of raw PNG images. For example, you can download
+any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run:
 
     ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 

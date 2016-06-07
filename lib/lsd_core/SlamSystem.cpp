@@ -331,6 +331,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	}
 
 	// propagate & make new.
+	LOG(INFO) << "Making " << newKeyframeCandidate->id() << " the new keyframe, replacing " << currentKeyFrame->id();
 	mapThread->map->createKeyFrame(newKeyframeCandidate.get());
 	currentKeyFrame.set( newKeyframeCandidate );								// Locking
 

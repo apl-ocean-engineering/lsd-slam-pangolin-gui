@@ -70,7 +70,7 @@ void MappingThread::callbackUnmappedTrackedFrames( std::shared_ptr<Frame> frame 
 	if(unmappedTrackedFrames().size() < 50 ||
 	  (unmappedTrackedFrames().size() < 100 && frame->getTrackingParent()->numMappedOnThisTotal < 10) ) {
 
-		LOG(INFO) << "Mapping unmapped tracked frames callback";
+		LOG(INFO) << "In unmapped tracked frames callback";
 		{
 			std::lock_guard<std::mutex> lock(unmappedTrackedFrames.mutex() );
 			unmappedTrackedFrames().push_back( frame );
