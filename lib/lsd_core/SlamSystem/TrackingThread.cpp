@@ -130,7 +130,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	// Create new frame
 	// std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, _conf, timestamp, image));
 
-	LOG(INFO) << "In trackFrame";
+	//LOG(INFO) << "In trackFrame";
 
 	if(!_trackingIsGood)
 	{
@@ -193,10 +193,11 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	if(manualTrackingLossIndicated || _tracker->diverged ||
 		(_system.keyFrameGraph->keyframesAll.size() > INITIALIZATION_PHASE_COUNT && !_tracker->trackingWasGood))
 	{
-		LOGF(WARNING, "TRACKING LOST for frame %d (%1.2f%% good Points, which is %1.2f%% of available points, %s)!\n",
+		LOGF(WARNING, "TRACKING LOST for frame %d (%1.2f%% good Points, which is %1.2f%% of available points; %s tracking; %s)!\n",
 				newFrame->id(),
 				100*tracking_lastGoodPerTotal,
 				100*tracking_lastGoodPerBad,
+				_tracker->trackingWasGood ? "GOOD" : "BAD",
 				_tracker->diverged ? "DIVERGED" : "NOT DIVERGED");
 
 		_trackingReference->invalidate();

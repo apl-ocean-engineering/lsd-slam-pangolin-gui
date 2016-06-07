@@ -55,13 +55,13 @@ int main( int argc, char** argv )
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
-		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","",false,"hd1080","", cmd);
-		TCLAP::ValueArg<float> fpsArg("f","fps","",false,0.0,"", cmd);
+		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","Input resolution: hd2k,hd1080,hd720,vga",false,"hd1080","", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","fps","Input FPS, otherwise defaults to max FPS from input source",false,0.0,"", cmd);
 
-		TCLAP::ValueArg<std::string> logInputArg("","log-input","Input Logger file",false,"","Logger filename", cmd);
-		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Input SVO file",false,"","Filename", cmd);
-		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Output SVO file",false,"","SVO filename", cmd);
-		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Output Logger filename",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> logInputArg("","log-input","Input Logger file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Input SVO file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Output SVO file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Output Logger filename",false,"","", cmd);
 		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Output calibration file (from stereolabs SDK)",false,"","Calib filename", cmd);
 
 		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);

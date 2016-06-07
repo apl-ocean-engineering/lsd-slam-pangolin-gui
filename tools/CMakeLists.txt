@@ -16,6 +16,6 @@ endif()
 
 # build image node
 add_executable(LSD LSD.cpp
-  LSDGuiThread.cpp
-  LSDInputThread.cpp)
+  LSD/GuiThread.cpp
+  LSD/InputThread.cpp)
 target_link_libraries(LSD lsdslam )

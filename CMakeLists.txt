@@ -24,6 +24,7 @@ find_package(ZLIB REQUIRED)
 
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
+set( EXTERNAL_PROJECTS g3log )
 ## Command used to build the external projects
 set( EXTERNAL_PROJECT_PARALLELISM 4 CACHE STRING "Level of parallelism when making ExternalProjects" )
 set( EXTERNAL_PROJECT_MAKE_COMMAND "make" )
@@ -45,6 +46,7 @@ option( USE_OPENMP "Enable OpenMP (currently only in local copy of G2O)" OFF )
 option( BUILD_LOCAL_G2O "Build a local copy of G2O" ON )
 if( BUILD_LOCAL_G2O )
 	set( G2O_USE_OPENMP ${USE_OPENMP} )
+	list( APPEND EXTERNAL_PROJECTS G2O )
 
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildG2O.cmake )
 elseif()
@@ -72,6 +74,7 @@ list( APPEND G2O_INCLUDE_DIR
 ##====  Option to build local copy of Pangolin ======================
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
 if( BUILD_LOCAL_PANGOLIN )
+	list( APPEND EXTERNAL_PROJECTS Pangolin )
 	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
 elseif()
 	find_package(Pangolin 0.1 REQUIRED)
@@ -84,8 +87,10 @@ include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
 
 ##====== Support for Google Snappy compression lib ==================
 option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
-include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
-
+if( USE_GOOGLE_SNAPPY )
+	include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
+	list( APPEND EXTERNAL_PROJECTS snappy )
+endif()
 
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -134,8 +139,11 @@ option( BUILD_UNIT_TESTS "Build unit tests" ON )
 if( BUILD_UNIT_TESTS )
   ## Build a local copy of gtest (as per the GTest FAQ)
   include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
+	list( APPEND EXTERNAL_PROJECTS gtest )
 
   add_subdirectory( test/unit/active_object )
   add_subdirectory( test/unit/logger )
   add_subdirectory( test/unit/lsd_core )
 endif()
+
+add_custom_target( deps DEPENDS ${EXTERNAL_PROJECTS} )

@@ -24,3 +24,5 @@ set( G2O_LIBRARIES
 
 set( G2O_INCLUDE_DIR
 		${G2O_INSTALL_DIR}/include )
+
+set_target_properties(G2O PROPERTIES EXCLUDE_FROM_ALL TRUE)

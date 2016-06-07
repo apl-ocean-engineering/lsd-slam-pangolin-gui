@@ -34,7 +34,7 @@
 #include "util/ThreadMutexObject.h"
 #include "util/Configuration.h"
 
-#include <LSD.h>
+#include "LSD/LSD.h"
 
 #ifdef USE_ZED
 #include "util/ZedUtils.h"
