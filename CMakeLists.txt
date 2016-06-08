@@ -102,14 +102,12 @@ message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
 
 	## For compilation on Jetson TX1
-	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a" )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a -DENABLE_NEON" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
-  # Note this enables Jakob's original SSE optimizations in his code,
+  # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with gcc
-  add_definitions("-DENABLE_SSE")
-
-  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native" )
+  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )
 endif()
 
 

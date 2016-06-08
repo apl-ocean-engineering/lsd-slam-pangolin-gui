@@ -34,7 +34,14 @@ public:
 
 	//=== Callbacks into the thread ===
 	void pushUnmappedTrackedFrame( std::shared_ptr<Frame> frame )
-	{	if( _thread ) _thread->send( std::bind( &MappingThread::callbackUnmappedTrackedFrames, this, frame )); }
+	{
+		{
+			std::lock_guard<std::mutex> lock(unmappedTrackedFrames.mutex() );
+			unmappedTrackedFrames().push_back( frame );
+		}
+
+		if( _thread ) _thread->send( std::bind( &MappingThread::callbackUnmappedTrackedFrames, this ));
+	}
 
 	void doIteration( void )
 	{ if( _thread ) _thread->send( std::bind( &MappingThread::callbackIdle, this )); }
@@ -72,7 +79,7 @@ private:
 
 	// == Thread callbacks ==
 	void callbackIdle( void );
-	void callbackUnmappedTrackedFrames( std::shared_ptr<Frame> frame );
+	void callbackUnmappedTrackedFrames( void );
 	void callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame );
 
 	// == Local functions ==

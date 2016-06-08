@@ -420,9 +420,14 @@ public:
       //Note: That is an accurate expansion!
     } else {
       Scalar theta_sq = theta*theta;
-      V = (Matrix<Scalar,3,3>::Identity()
-           + (static_cast<Scalar>(1)-std::cos(theta))/(theta_sq)*Omega
-           + (theta-std::sin(theta))/(theta_sq*theta)*Omega_sq);
+      V = Matrix<Scalar,3,3>::Identity();
+      V += (static_cast<Scalar>(1)-std::cos(theta))/(theta_sq)*Omega;
+      V += (theta-std::sin(theta))/(theta_sq*theta)*Omega_sq;
+
+      // Numerical stability problems with this version of the code.  Why?
+      //  V = (Matrix<Scalar,3,3>::Identity()
+      //       + (static_cast<Scalar>(1)-std::cos(theta))/(theta_sq)*Omega
+      //       + (theta-std::sin(theta))/(theta_sq*theta)*Omega_sq);
     }
     return SE3Group<Scalar>(so3,V*a.template head<3>());
   }

@@ -261,16 +261,14 @@ void SlamSystem::randomInit( std::shared_ptr<Frame> frame )
 // Passthrough to TrackingThread
 void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp )
 {
-	LOG(INFO) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
+	LOG(DEBUG) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
 	trackingThread->trackFrame( std::shared_ptr<lsd_slam::Frame>(new Frame(frameID, _conf, timestamp, image)), blockUntilMapped );
-	LOG(INFO) << " ... done tracking frame";
 }
 
 void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped )
 {
-	LOG(INFO) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
+	LOG(DEBUG) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
 	trackingThread->trackFrame( trackingNewFrame, blockUntilMapped );
-	LOG(INFO) << " ... done tracking frame";
 
 
 	//TODO: At present only happens at frame rate.  Push to a thread?
@@ -337,7 +335,6 @@ void SlamSystem::createNewCurrentKeyframe( std::shared_ptr<Frame> newKeyframeCan
 	}
 
 	// propagate & make new.
-	LOG(INFO) << "Making " << newKeyframeCandidate->id() << " the new keyframe, replacing " << currentKeyFrame->id();
 	mapThread->map->createKeyFrame(newKeyframeCandidate.get());
 	currentKeyFrame.set( newKeyframeCandidate );								// Locking
 

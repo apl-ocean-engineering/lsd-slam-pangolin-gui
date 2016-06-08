@@ -311,7 +311,7 @@ SE3 SE3Tracker::trackFrame(
 		{
 			diverged = true;
 			trackingWasGood = false;
-			LOG(DEBUG) << "Diverged!  Only " << buf_warped_size << " pixel to track.";
+			LOG(DEBUG) << "Diverged at level " << lvl << "!  Only " << buf_warped_size << " pixel to track.";
 			return SE3();
 		}
 
@@ -323,7 +323,6 @@ SE3 SE3Tracker::trackFrame(
 		float lastErr = callOptimized(calcWeightsAndResidual,(referenceToFrame));
 
 		numCalcResidualCalls[lvl]++;
-
 
 		float LM_lambda = settings.lambdaInitial[lvl];
 
@@ -347,17 +346,20 @@ SE3 SE3Tracker::trackFrame(
 				incTry++;
 
 				// apply increment. pretty sure this way round is correct, but hard to test.
+				Sophus::SE3f exp_increment = Sophus::SE3f::exp((inc));
 				Sophus::SE3f new_referenceToFrame = Sophus::SE3f::exp((inc)) * referenceToFrame;
 				//Sophus::SE3f new_referenceToFrame = referenceToFrame * Sophus::SE3f::exp((inc));
 
-
 				// re-evaluate residual
-				callOptimized(calcResidualAndBuffers, (reference->posData[lvl], reference->colorAndVarData[lvl], SE3TRACKING_MIN_LEVEL == lvl ? reference->pointPosInXYGrid[lvl] : 0, reference->numData[lvl], frame, new_referenceToFrame, lvl, (plotTracking && lvl == SE3TRACKING_MIN_LEVEL)));
+				callOptimized(calcResidualAndBuffers, (reference->posData[lvl], reference->colorAndVarData[lvl],
+											SE3TRACKING_MIN_LEVEL == lvl ? reference->pointPosInXYGrid[lvl] : 0, reference->numData[lvl],
+											frame, new_referenceToFrame, lvl, (plotTracking && lvl == SE3TRACKING_MIN_LEVEL)));
+
 				if(buf_warped_size < MIN_GOODPERALL_PIXEL_ABSMIN* (_imgSize.width>>lvl)*(_imgSize.height>>lvl))
 				{
 					diverged = true;
 					trackingWasGood = false;
-					LOG(DEBUG) << "Diverged!  Only " << buf_warped_size << " pixel to track.";
+					LOG(DEBUG) << "Diverged at level " << lvl << " on iteration " << iteration << "!  Only " << buf_warped_size << " pixels to track.";
 					return SE3();
 				}
 
@@ -379,13 +381,8 @@ SE3 SE3Tracker::trackFrame(
 
 					if(enablePrintDebugInfo && printTrackingIterationInfo)
 					{
-						// debug output
 						LOGF(DEBUG,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
-
-						LOGF(DEBUG,"         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
-								referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
-								referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5]);
 					}
 
 					// converged?
@@ -914,13 +911,18 @@ float SE3Tracker::calcResidualAndBuffers(
 	float sumSignedRes = 0;
 
 
-
 	float sxx=0,syy=0,sx=0,sy=0,sw=0;
 
 	float usageCount = 0;
 
-	for(;refPoint<refPoint_max; refPoint++, refColVar++, idxBuf++)
+		//LOG(DEBUG) << refNum << ": " << *refPoint << " < " << *refPoint_max;
+		// LOG(DEBUG) << "Rotmat: " << rotMat;
+		// LOG(DEBUG) << "transVec: " << transVec;
+
+	int loop = 0;
+	for(;refPoint<refPoint_max; refPoint++, refColVar++, idxBuf++, loop++)
 	{
+
 
 		Eigen::Vector3f Wxp = rotMat * (*refPoint) + transVec;
 		float u_new = (Wxp[0]/Wxp[2])*fx_l + cx_l;
@@ -932,6 +934,9 @@ float SE3Tracker::calcResidualAndBuffers(
 		{
 			if(isGoodOutBuffer != 0)
 				isGoodOutBuffer[*idxBuf] = false;
+
+				// LOG_IF(DEBUG, loop < 10) << "Ref point: " << *refPoint;
+				// LOG_IF(DEBUG, loop < 10) << "Wxp :" << Wxp[0] << " " << Wxp[1] << " " << Wxp[2] << " maps to " << u_new << " " << v_new;
 			continue;
 		}
 
@@ -1008,6 +1013,11 @@ float SE3Tracker::calcResidualAndBuffers(
 	lastGoodCount = goodCount;
 	lastBadCount = badCount;
 	lastMeanRes = sumSignedRes / goodCount;
+
+	// LOG(DEBUG) << "loop: " << loop << " buf_warped_size = " << buf_warped_size << "; goodCount = " << goodCount << "; badCount = " << badCount;
+	// if( buf_warped_size == 0 ) {
+	// 		LOG(DEBUG) << "Trap!";
+	// }
 
 	affineEstimation_a_lastIt = sqrtf((syy - sy*sy/sw) / (sxx - sx*sx/sw));
 	affineEstimation_b_lastIt = (sy - affineEstimation_a_lastIt*sx)/sw;

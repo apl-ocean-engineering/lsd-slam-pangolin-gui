@@ -248,7 +248,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	//if (!my_createNewKeyframe && _map.currentKeyFrame()->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	if (_currentKeyFrame->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	{
-		LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << _currentKeyFrame->numMappedOnThisTotal << " frames mapped on this frame, considering new keyframe.";
+		LOG_IF( DEBUG, printThreadingInfo ) << _currentKeyFrame->numMappedOnThisTotal << " frames mapped on to keyframe " << _currentKeyFrame->id() << ", considering " << newFrame->id() << " as new keyframe.";
 		Sophus::Vector3d dist = newRefToFrame_poseUpdate.translation() * _currentKeyFrame->meanIdepth;
 		float minVal = fmin(0.2f + _system.keyFrameGraph->keyframesAll.size() * 0.8f / INITIALIZATION_PHASE_COUNT,1.0f);
 
@@ -258,6 +258,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 
 		if (lastTrackingClosenessScore > minVal)
 		{
+			LOG(INFO) << "Telling mapping thread to create a new keyframe.";
 			_system.mapThread->createNewKeyFrame( newFrame );
 			// createNewKeyFrame = true;
 
@@ -272,7 +273,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 		}
 	}
 
-	LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << "Push unmapped tracked frame.";
+	LOG_IF( DEBUG, printThreadingInfo ) << "Push unmapped tracked frame.";
 	_system.mapThread->pushUnmappedTrackedFrame( newFrame );
 
 	// unmappedTrackedFrames.notifyAll();
@@ -282,7 +283,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	// If blocking is requested...
 	if(blockUntilMapped && trackingIsGood() ){
 		while( _system.mapThread->unmappedTrackedFrames().size() > 0 ) {
-			LOG(INFO) << "Waiting for mapping to be done...";
+			LOG(DEBUG) << "Waiting for mapping to be done...";
 			_system.mapThread->unmappedTrackedFrames.wait( );
 		}
 	}
