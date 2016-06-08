@@ -80,7 +80,7 @@ int main( int argc, char** argv )
 
       TCLAP::ValueArg<std::string> logFileArg("","log-input","Name of logger file to read",false,"","Logger filename", cmd);
 
-
+      TCLAP::SwitchArg debugOutputSwitch("","debug-to-console","Print DEBUG output to console", cmd, false);
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
       TCLAP::ValueArg<int> fpsArg("", "fps","FPS", false, 0, "", cmd );
 
@@ -88,6 +88,7 @@ int main( int argc, char** argv )
 
       cmd.parse(argc, argv );
 
+      if( debugOutputSwitch.getValue() ) stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
 
 #ifdef USE_ZED
       if( zedSwitch.getValue() || svoFileArg.isSet() ) {
@@ -158,6 +159,8 @@ int main( int argc, char** argv )
   CHECK( undistorter != NULL ) << "Could not create undistorter.";
   CHECK( dataSource != NULL ) << "Could not create data source.";
 
+  // Load the configuration object
+  
   conf.inputImage = undistorter->inputImageSize();
   conf.slamImage  = undistorter->outputImageSize();
   conf.camera     = undistorter->getCamera();

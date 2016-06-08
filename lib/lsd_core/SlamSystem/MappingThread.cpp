@@ -57,33 +57,44 @@ MappingThread::~MappingThread()
 
 void MappingThread::callbackIdle( void )
 {
-
 	LOG(INFO) << "Mapping thread idle callback";
-	while( doMappingIteration() ) {
-		unmappedTrackedFrames.notifyAll();
-	}
+	//while( doMappingIteration() ) {
+	//	unmappedTrackedFrames.notifyAll();
+	//}
 }
 
-void MappingThread::callbackUnmappedTrackedFrames( std::shared_ptr<Frame> frame )
+void MappingThread::callbackUnmappedTrackedFrames( void )
 {
-	// Conditional transplanted from tracking frame
-	if(unmappedTrackedFrames().size() < 50 ||
-	  (unmappedTrackedFrames().size() < 100 && frame->getTrackingParent()->numMappedOnThisTotal < 10) ) {
+	bool nMapped = false;
+	size_t sz = 0;
+	{
+		std::lock_guard<std::mutex> lock(unmappedTrackedFrames.mutex() );
+		nMapped = unmappedTrackedFrames().back()->getTrackingParent()->numMappedOnThisTotal < 10;
+		sz = unmappedTrackedFrames().size();
+	}
 
-		LOG(INFO) << "In unmapped tracked frames callback";
-		{
-			std::lock_guard<std::mutex> lock(unmappedTrackedFrames.mutex() );
-			unmappedTrackedFrames().push_back( frame );
-		}
+	LOG(DEBUG) << "In unmapped tracked frames callback with " << sz << " frames";
 
-		while( doMappingIteration() ) {
-			unmappedTrackedFrames.notifyAll();
-		}
+	if(sz < 50 ||
+	  (sz < 100 && nMapped) ) {
+
+		while( doMappingIteration() ) { ; }
+
+		// TODO:  Was originally in the while() loop above.  However, there are
+		// circumstances (if there's one untracked thread in the queue referenced
+		// to an older keyframe) where doMappingIteration will return false, and this
+		// notify never happens.   If that happens, TrackingThread will stop if it's
+		// waiting on the signal. 
+		//
+		// This should be called once per callback otherwise TrackingThread might get hung up?
+		unmappedTrackedFrames.notifyAll();
+		//}
 	}
 }
 
 void MappingThread::callbackMergeOptimizationOffset()
 {
+	LOG(DEBUG) << "Merging optimization offset";
 
 	// Bool lets us put the publishKeyframeGraph outside the mutex lock
 	bool didUpdate = false;
@@ -108,6 +119,7 @@ void MappingThread::callbackMergeOptimizationOffset()
 
 void MappingThread::callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame )
 {
+	LOG(INFO) << "Create new key frame";
 	finishCurrentKeyframe();
 	_system.changeKeyframe(frame, false, true, 1.0f);
 
@@ -139,7 +151,10 @@ void MappingThread::randomInit( std::shared_ptr<Frame> frame )
 bool MappingThread::doMappingIteration()
 {
 	// If there's no keyframe, then give up
-	if(_currentKeyFrame.empty() ) return false;
+	if(_currentKeyFrame.empty() ) {
+		LOG(INFO) << "Nothing to map: no keyframe";
+		return false;
+	}
 
 		// TODO:  Don't know under what circumstances this if happens
 	// if(!doMapping && currentKeyFrame()->idxInKeyframes < 0)
@@ -192,6 +207,8 @@ bool MappingThread::doMappingIteration()
 
 			_system.updateDisplayDepthMap();
 
+			LOG(DEBUG) << "Tracking is good, updating key frame, " << (didSomething ? "DID" : "DIDN'T") << " do something";
+
 			return didSomething;
 		// 	if(!didSomething)
 		// 		return false;
@@ -201,6 +218,8 @@ bool MappingThread::doMappingIteration()
 	}
 	else
 	{
+		LOG(INFO) << "Tracking is bad";
+
 		// invalidate map if it was valid.
 		if(map->isValid())
 		{
