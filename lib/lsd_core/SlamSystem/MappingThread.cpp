@@ -49,7 +49,7 @@ MappingThread::~MappingThread()
 	// currentKeyFrame().reset();
 	//trackingReferenceFrameSharedPT.reset();
 
-	LOG(INFO) << "Exited Mapping thread";
+	//LOG(INFO) << "Exited Mapping thread";
 }
 
 //==== Callbacks ======
@@ -57,7 +57,7 @@ MappingThread::~MappingThread()
 
 void MappingThread::callbackIdle( void )
 {
-	LOG(INFO) << "Mapping thread idle callback";
+	//LOG(INFO) << "Mapping thread idle callback";
 	//while( doMappingIteration() ) {
 	//	unmappedTrackedFrames.notifyAll();
 	//}
@@ -84,7 +84,7 @@ void MappingThread::callbackUnmappedTrackedFrames( void )
 		// circumstances (if there's one untracked thread in the queue referenced
 		// to an older keyframe) where doMappingIteration will return false, and this
 		// notify never happens.   If that happens, TrackingThread will stop if it's
-		// waiting on the signal. 
+		// waiting on the signal.
 		//
 		// This should be called once per callback otherwise TrackingThread might get hung up?
 		unmappedTrackedFrames.notifyAll();
@@ -119,7 +119,7 @@ void MappingThread::callbackMergeOptimizationOffset()
 
 void MappingThread::callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame )
 {
-	LOG(INFO) << "Create new key frame";
+	LOG(INFO) << "Set " << frame->id() << " as new key frame";
 	finishCurrentKeyframe();
 	_system.changeKeyframe(frame, false, true, 1.0f);
 

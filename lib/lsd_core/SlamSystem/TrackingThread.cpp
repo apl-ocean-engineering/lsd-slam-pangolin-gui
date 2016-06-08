@@ -258,16 +258,16 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 
 		if (lastTrackingClosenessScore > minVal)
 		{
-			LOG(INFO) << "Telling mapping thread to create a new keyframe.";
+			//LOG(INFO) << "Telling mapping thread to create a new keyframe.";
 			_system.mapThread->createNewKeyFrame( newFrame );
 			// createNewKeyFrame = true;
 
-			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
+			LOGF_IF( DEBUG, printKeyframeSelectionInfo,
 							"SELECT KEYFRAME %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
 		}
 		else
 		{
-			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
+			LOGF_IF( DEBUG, printKeyframeSelectionInfo,
 							"SKIPPD KEYFRAME %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
 
 		}
