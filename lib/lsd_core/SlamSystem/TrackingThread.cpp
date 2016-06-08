@@ -151,9 +151,9 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	{
 		std::lock_guard< std::mutex > lock( _currentKeyFrame.mutex() );
 
-		if(_trackingReference->frameID != _currentKeyFrame->id() || _currentKeyFrame->depthHasBeenUpdatedFlag)
+		if(_trackingReference->frameID != _currentKeyFrame->id() || _currentKeyFrame->depthHasBeenUpdatedFlag )
 		{
-			LOG(DEBUG) << "Setting new tracking reference from frame " << _currentKeyFrame->id();
+			LOG(DEBUG) << "Importing new tracking reference from frame " << _currentKeyFrame->id();
 			_trackingReference->importFrame( _currentKeyFrame.get() );
 			_currentKeyFrame->depthHasBeenUpdatedFlag = false;
 			_trackingReferenceFrameSharedPT = _currentKeyFrame.ptr();
@@ -162,7 +162,6 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	}
 
 	FramePoseStruct &trackingReferencePose( *_trackingReference->keyframe->pose);
-
 
 	// DO TRACKING & Show tracking result.
 	LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo) << "TRACKING frame " << newFrame->id() << " onto ref. " << _trackingReference->frameID;
@@ -240,6 +239,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	//Sim3 lastTrackedCamToWorld = mostCurrentTrackedFrame->getScaledCamToWorld();
 //  mostCurrentTrackedFrame->TrackingParent->getScaledCamToWorld() * sim3FromSE3(mostCurrentTrackedFrame->thisToParent_SE3TrackingResult, 1.0);
 
+	LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << "Publishing tracked frame";
 	_system.publishTrackedFrame(newFrame.get());
 
 
@@ -248,6 +248,7 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	//if (!my_createNewKeyframe && _map.currentKeyFrame()->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	if (_currentKeyFrame->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	{
+		LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << _currentKeyFrame->numMappedOnThisTotal << " frames mapped on this frame, considering new keyframe.";
 		Sophus::Vector3d dist = newRefToFrame_poseUpdate.translation() * _currentKeyFrame->meanIdepth;
 		float minVal = fmin(0.2f + _system.keyFrameGraph->keyframesAll.size() * 0.8f / INITIALIZATION_PHASE_COUNT,1.0f);
 
@@ -261,16 +262,17 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 			// createNewKeyFrame = true;
 
 			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
-							"SELECT %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
+							"SELECT KEYFRAME %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
 		}
 		else
 		{
 			LOGF_IF( INFO, enablePrintDebugInfo && printKeyframeSelectionInfo,
-							"SKIPPD %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
+							"SKIPPD KEYFRAME %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",newFrame->id(),newFrame->getTrackingParent()->id(), dist.dot(dist), _tracker->pointUsage, _system.trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), _tracker->pointUsage));
 
 		}
 	}
 
+	LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << "Push unmapped tracked frame.";
 	_system.mapThread->pushUnmappedTrackedFrame( newFrame );
 
 	// unmappedTrackedFrames.notifyAll();
@@ -304,6 +306,9 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 	// 		}
 	// 	}
 	// }
+
+	LOG_IF( DEBUG,  enablePrintDebugInfo && printThreadingInfo ) << "Exiting trackFrame";
+
 }
 
 
@@ -350,4 +355,5 @@ void TrackingThread::takeRelocalizeResult( const RelocalizerResult &result  )
 			setTrackingIsGood();
 		//}
 	}
+
 }

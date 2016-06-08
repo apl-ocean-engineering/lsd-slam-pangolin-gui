@@ -84,6 +84,7 @@ void MappingThread::callbackUnmappedTrackedFrames( std::shared_ptr<Frame> frame 
 
 void MappingThread::callbackMergeOptimizationOffset()
 {
+	LOG(DEBUG) << "Merging optimization offset";
 
 	// Bool lets us put the publishKeyframeGraph outside the mutex lock
 	bool didUpdate = false;
@@ -108,6 +109,7 @@ void MappingThread::callbackMergeOptimizationOffset()
 
 void MappingThread::callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame )
 {
+	LOG(DEBUG) << "Create new key frame";
 	finishCurrentKeyframe();
 	_system.changeKeyframe(frame, false, true, 1.0f);
 

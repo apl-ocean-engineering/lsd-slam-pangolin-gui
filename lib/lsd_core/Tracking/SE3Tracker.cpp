@@ -380,7 +380,7 @@ SE3 SE3Tracker::trackFrame(
 					if(enablePrintDebugInfo && printTrackingIterationInfo)
 					{
 						// debug output
-						LOGF(DEBUG,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
+						LOGF(DEBUG,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 
 						LOGF(DEBUG,"         p=%.4f %.4f %.4f %.4f %.4f %.4f\n",
@@ -393,7 +393,7 @@ SE3 SE3Tracker::trackFrame(
 					{
 						if(enablePrintDebugInfo && printTrackingIterationInfo)
 						{
-							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
+							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (last residual reduction too small).",
 									lvl,iteration);
 						}
 						iteration = settings.maxItsPerLvl[lvl];
@@ -413,7 +413,7 @@ SE3 SE3Tracker::trackFrame(
 				{
 					if(enablePrintDebugInfo && printTrackingIterationInfo)
 					{
-						LOGF(DEBUG,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
+						LOGF(DEBUG,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f).",
 								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 					}
 
@@ -421,7 +421,7 @@ SE3 SE3Tracker::trackFrame(
 					{
 						if(enablePrintDebugInfo && printTrackingIterationInfo)
 						{
-							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (stepsize too small).\n",
+							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (stepsize too small).",
 									lvl,iteration);
 						}
 						iteration = settings.maxItsPerLvl[lvl];
