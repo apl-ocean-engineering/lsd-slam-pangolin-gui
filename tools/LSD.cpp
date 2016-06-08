@@ -159,6 +159,8 @@ int main( int argc, char** argv )
   CHECK( undistorter != NULL ) << "Could not create undistorter.";
   CHECK( dataSource != NULL ) << "Could not create data source.";
 
+  // Load the configuration object
+  
   conf.inputImage = undistorter->inputImageSize();
   conf.slamImage  = undistorter->outputImageSize();
   conf.camera     = undistorter->getCamera();

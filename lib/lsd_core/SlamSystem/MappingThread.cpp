@@ -57,7 +57,6 @@ MappingThread::~MappingThread()
 
 void MappingThread::callbackIdle( void )
 {
-
 	LOG(INFO) << "Mapping thread idle callback";
 	while( doMappingIteration() ) {
 		unmappedTrackedFrames.notifyAll();
@@ -80,6 +79,7 @@ void MappingThread::callbackUnmappedTrackedFrames( std::shared_ptr<Frame> frame 
 			unmappedTrackedFrames.notifyAll();
 		}
 	}
+		LOG(INFO) << " ... exit unmapped tracked frames callback";
 }
 
 void MappingThread::callbackMergeOptimizationOffset()
@@ -141,7 +141,10 @@ void MappingThread::randomInit( std::shared_ptr<Frame> frame )
 bool MappingThread::doMappingIteration()
 {
 	// If there's no keyframe, then give up
-	if(_currentKeyFrame.empty() ) return false;
+	if(_currentKeyFrame.empty() ) {
+		LOG(INFO) << "Nothing to map: no keyframe";
+		return false;
+	}
 
 		// TODO:  Don't know under what circumstances this if happens
 	// if(!doMapping && currentKeyFrame()->idxInKeyframes < 0)
@@ -190,6 +193,7 @@ bool MappingThread::doMappingIteration()
 		// }
 		// else
 		// {
+			LOG(INFO) << "Tracking is good, updating key frame";
 			bool didSomething = updateKeyframe();
 
 			_system.updateDisplayDepthMap();
@@ -203,6 +207,8 @@ bool MappingThread::doMappingIteration()
 	}
 	else
 	{
+		LOG(INFO) << "Tracking is bad";
+
 		// invalidate map if it was valid.
 		if(map->isValid())
 		{
