@@ -294,6 +294,8 @@ private:
 
 };
 
+typedef std::shared_ptr<Frame> SharedFramePtr;
+
 
 
 inline float* Frame::image(int level)

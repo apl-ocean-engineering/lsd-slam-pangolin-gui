@@ -102,7 +102,7 @@ message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
 
 	## For compilation on Jetson TX1
-	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a -DENABLE_NEON" )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a") # -DENABLE_NEON" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,

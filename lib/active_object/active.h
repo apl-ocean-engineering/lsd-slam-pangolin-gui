@@ -53,6 +53,8 @@ public:
   virtual ~Active();
   void send(Callback msg_);
 
+  size_t size() const { return mq_.size(); }
+
   // std::unique_ptr< std::lock_guard< std::mutex > > lock_guard() { return mq_.lock_guard(); }
 
   static std::unique_ptr<Active> createActive(); // Factory: safe construction & thread start
@@ -79,6 +81,8 @@ private:
 public:
   virtual ~ActiveIdle();
   void send(Callback msg_);
+
+    size_t size() const { return mq_.size(); }
 
   // std::unique_ptr< std::lock_guard< std::mutex > > lock_guard() { return mq_.lock_guard(); }
 

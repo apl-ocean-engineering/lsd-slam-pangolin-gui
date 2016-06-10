@@ -80,7 +80,7 @@ Frame::Frame(int id, const Configuration &conf,
 Frame::~Frame()
 {
 
-	LOGF_IF(DEBUG,enablePrintDebugInfo && printMemoryDebugInfo,"DELETING frame %d\n", this->id());
+	LOGF_IF(INFO,printMemoryDebugInfo,"DELETING frame %d", this->id());
 
 	FrameMemory::getInstance().deactivateFrame(this);
 
