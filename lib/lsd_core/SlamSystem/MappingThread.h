@@ -33,14 +33,17 @@ public:
 	~MappingThread();
 
 	//=== Callbacks into the thread ===
-	void pushUnmappedTrackedFrame( std::shared_ptr<Frame> frame )
+	void pushUnmappedTrackedFrame( const std::shared_ptr<Frame> &frame )
 	{
 		{
 			std::lock_guard<std::mutex> lock(unmappedTrackedFrames.mutex() );
 			unmappedTrackedFrames().push_back( frame );
 		}
 
-		if( _thread ) _thread->send( std::bind( &MappingThread::callbackUnmappedTrackedFrames, this ));
+		if( _thread ) {
+			_thread->send( std::bind( &MappingThread::callbackUnmappedTrackedFrames, this ));
+			LOG(INFO) << "Mq now " << _thread->size();
+		}
 	}
 
 	void doIteration( void )
@@ -50,18 +53,29 @@ public:
 	{ optimizationUpdateMerged.reset();
 		if( _thread ) _thread->send( std::bind( &MappingThread::callbackMergeOptimizationOffset, this )); }
 
-	void createNewKeyFrame( std::shared_ptr<Frame> frame )
-	{ 	if( _thread ) _thread->send( std::bind( &MappingThread::callbackCreateNewKeyFrame, this, frame )); }
+	void createNewKeyFrame( const SharedFramePtr &frame )
+	{
+		if( _newKeyFrame.get() != nullptr ) LOG(WARNING) << "Asked to make " << frame->id() << " a keyframe when " << _newKeyFrame()->id() << " is already pending";
+		_newKeyFrame = frame;
+		//if( _thread ) {
+		//		_thread->send( std::bind( &MappingThread::callbackCreateNewKeyFrame, this, frame ));
+		//		LOG(INFO) << "Mq now " << _thread->size();
+		//}
+	}
 
+	bool newKeyFramePending( void )
+	{
+			return _newKeyFrame.get() != nullptr;
+	}
 
-	void gtDepthInit( std::shared_ptr<Frame> frame );
-	void randomInit( std::shared_ptr<Frame> frame );
+	void gtDepthInit( SharedFramePtr frame );
+	void randomInit( SharedFramePtr frame );
 
 
 	// SET & READ EVERYWHERE
 	// std::mutex currentKeyFrameMutex;
 
-	MutexObject< std::deque< std::shared_ptr<Frame> > > unmappedTrackedFrames;
+	MutexObject< std::deque< SharedFramePtr > > unmappedTrackedFrames;
 
 	DepthMap* map;
 	TrackingReference* mappingTrackingReference;
@@ -77,10 +91,12 @@ private:
 	SlamSystem &_system;
 	CurrentKeyFrame &_currentKeyFrame;
 
+	CurrentKeyFrame _newKeyFrame;
+
 	// == Thread callbacks ==
 	void callbackIdle( void );
 	void callbackUnmappedTrackedFrames( void );
-	void callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame );
+	//void callbackCreateNewKeyFrame( std::shared_ptr<Frame> frame );
 
 	// == Local functions ==
 	void callbackMergeOptimizationOffset();

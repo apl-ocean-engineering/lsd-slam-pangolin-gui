@@ -224,10 +224,10 @@ void SlamSystem::gtDepthInit( std::shared_ptr<Frame> frame )
 
 	if( conf().SLAMEnabled) {
 		boost::lock_guard<boost::shared_mutex> lock( keyFrameGraph->idToKeyFrameMutex );
-		keyFrameGraph->idToKeyFrame.insert(std::make_pair( currentKeyFrame->id(), currentKeyFrame.ptr() ));
+		keyFrameGraph->idToKeyFrame.insert(std::make_pair( currentKeyFrame()->id(), currentKeyFrame() ));
 	}
 
-	if(continuousPCOutput) publishKeyframe( currentKeyFrame.get() );
+	if(continuousPCOutput) publishKeyframe( currentKeyFrame().get() );
 
 }
 
@@ -250,10 +250,10 @@ void SlamSystem::randomInit( std::shared_ptr<Frame> frame )
 
 		if( conf().SLAMEnabled) {
 			boost::lock_guard<boost::shared_mutex> lock( keyFrameGraph->idToKeyFrameMutex );
-			keyFrameGraph->idToKeyFrame.insert( std::make_pair(currentKeyFrame->id(), currentKeyFrame.ptr() ) );
+			keyFrameGraph->idToKeyFrame.insert( std::make_pair(currentKeyFrame()->id(), currentKeyFrame() ) );
 		}
 
-	if(continuousPCOutput ) publishKeyframe( currentKeyFrame.get() );
+	if(continuousPCOutput ) publishKeyframe( currentKeyFrame().get() );
 
 	LOG(INFO) << "Done Random initialization!";
 }
@@ -278,7 +278,7 @@ void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockU
 
 //=== Keyframe maintenance functions ====
 
-void SlamSystem::changeKeyframe(std::shared_ptr<Frame> candidate, bool noCreate, bool force, float maxScore)
+void SlamSystem::changeKeyframe( std::shared_ptr<Frame> candidate, bool noCreate, bool force, float maxScore)
 {
 	Frame* newReferenceKF=0;
 
@@ -290,6 +290,7 @@ void SlamSystem::changeKeyframe(std::shared_ptr<Frame> candidate, bool noCreate,
 	}
 
 	if(newReferenceKF != 0) {
+		LOG(INFO) << "Reloading existing key frame " << newReferenceKF->id();
 		loadNewCurrentKeyframe(newReferenceKF);
 	} else {
 		if(force)
@@ -320,13 +321,13 @@ void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 	LOG_IF(DEBUG, enablePrintDebugInfo && printRegularizeStatistics ) << "re-activate frame " << keyframeToLoad->id() << "!";
 
 	currentKeyFrame.set( keyFrameGraph->idToKeyFrame.find(keyframeToLoad->id())->second );
-	currentKeyFrame->depthHasBeenUpdatedFlag = false;
+	currentKeyFrame()->depthHasBeenUpdatedFlag = false;
 }
 
 
-void SlamSystem::createNewCurrentKeyframe( std::shared_ptr<Frame> newKeyframeCandidate)
+void SlamSystem::createNewCurrentKeyframe( SharedFramePtr newKeyframeCandidate)
 {
-	LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo) << "CREATE NEW KF " << newKeyframeCandidate->id() << " from " << currentKeyFrame->id();
+	LOG_IF(INFO, printThreadingInfo) << "CREATE NEW KF " << newKeyframeCandidate->id() << ", replacing " << currentKeyFrame()->id();
 
 	if( conf().SLAMEnabled)
 	{
@@ -337,6 +338,8 @@ void SlamSystem::createNewCurrentKeyframe( std::shared_ptr<Frame> newKeyframeCan
 	// propagate & make new.
 	mapThread->map->createKeyFrame(newKeyframeCandidate.get());
 	currentKeyFrame.set( newKeyframeCandidate );								// Locking
+
+
 
 	// if(outputWrapper && printPropagationStatistics)
 	// {
@@ -387,8 +390,8 @@ void SlamSystem::updateDisplayDepthMap()
 
 	mapThread->map->debugPlotDepthMap();
 	double scale = 1;
-	if( !currentKeyFrame.empty() )
-		scale = currentKeyFrame->getScaledCamToWorld().scale();
+	if( currentKeyFrame().get() != nullptr )
+		scale = currentKeyFrame()->getScaledCamToWorld().scale();
 
 	// debug plot depthmap
 	char buf1[200];
@@ -397,7 +400,7 @@ void SlamSystem::updateDisplayDepthMap()
 	snprintf(buf1,200,"Map: Upd %3.0fms (%2.0fHz); Trk %3.0fms (%2.0fHz); %d / %d",
 			mapThread->map->_perf.update.ms(), mapThread->map->_perf.update.rate(),
 			trackingThread->perf.ms(), trackingThread->perf.rate(),
-			currentKeyFrame->numFramesTrackedOnThis, currentKeyFrame->numMappedOnThis ); //, (int)unmappedTrackedFrames().size());
+			currentKeyFrame()->numFramesTrackedOnThis, currentKeyFrame()->numMappedOnThis ); //, (int)unmappedTrackedFrames().size());
 
 	// snprintf(buf2,200,"dens %2.0f%%; good %2.0f%%; scale %2.2f; res %2.1f/; usg %2.0f%%; Map: %d F, %d KF, %d E, %.1fm Pts",
 	// 		100*currentKeyFrame->numPoints/(float)(conf().slamImage.area()),

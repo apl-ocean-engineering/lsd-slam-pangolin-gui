@@ -92,15 +92,15 @@ public:
 
 
 	void randomInit(uchar* image, int id, double timeStamp);
-	void randomInit( std::shared_ptr<Frame> frame );
-	void gtDepthInit( std::shared_ptr<Frame> frame );
+	void randomInit( SharedFramePtr frame );
+	void gtDepthInit( SharedFramePtr frame );
 
 
 	// tracks a frame.
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
-	void trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntilMapped );
+	void trackFrame(SharedFramePtr newFrame, bool blockUntilMapped );
 	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp );
 
 
@@ -118,9 +118,9 @@ public:
 	Sophus::Sim3f getCurrentPoseEstimateScale();
 
 	//==== KeyFrame maintenance functions ====
-	void changeKeyframe( std::shared_ptr<Frame> frame, bool noCreate, bool force, float maxScore);
+	void changeKeyframe( SharedFramePtr frame, bool noCreate, bool force, float maxScore);
 	void loadNewCurrentKeyframe(Frame* keyframeToLoad);
-	void createNewCurrentKeyframe( std::shared_ptr<Frame> newKeyframeCandidate );
+	void createNewCurrentKeyframe( SharedFramePtr newKeyframeCandidate );
 
 
 	// void requestDepthMapScreenshot(const std::string& filename);

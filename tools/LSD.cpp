@@ -156,11 +156,17 @@ int main( int argc, char** argv )
       exit(-1);
     }
 
+#ifdef ENABLE_SSE
+  LOG(INFO) << "With SSE optimizations.";
+#elif ENABLE_NEON
+  LOG(INFO) << "With NEON optimizations.";
+#endif
+
   CHECK( undistorter != NULL ) << "Could not create undistorter.";
   CHECK( dataSource != NULL ) << "Could not create data source.";
 
   // Load the configuration object
-  
+
   conf.inputImage = undistorter->inputImageSize();
   conf.slamImage  = undistorter->outputImageSize();
   conf.camera     = undistorter->getCamera();

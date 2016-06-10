@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ void FrameMemory::releaseBuffes()
 void* FrameMemory::getBuffer(unsigned int sizeInByte)
 {
 	boost::unique_lock<boost::mutex> lock(accessMutex);
-	
+
 	if (availableBuffers.count(sizeInByte) > 0)
 	{
 		std::vector< void* >& availableOfSize = availableBuffers.at(sizeInByte);
@@ -104,7 +104,7 @@ void FrameMemory::returnBuffer(void* buffer)
 	if(buffer==0) return;
 
 	boost::unique_lock<boost::mutex> lock(accessMutex);
-	
+
 	unsigned int size = bufferSizes.at(buffer);
 	//printf("returnFloatBuffer(%d)\n", size);
 	if (availableBuffers.count(size) > 0)
@@ -120,7 +120,7 @@ void FrameMemory::returnBuffer(void* buffer)
 void* FrameMemory::allocateBuffer(unsigned int size)
 {
 	//printf("allocateFloatBuffer(%d)\n", size);
-	
+
 	void* buffer = (void*)(new char[size]);
 	bufferSizes.insert(std::make_pair(buffer, size));
 	return buffer;
@@ -135,6 +135,7 @@ boost::shared_lock<boost::shared_mutex> FrameMemory::activateFrame(Frame* frame)
 	frame->isActive = true;
 	return boost::shared_lock<boost::shared_mutex>(frame->activeMutex);
 }
+
 void FrameMemory::deactivateFrame(Frame* frame)
 {
 	boost::unique_lock<boost::mutex> lock(activeFramesMutex);
@@ -142,10 +143,12 @@ void FrameMemory::deactivateFrame(Frame* frame)
 	activeFrames.remove(frame);
 
 	while(!frame->minimizeInMemory())
-		printf("cannot deactivateFrame frame %d, as some acvite-lock is lingering. May cause deadlock!\n", frame->id());	// do it in a loop, to make shure it is really, really deactivated.
+		LOG(WARNING) << "cannot deactivateFrame frame " << frame->id()
+								<< ", as some active locks are lingering. May cause deadlock!";	// do it in a loop, to make sure it is really, really deactivated.
 
 	frame->isActive = false;
 }
+
 void FrameMemory::pruneActiveFrames()
 {
 	boost::unique_lock<boost::mutex> lock(activeFramesMutex);
@@ -156,7 +159,7 @@ void FrameMemory::pruneActiveFrames()
 		{
 			if(!activeFrames.back()->minimizeInMemory())
 			{
-				printf("failed to minimize frame %d twice. maybe some active-lock is lingering?\n",activeFrames.back()->id());
+				LOG(WARNING) << "failed to minimize frame " << activeFrames.back()->id() << " twice. maybe some active-lock is lingering?";
 				return;	 // pre-emptive return if could not deactivate.
 			}
 		}
