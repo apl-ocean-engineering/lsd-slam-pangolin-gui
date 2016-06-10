@@ -267,7 +267,7 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 
 void SlamSystem::trackFrame(std::shared_ptr<Frame> trackingNewFrame, bool blockUntilMapped )
 {
-	LOG(DEBUG) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
+	LOG(INFO) << "Tracking frame; " << ( blockUntilMapped ? "WILL" : "won't") << " block";
 	trackingThread->trackFrame( trackingNewFrame, blockUntilMapped );
 
 

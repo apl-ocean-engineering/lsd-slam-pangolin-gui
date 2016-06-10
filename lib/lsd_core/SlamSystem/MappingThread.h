@@ -42,7 +42,6 @@ public:
 
 		if( _thread ) {
 			_thread->send( std::bind( &MappingThread::callbackUnmappedTrackedFrames, this ));
-			LOG(INFO) << "Mq now " << _thread->size();
 		}
 	}
 

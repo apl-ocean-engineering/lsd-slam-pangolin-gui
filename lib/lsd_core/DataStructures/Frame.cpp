@@ -31,10 +31,6 @@ namespace lsd_slam
 
 int privateFrameAllocCount = 0;
 
-
-
-
-
 Frame::Frame(int id, const Configuration &conf,
 							double timestamp, const unsigned char* image )
 	: _conf( conf )
@@ -72,7 +68,7 @@ Frame::Frame(int id, const Configuration &conf,
 
 	privateFrameAllocCount++;
 
-	LOG_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo)
+	LOG_IF(INFO, printMemoryDebugInfo)
 						<< "ALLOCATED frame " << this->id()
 						<< ", now there are " << privateFrameAllocCount;
 }

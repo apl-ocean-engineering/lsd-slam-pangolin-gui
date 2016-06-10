@@ -204,19 +204,9 @@ bool MappingThread::doMappingIteration()
 		if( frame ) {
 			LOG(INFO) << "Set " << frame->id() << " as new key frame";
 			finishCurrentKeyframe();
-
-			LOG(INFO) << "Before: " << frame.use_count() << " references to the current key frame " << frame->id();
-			LOG(INFO) << "Before: " << _currentKeyFrame().use_count() << " references to the current key frame " << _currentKeyFrame()->id();
-
 			_system.changeKeyframe(frame, false, true, 1.0f);
 
-			LOG(INFO) << ( _currentKeyFrame() == frame ? "" : "NOT " ) << "equal pointers";
-
 			_newKeyFrame().reset();
-
-  		LOG(INFO) << "After: " << frame.use_count() << " references to the current key frame " << frame->id();
-			LOG(INFO) << "After: " << _currentKeyFrame().use_count() << " references to the current key frame " << _currentKeyFrame()->id();
-
 		} else {
 			 didSomething = updateKeyframe();
 		}
@@ -277,23 +267,12 @@ bool MappingThread::updateKeyframe()
 
 	unmappedTrackedFrames.lock();
 
-		LOG(INFO) << "Current key frame is " << _currentKeyFrame()->id() << " with " <<  _currentKeyFrame().use_count();
-
 	// Drops frames that have a different tracking parent.
 	while(unmappedTrackedFrames().size() > 0 &&
 			(!unmappedTrackedFrames().front()->hasTrackingParent() ||
 				unmappedTrackedFrames().front()->getTrackingParent() != _currentKeyFrame().get()))
 	{
 		unmappedTrackedFrames().front()->clear_refPixelWasGood();
-		LOG(INFO) << "Current key frame is " << _currentKeyFrame()->id() << " with " <<  _currentKeyFrame().use_count();
-		LOG(INFO) << "Popping " << unmappedTrackedFrames().front()->id() << " with "
-		 					<< unmappedTrackedFrames().front().use_count()
-							<< (unmappedTrackedFrames().front() == _currentKeyFrame() ? " EQUAL" : " NOT EQUAL");
-
-		LOG(INFO) << "Current key frame is " << _currentKeyFrame()->id() << " with " <<  _currentKeyFrame().use_count();
-		LOG(INFO) << "Popping " << unmappedTrackedFrames().front()->id() << " with "
-							<< unmappedTrackedFrames().front().use_count()
-							<< (unmappedTrackedFrames().front() == _currentKeyFrame() ? " EQUAL" : " NOT EQUAL");
 		unmappedTrackedFrames().pop_front();
 	}
 
