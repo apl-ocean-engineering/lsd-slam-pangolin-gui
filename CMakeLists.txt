@@ -111,6 +111,10 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
 endif()
 
 
+if(APPLE)
+	set( CMAKE_MACOSX_RPATH OFF )
+endif()
+
 ## Set global include paths
 set( LSDSLAM_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/lib

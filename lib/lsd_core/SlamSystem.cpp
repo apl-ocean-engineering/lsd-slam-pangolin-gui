@@ -312,7 +312,7 @@ void SlamSystem::changeKeyframe( std::shared_ptr<Frame> candidate, bool noCreate
 
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
-	std::lock_guard< std::mutex > lock( currentKeyFrame.mutex() );
+	//std::lock_guard< std::mutex > lock( currentKeyFrame.mutex() );
 
 	// LOG_IF(DEBUG, enablePrintDebugInfo && printThreadingInfo ) << "RE-ACTIVATE KF " << keyframeToLoad->id();
 
