@@ -34,7 +34,7 @@
 #include "util/ThreadMutexObject.h"
 #include "util/Configuration.h"
 
-#include <LSD.h>
+#include "LSD/LSD.h"
 
 #ifdef USE_ZED
 #include "util/ZedUtils.h"
@@ -80,7 +80,7 @@ int main( int argc, char** argv )
 
       TCLAP::ValueArg<std::string> logFileArg("","log-input","Name of logger file to read",false,"","Logger filename", cmd);
 
-
+      TCLAP::SwitchArg debugOutputSwitch("","debug-to-console","Print DEBUG output to console", cmd, false);
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
       TCLAP::ValueArg<int> fpsArg("", "fps","FPS", false, 0, "", cmd );
 
@@ -88,6 +88,7 @@ int main( int argc, char** argv )
 
       cmd.parse(argc, argv );
 
+      if( debugOutputSwitch.getValue() ) stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
 
 #ifdef USE_ZED
       if( zedSwitch.getValue() || svoFileArg.isSet() ) {
@@ -155,8 +156,16 @@ int main( int argc, char** argv )
       exit(-1);
     }
 
+#ifdef ENABLE_SSE
+  LOG(INFO) << "With SSE optimizations.";
+#elif ENABLE_NEON
+  LOG(INFO) << "With NEON optimizations.";
+#endif
+
   CHECK( undistorter != NULL ) << "Could not create undistorter.";
   CHECK( dataSource != NULL ) << "Could not create data source.";
+
+  // Load the configuration object
 
   conf.inputImage = undistorter->inputImageSize();
   conf.slamImage  = undistorter->outputImageSize();

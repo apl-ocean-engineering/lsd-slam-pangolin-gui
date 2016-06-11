@@ -21,10 +21,13 @@ namespace fs = boost::filesystem;
 
 #include "logger/LogWriter.h"
 
+#include "ZedRecorder/Display.h"
+#include "ZedRecorder/ImageOutput.h"
+
 using namespace lsd_slam;
 
 #ifndef USE_ZED
-#error "This shouldn't be built unless USE_ZED is defined."
+	#error "ZedRecorder shouldn't be built unless USE_ZED is defined."
 #endif
 
 bool keepGoing = true;
@@ -38,6 +41,8 @@ void signal_handler( int sig )
 	}
 }
 
+using cv::Mat;
+
 int main( int argc, char** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
@@ -47,40 +52,35 @@ int main( int argc, char** argv )
 
 	signal( SIGINT, signal_handler );
 
-	bool doDepth = false, doRight = false;
-	bool doGui = false;
-
 	try {
 		TCLAP::CmdLine cmd("LSDRecorder", ' ', "0.1");
 
-		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","Zed resolution",false,"hd1080","hd2k,hd1080,hd720,vga", cmd);
-		TCLAP::ValueArg<float> fpsArg("f","frame-rate","Video frame rate (fps)",false,0.0,"", cmd);
+		TCLAP::ValueArg<std::string> resolutionArg("r","resolution","Input resolution: hd2k,hd1080,hd720,vga",false,"hd1080","", cmd);
+		TCLAP::ValueArg<float> fpsArg("f","fps","Input FPS, otherwise defaults to max FPS from input source",false,0.0,"", cmd);
 
-		TCLAP::ValueArg<std::string> logInputArg("","log-input","Name of Logger file to read",false,"","Logger filename", cmd);
-		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","SVO input file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","SVO output file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Logger output file",false,"","filename", cmd);
-		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Name of calibration file",false,"","filename", cmd);
+		TCLAP::ValueArg<std::string> logInputArg("","log-input","Input Logger file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Input SVO file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Output SVO file",false,"","", cmd);
+		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Output Logger filename",false,"","", cmd);
+		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Output calibration file (from stereolabs SDK)",false,"","Calib filename", cmd);
 
-		TCLAP::ValueArg<std::string> compressionArg("","compression","Compression algorithm and/or zlib compression level)",false,"snappy","snappy,0-9", cmd);
+		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
 
 		TCLAP::ValueArg<std::string> imageOutputArg("","image-output","",false,"","SVO filename", cmd);
 
+		TCLAP::ValueArg<std::string> statisticsOutputArg("","statistics-output","",false,"","", cmd);
+
 		// TCLAP::SwitchArg noGuiSwitch("","no-gui","Don't show a GUI", cmd, false);
 
-		TCLAP::SwitchArg depthSwitch("","depth","Record depth information (only valid for logger output)", cmd, false);
-		TCLAP::SwitchArg rightSwitch("","right","Record right image (only valid for logger output)", cmd, false);
+		TCLAP::SwitchArg depthSwitch("","depth","", cmd, false);
+		TCLAP::SwitchArg rightSwitch("","right","", cmd, false);
 
 		TCLAP::SwitchArg guiSwitch("","display","", cmd, false);
 
 
-		TCLAP::ValueArg<int> durationArg("","duration","Total recording time",false,0,"seconds", cmd);
+		TCLAP::ValueArg<int> durationArg("","duration","Duration",false,0,"seconds", cmd);
 
 		cmd.parse(argc, argv );
-
-		doDepth = depthSwitch.getValue();
-		doRight = rightSwitch.getValue();
-		doGui = guiSwitch.getValue();
 
 		int compressLevel = logger::LogWriter::DefaultCompressLevel;
 		if( compressionArg.isSet() ) {
@@ -97,20 +97,13 @@ int main( int argc, char** argv )
 		}
 
 		// Output validation
-		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !doGui ) {
+		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !guiSwitch.isSet() ) {
 			LOG(WARNING) << "No output options set.";
 			exit(-1);
 		}
 
-		fs::path imageOutputDir( imageOutputArg.getValue() );
-		if( imageOutputArg.isSet() ) {
-			LOG(INFO) << "Recording to directory " << imageOutputDir.string();
-
-			if( !is_directory( imageOutputDir ) ) {
-				LOG(WARNING) << "Making directory " << imageOutputDir.string();
-				create_directory( imageOutputDir );
-			}
-		}
+		zed_recorder::Display display( guiSwitch.getValue() );
+		zed_recorder::ImageOutput imageOutput( imageOutputArg.getValue() );
 
 		const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
 		const sl::zed::MODE zedMode = sl::zed::MODE::NONE;
@@ -125,8 +118,8 @@ int main( int argc, char** argv )
 			LOG(INFO) << "Loading logger data from " << logInputArg.getValue();
 			dataSource = new LoggerSource( logInputArg.getValue() );
 
-			LOG_IF(FATAL, doDepth && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
-			LOG_IF(FATAL, doRight && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
+			LOG_IF(FATAL, depthSwitch.getValue() && !dataSource->hasDepth() ) << "Depth requested but log file doesn't have depth data.";
+			LOG_IF(FATAL, rightSwitch.getValue() && dataSource->numImages() < 2 ) << "Depth requested but log file doesn't have depth data.";
 
 			if( calibOutputArg.isSet() )
 				LOG(WARNING) << "Can't create calibration file from a log file.";
@@ -147,7 +140,7 @@ int main( int argc, char** argv )
 				err = camera->init( sl::zed::PERFORMANCE, -1, true );
 			}
 
-			dataSource = new ZedSource( camera, doDepth );
+			dataSource = new ZedSource( camera, depthSwitch.getValue() );
 
 			if (err != sl::zed::SUCCESS) {
 				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
@@ -178,16 +171,22 @@ int main( int argc, char** argv )
 			cv::Size sz( res.width, res.height);
 
 			leftHandle = logWriter.registerField( "left", sz, logger::FIELD_BGRA_8C );
-			if( doDepth ) depthHandle = logWriter.registerField( "depth", sz, logger::FIELD_DEPTH_32F );
-			if( doRight ) rightHandle = logWriter.registerField( "right", sz, logger::FIELD_BGRA_8C );
+			if( depthSwitch.getValue() ) depthHandle = logWriter.registerField( "depth", sz, logger::FIELD_DEPTH_32F );
+			if( rightSwitch.getValue() ) rightHandle = logWriter.registerField( "right", sz, logger::FIELD_BGRA_8C );
 
 			if( !logWriter.open( loggerOutputArg.getValue() ) ) {
 				LOG(FATAL) << "Unable to open file " << loggerOutputArg.getValue() << " for logging.";
 			}
 		}
 
+		imageOutput.registerField( leftHandle, "left" );
+		imageOutput.registerField( rightHandle, "right" );
+		imageOutput.registerField( depthHandle, "depth" );
 
 		int dt_us = (fps > 0) ? (1e6/fps) : 0;
+		const float sleepFudge = 0.9;
+		dt_us *= sleepFudge;
+
 		LOG(INFO) << "Input is at " << resolutionToString( zedResolution ) << " at nominal " << fps << "FPS";
 
 		std::chrono::steady_clock::time_point start( std::chrono::steady_clock::now() );
@@ -206,79 +205,67 @@ int main( int argc, char** argv )
 		while( keepGoing ) {
 			if( count > 0 && (count % 100)==0 ) LOG(INFO) << count << " frames";
 
-			std::chrono::steady_clock::time_point present( std::chrono::steady_clock::now() );
+			std::chrono::steady_clock::time_point loopStart( std::chrono::steady_clock::now() );
 
-			if( (duration > 0) && (present > end) ) { keepGoing = false;  break; }
+			if( (duration > 0) && (loopStart > end) ) { keepGoing = false;  break; }
 
 			if( svoOutputArg.isSet() ) {
+
 				if( camera->record() ) {
 					LOG(WARNING) << "Error occured while recording from camera";
 				} else {
-					if( doGui ) camera->displayRecorded();
+					// According to the docs, this:
+					//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
+					sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
+
+					// Make a copy before enqueueing
+					Mat rawCopy;
+					sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 ).copyTo( rawCopy );
+					display.showRawStereoYUV( rawCopy );
 				}
+
+
 			} else {
+
 				if( dataSource->grab() ) {
 
 					cv::Mat left;
 					dataSource->getImage( 0, left );
 
-					if( imageOutputArg.isSet() ) {
-						char filename[80];
-						snprintf(filename, 79, "left_%06d.png", count );
-						cv::imwrite( (imageOutputDir / filename).string(), left );
-					} else if( loggerOutputArg.isSet() ) {
+					imageOutput.write( leftHandle, left );
+
+					if( loggerOutputArg.isSet() ) {
 						logWriter.newFrame();
 						// This makes a copy of the data to send it to the compressor
 						logWriter.addField( leftHandle, left );
 					}
 
-					if( doRight ) {
+					display.showLeft( left );
+
+					if( rightSwitch.getValue() ) {
 						cv::Mat right;
 						dataSource->getImage( 1, right );
-						if( imageOutputArg.isSet() ) {
-							char filename[80];
-							snprintf(filename, 79, "right_%06d.png", count );
-							cv::imwrite( (imageOutputDir / filename).string(), left );
-						} else if( loggerOutputArg.isSet() ) {
+
+						imageOutput.write( rightHandle, right );
+
+						if( loggerOutputArg.isSet() ) {
 							logWriter.addField( rightHandle, right.data );
 						}
 
-						if( doGui ) {
-							if( right.empty() ) {
-								LOG(WARNING) << "Right image is empty, not displaying";
-							} else {
-								cv::imshow("Right", right);
-							}
-						}
+						display.showRight( right );
+
 					}
 
-					if( doDepth ) {
+					if( depthSwitch.getValue() ) {
 						cv::Mat depth;
 						dataSource->getDepth( depth );
-						if( imageOutputArg.isSet() ) {
-							char filename[80];
-							snprintf(filename, 79, "depth_%06d.png", count );
-							cv::imwrite( (imageOutputDir / filename).string(), left );
-						} else if( loggerOutputArg.isSet() ) {
+						imageOutput.write( depthHandle, depth );
+
+						if( loggerOutputArg.isSet() ) {
 							logWriter.addField( depthHandle, depth.data );
 						}
 
-						if( doGui ) {
-							if( depth.empty() ) {
-								LOG(WARNING) << "Depth image is empty, not displaying";
-							} else {
-								cv::imshow("Depth", depth);
-							}
-						}
-					}
-
-					if( doGui ) {
-						if( left.empty() ) {
-							LOG(WARNING) << "Left image is empty, not displaying";
-						} else {
-							cv::imshow("Left", left);
-							cv::waitKey(1);
-						}
+						display.showDepth( depth );
 					}
 
 					if( loggerOutputArg.isSet() ) {
@@ -293,38 +280,55 @@ int main( int argc, char** argv )
 				}
 			}
 
-			if( dt_us > 0 )
-				std::this_thread::sleep_until( present + std::chrono::microseconds( dt_us ) );
+			display.waitKey();
 
-				count++;
+			if( dt_us > 0 ) {
+				std::chrono::steady_clock::time_point sleepTarget( loopStart + std::chrono::microseconds( dt_us ) );
+				//if( std::chrono::steady_clock::now() < sleepTarget )
+				std::this_thread::sleep_until( sleepTarget );
+			}
 
-				if( numFrames > 0 && count >= numFrames ) {
-					keepGoing = false;
-				}
+			count++;
+
+			if( numFrames > 0 && count >= numFrames ) {
+				keepGoing = false;
+			}
 		}
 
 
 		LOG(INFO) << "Cleaning up...";
-		camera->stopRecording();
+		if( camera ) camera->stopRecording();
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
 
 		LOG(INFO) << "Recorded " << count << " frames in " <<   dur.count();
 		LOG(INFO) << " Average of " << (float)count / dur.count() << " FPS";
 
+		std::string fileName("");
 		if( svoOutputArg.isSet() ) {
-			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
-			unsigned int fileSizeMB = fileSize / (1024*1024);
-			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
-		}
-
-		if( loggerOutputArg.isSet() ) {
+			fileName = svoOutputArg.getValue();
+		} else if( loggerOutputArg.isSet() ) {
 			logWriter.close();
-
-			unsigned int fileSize = fs::file_size( fs::path(loggerOutputArg.getValue() ));
-			unsigned int fileSizeMB = fileSize / (1024*1024);
-			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB (" << fileSizeMB/dur.count() << " MB/sec)";
+			fileName = loggerOutputArg.getValue();
 		}
+
+		if( !fileName.empty() ) {
+			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
+			float fileSizeMB = float(fileSize) / (1024*1024);
+			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB";
+			LOG(INFO) << "     " << fileSizeMB/dur.count() << " MB/sec";
+			LOG(INFO) << "     " << fileSizeMB/count << " MB/frame";
+
+			if( statisticsOutputArg.isSet() ) {
+				ofstream out( statisticsOutputArg.getValue(), ios_base::out | ios_base::ate | ios_base::app );
+				if( out.is_open() ) {
+					out << resolutionToString( zedResolution ) << "," << fps << "," << (guiSwitch.isSet() ? "display" : "") << "," << count << "," << dur.count() << ","
+							<< fileSizeMB << endl;
+				}
+			}
+		}
+
+
 
 		if( dataSource ) delete dataSource;
 		if( camera ) delete camera;

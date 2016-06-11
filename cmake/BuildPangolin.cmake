@@ -8,7 +8,7 @@ find_package( GLUT REQUIRED )
 find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
 
 ExternalProject_Add( Pangolin
-                      GIT_REPOSITORY https://github.com/stevenlovegrove/Pangolin.git
+                      GIT_REPOSITORY https://github.com/amarburg/Pangolin.git
                       PREFIX Pangolin
                       BUILD_COMMAND ${EXTERNAL_PROJECT_MAKE_COMMAND}
                       CMAKE_CACHE_ARGS -DCMAKE_BUILD_TYPE:string=Release
@@ -30,3 +30,6 @@ endif()
 
 set( Pangolin_INCLUDE_DIRS
     ${PANGOLIN_INSTALL_DIR}/include )
+
+
+set_target_properties(Pangolin PROPERTIES EXCLUDE_FROM_ALL TRUE)

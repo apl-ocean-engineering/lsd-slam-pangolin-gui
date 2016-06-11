@@ -31,10 +31,6 @@ namespace lsd_slam
 
 int privateFrameAllocCount = 0;
 
-
-
-
-
 Frame::Frame(int id, const Configuration &conf,
 							double timestamp, const unsigned char* image )
 	: _conf( conf )
@@ -72,7 +68,7 @@ Frame::Frame(int id, const Configuration &conf,
 
 	privateFrameAllocCount++;
 
-	LOG_IF(INFO, enablePrintDebugInfo && printMemoryDebugInfo)
+	LOG_IF(INFO, printMemoryDebugInfo)
 						<< "ALLOCATED frame " << this->id()
 						<< ", now there are " << privateFrameAllocCount;
 }
@@ -80,7 +76,7 @@ Frame::Frame(int id, const Configuration &conf,
 Frame::~Frame()
 {
 
-	LOGF_IF(DEBUG,enablePrintDebugInfo && printMemoryDebugInfo,"DELETING frame %d\n", this->id());
+	LOGF_IF(INFO,printMemoryDebugInfo,"DELETING frame %d", this->id());
 
 	FrameMemory::getInstance().deactivateFrame(this);
 

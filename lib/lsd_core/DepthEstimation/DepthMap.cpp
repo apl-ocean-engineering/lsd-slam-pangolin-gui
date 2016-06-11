@@ -142,32 +142,24 @@ void DepthMap::observeDepth()
 
 	threadReducer.reduce(boost::bind(&DepthMap::observeDepthRow, this, _1, _2, _3), 3, _conf.slamImage.height-3, 10);
 
-	if(enablePrintDebugInfo && printObserveStatistics)
-	{
-		printf("OBSERVE (%d): %d / %d created; %d / %d updated; %d skipped; %d init-blacklisted\n",
-				activeKeyFrame->id(),
-				runningStats.num_observe_created,
-				runningStats.num_observe_create_attempted,
-				runningStats.num_observe_updated,
-				runningStats.num_observe_update_attempted,
-				runningStats.num_observe_skip_alreadyGood,
-				runningStats.num_observe_blacklisted
-		);
-	}
+	LOGF_IF(INFO, enablePrintDebugInfo && printObserveStatistics, "OBSERVE (%d): %d / %d created; %d / %d updated; %d skipped; %d init-blacklisted",
+			activeKeyFrame->id(),
+			runningStats.num_observe_created,
+			runningStats.num_observe_create_attempted,
+			runningStats.num_observe_updated,
+			runningStats.num_observe_update_attempted,
+			runningStats.num_observe_skip_alreadyGood,
+			runningStats.num_observe_blacklisted );
 
-
-	if(enablePrintDebugInfo && printObservePurgeStatistics)
-	{
-		printf("OBS-PRG (%d): Good: %d; inconsistent: %d; notfound: %d; oob: %d; failed: %d; addSkip: %d;\n",
-				activeKeyFrame->id(),
-				runningStats.num_observe_good,
-				runningStats.num_observe_inconsistent,
-				runningStats.num_observe_notfound,
-				runningStats.num_observe_skip_oob,
-				runningStats.num_observe_skip_fail,
-				runningStats.num_observe_addSkip
-		);
-	}
+	LOGF_IF(INFO, enablePrintDebugInfo && printObservePurgeStatistics,
+		 "OBS-PRG (%d): Good: %d; inconsistent: %d; notfound: %d; oob: %d; failed: %d; addSkip: %d;",
+			activeKeyFrame->id(),
+			runningStats.num_observe_good,
+			runningStats.num_observe_inconsistent,
+			runningStats.num_observe_notfound,
+			runningStats.num_observe_skip_oob,
+			runningStats.num_observe_skip_fail,
+			runningStats.num_observe_addSkip );
 }
 
 
@@ -482,10 +474,9 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 	runningStats.num_prop_created = 0;
 	runningStats.num_prop_merged = 0;
 
-
 	if(new_keyframe->getTrackingParent() != activeKeyFrame)
 	{
-		printf("WARNING: propagating depth from frame %d to %d, which was tracked on a different frame (%d).\nWhile this should work, it is not recommended.",
+		LOGF(WARNING, "propagating depth from current keyframe %d to new keyframe %d, which was tracked on a different frame (%d).  While this should work, it is not recommended.",
 				activeKeyFrame->id(), new_keyframe->id(),
 				new_keyframe->getTrackingParent()->id());
 	}
@@ -643,7 +634,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 
 	if(enablePrintDebugInfo && printPropagationStatistics)
 	{
-		printf("PROPAGATE: %d: %d drop (%d oob, %d color); %d created; %d merged; %d occluded. %d col-dec, %d grad-dec.\n",
+		LOGF(INFO, "PROPAGATE: %d: %d drop (%d oob, %d color); %d created; %d merged; %d occluded. %d col-dec, %d grad-dec.",
 				runningStats.num_prop_attempts,
 				runningStats.num_prop_removed_validity + runningStats.num_prop_removed_out_of_bounds + runningStats.num_prop_removed_colorDiff,
 				runningStats.num_prop_removed_out_of_bounds,
@@ -718,8 +709,7 @@ void DepthMap::regularizeDepthMapFillHoles()
 
 	memcpy(otherDepthMap,currentDepthMap, _conf.slamImage.area()*sizeof(DepthMapPixelHypothesis));
 	threadReducer.reduce(boost::bind(&DepthMap::regularizeDepthMapFillHolesRow, this, _1, _2, _3), 3, _conf.slamImage.height-2, 10);
-	if(enablePrintDebugInfo && printFillHolesStatistics)
-		printf("FillHoles (discreteDepth): %d created\n",
+	LOGF_IF(INFO, enablePrintDebugInfo && printFillHolesStatistics, "FillHoles (discreteDepth): %d created\n",
 				runningStats.num_reg_created);
 }
 
@@ -873,16 +863,14 @@ void DepthMap::regularizeDepthMap(bool removeOcclusions, int validityTH)
 	else
 		threadReducer.reduce(boost::bind(&DepthMap::regularizeDepthMapRow<false>, this, validityTH, _1, _2, _3), 2, _conf.slamImage.height-2, 10);
 
-
-	if(enablePrintDebugInfo && printRegularizeStatistics)
-		printf("REGULARIZE (%d): %d smeared; %d blacklisted /%d new); %d deleted; %d occluded; %d filled\n",
-				activeKeyFrame->id(),
-				runningStats.num_reg_smeared,
-				runningStats.num_reg_blacklisted,
-				runningStats.num_reg_setBlacklisted,
-				runningStats.num_reg_deleted_secondary,
-				runningStats.num_reg_deleted_occluded,
-				runningStats.num_reg_created);
+	LOGF_IF(INFO, enablePrintDebugInfo && printRegularizeStatistics, "REGULARIZE (%d): %d smeared; %d blacklisted /%d new); %d deleted; %d occluded; %d filled\n",
+			activeKeyFrame->id(),
+			runningStats.num_reg_smeared,
+			runningStats.num_reg_blacklisted,
+			runningStats.num_reg_setBlacklisted,
+			runningStats.num_reg_deleted_secondary,
+			runningStats.num_reg_deleted_occluded,
+			runningStats.num_reg_created);
 }
 
 
@@ -1095,7 +1083,7 @@ void DepthMap::updateKeyframe(std::deque< std::shared_ptr<Frame> > referenceFram
 
 		if(frame->getTrackingParent() != activeKeyFrame)
 		{
-			printf("WARNING: updating frame %d with %d, which was tracked on a different frame (%d).\nWhile this should work, it is not recommended.",
+			LOGF(WARNING, "updating frame %d with %d, which was tracked on a different frame (%d).  While this should work, it is not recommended.",
 					activeKeyFrame->id(), frame->id(),
 					frame->getTrackingParent()->id());
 		}
