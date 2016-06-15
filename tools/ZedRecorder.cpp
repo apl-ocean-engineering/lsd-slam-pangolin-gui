@@ -125,6 +125,10 @@ int main( int argc, char** argv )
 				LOG(WARNING) << "Can't create calibration file from a log file.";
 
 		} else {
+
+			LOG_IF( FATAL, calibOutputArg.isSet() && svoInputArg.isSet() ) << "Calibration data isn't stored in SVO input files.";
+			LOG_IF( FATAL, calibOutputArg.isSet() && svoOutputArg.isSet() ) << "Calibration data is only generated when using live video, not when recording to SVO.";
+
 			if( svoInputArg.isSet() )	{
 				LOG(INFO) << "Loading SVO file " << svoInputArg.getValue();
 				camera = new sl::zed::Camera( svoInputArg.getValue() );
@@ -137,7 +141,7 @@ int main( int argc, char** argv )
 			if( svoOutputArg.isSet() ) {
 				err = camera->initRecording( svoOutputArg.getValue() );
 			} else {
-				err = camera->init( sl::zed::PERFORMANCE, -1, true );
+				err = camera->init( zedMode, whichGpu, verboseInit );
 			}
 
 			dataSource = new ZedSource( camera, depthSwitch.getValue() );
@@ -148,14 +152,9 @@ int main( int argc, char** argv )
 				exit(-1);
 			}
 
-			// Does this need to be called after a grab()?
 			if( calibOutputArg.isSet() ) {
-				if( svoInputArg.isSet() )	{
-					LOG(INFO) << "Calibration not loaded when logging to SVO?";
-				} else {
 					LOG(INFO) << "Saving calibration to \"" << calibOutputArg.getValue() << "\"";
 					lsd_slam::UndistorterLogger::calibrationFromZed( camera, calibOutputArg.getValue() );
-				}
 			}
 		}
 
@@ -282,11 +281,13 @@ int main( int argc, char** argv )
 
 			display.waitKey();
 
+
 			if( dt_us > 0 ) {
 				std::chrono::steady_clock::time_point sleepTarget( loopStart + std::chrono::microseconds( dt_us ) );
 				//if( std::chrono::steady_clock::now() < sleepTarget )
 				std::this_thread::sleep_until( sleepTarget );
 			}
+
 
 			count++;
 

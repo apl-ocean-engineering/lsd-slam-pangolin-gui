@@ -160,10 +160,6 @@ bool UndistorterLogger::calibrationFromZed( sl::zed::Camera *camera, const std::
 	sl::zed::resolution res( camera->getImageSize() );
 	out << res.width << " " << res.height << std::endl;
 
-	out << res.width << " " << res.height << std::endl;
-	out << res.width << " " << res.height << std::endl;
-
-
 	return true;
 }
 
