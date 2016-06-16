@@ -16,7 +16,8 @@
 
 namespace lsd_slam {
 
-
+// Slow migration from the global settings.[h,cpp] model to a Configuration
+// object.
 class Configuration {
 public:
 

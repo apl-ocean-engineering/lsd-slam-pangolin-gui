@@ -18,6 +18,9 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
+using std::stringstream;
+
 #include "SE3Tracker.h"
 #include <opencv2/highgui/highgui.hpp>
 #include "DataStructures/Frame.h"
@@ -445,16 +448,14 @@ SE3 SE3Tracker::trackFrame(
 
 	if(printTrackingIterationInfo)
 	{
-		printf("SE3 Tracking: ");
+		stringstream outstr;
+		outstr << "SE3 Tracking: ";
 			for(int lvl=PYRAMID_LEVELS-1;lvl >= lowestLvl;lvl--)
 			{
-				printf("lvl %d: %d (%d); ",
-					lvl,
-					numCalcResidualCalls[lvl],
-					numCalcWarpUpdateCalls[lvl]);
+				outstr << "lvl " << lvl << ": " << numCalcResidualCalls[lvl] << " (" << numCalcWarpUpdateCalls[lvl] << "); ";
 			}
 
-		printf("\n");
+		LOG(DEBUG) << outstr.str();
 	}
 
 	saveAllTrackingStagesInternal = false;

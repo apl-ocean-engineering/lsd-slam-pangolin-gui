@@ -6,7 +6,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ## Use ccache if available
-option( USE_CCACHE "Use CCache" OFF )
+option( USE_CCACHE "Use CCachei (if available)" OFF )
 	if( USE_CCACHE )
 	find_program(CCACHE_FOUND ccache)
 	if(CCACHE_FOUND)

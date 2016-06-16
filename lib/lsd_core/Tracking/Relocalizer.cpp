@@ -86,12 +86,15 @@ void Relocalizer::updateCurrentFrame(std::shared_ptr<Frame> currentFrame)
 //			doneLast,
 //			currentFrame->id(), nextRelocIDX, maxRelocIDX);
 
-	if (displayDepthMap)
-		Util::displayImage( "DebugWindow DEPTH", cv::Mat(currentFrame->height(), currentFrame->width(), CV_32F, currentFrame->image())*(1/255.0f), false );
-
-	int pressedKey = Util::waitKey(1);
-	handleKey(pressedKey);
+	// Opening the window from deep within the stack was causing issues on OSX.
+	// It was a good diagnostic but probably not the best UI choice anyway...
+	// if (displayDepthMap)
+	// 	Util::displayImage( "DebugWindow DEPTH", cv::Mat(currentFrame->height(), currentFrame->width(), CV_32F, currentFrame->image())*(1/255.0f), false );
+	//
+	// int pressedKey = Util::waitKey(1);
+	// handleKey(pressedKey);
 }
+
 void Relocalizer::start(std::vector<Frame*> &allKeyframesList)
 {
 	// make KFForReloc List

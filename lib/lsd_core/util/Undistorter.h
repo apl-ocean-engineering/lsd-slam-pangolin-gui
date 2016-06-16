@@ -334,7 +334,8 @@ public:
 	UndistorterZED(const UndistorterZED&) = delete;
 	UndistorterZED& operator=(const UndistorterZED&) = delete;
 
-	// Until a Zed-optimized version is needed, devolve these to UndistortLogger
+	// Until a Zed-optimized version is written, devolve these to UndistortLogger
+	//
 	// void undistort(const cv::Mat &image, cv::OutputArray result) const;
 	// virtual void undistortDepth( const cv::Mat &depth, cv::OutputArray result) const;
 
