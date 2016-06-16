@@ -249,26 +249,22 @@ Sim3 Sim3Tracker::trackFrameSim3(
 						affineEstimation_b = affineEstimation_b_lastIt;
 					}
 
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
-					{
-						// debug output
-						printf("(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
 
-						printf("         p=%.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
-								referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
-								referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5],
-								referenceToFrame.log()[6]);
-					}
+					// debug output
+					LOGF_IF(DEBUG, printTrackingIterationInfo, "(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f\n",
+							lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
+
+					LOGF_IF(DEBUG, printTrackingIterationInfo, "         p=%.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
+							referenceToFrame.log()[0],referenceToFrame.log()[1],referenceToFrame.log()[2],
+							referenceToFrame.log()[3],referenceToFrame.log()[4],referenceToFrame.log()[5],
+							referenceToFrame.log()[6]);
 
 					// converged?
 					if(error.mean / lastErr.mean > settings.convergenceEps[lvl])
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
-						{
-							printf("(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
-									lvl,iteration);
-						}
+						LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): FINISHED pyramid level (last residual reduction too small).\n",
+								lvl,iteration);
+
 						iteration = settings.maxItsPerLvl[lvl];
 					}
 
@@ -283,19 +279,13 @@ Sim3 Sim3Tracker::trackFrameSim3(
 				}
 				else
 				{
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
-					{
-						printf("(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
-					}
+					LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f)\n",
+							lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr.mean, error.mean);
 
 					if(!(inc.dot(inc) > settings.stepSizeMin[lvl]))
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
-						{
-							printf("(%d-%d): FINISHED pyramid level (stepsize too small).\n",
-									lvl,iteration);
-						}
+						LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): FINISHED pyramid level (stepsize too small).\n",
+								lvl,iteration);
 						iteration = settings.maxItsPerLvl[lvl];
 						break;
 					}
@@ -311,7 +301,7 @@ Sim3 Sim3Tracker::trackFrameSim3(
 
 
 
-	if(enablePrintDebugInfo && printTrackingIterationInfo)
+	if(printTrackingIterationInfo)
 	{
 		printf("Tracking: ");
 			for(int lvl=PYRAMID_LEVELS-1;lvl >= 0;lvl--)

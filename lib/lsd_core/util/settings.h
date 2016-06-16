@@ -174,7 +174,7 @@ namespace lsd_slam
 #define MAX_DIFF_CONSTANT (40.0f*40.0f)
 #define MAX_DIFF_GRAD_MULT (0.5f*0.5f)
 
-#define MIN_GOODPERGOODBAD_PIXEL (0.5f)
+#define MIN_GOODPERGOODBAD_PIXEL (0.3f)
 #define MIN_GOODPERALL_PIXEL (0.04f)
 #define MIN_GOODPERALL_PIXEL_ABSMIN (0.01f)
 

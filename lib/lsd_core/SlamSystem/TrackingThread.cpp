@@ -184,17 +184,17 @@ void TrackingThread::trackFrame(std::shared_ptr<Frame> newFrame, bool blockUntil
 
 	tracking_lastResidual = _tracker->lastResidual;
 	tracking_lastUsage = _tracker->pointUsage;
-	tracking_lastGoodPerBad = _tracker->lastGoodCount / (_tracker->lastGoodCount + _tracker->lastBadCount);
-	tracking_lastGoodPerTotal = _tracker->lastGoodCount / (newFrame->width(SE3TRACKING_MIN_LEVEL)*newFrame->height(SE3TRACKING_MIN_LEVEL));
+	//tracking_lastGoodPerBad = _tracker->lastGoodCount / (_tracker->lastGoodCount + _tracker->lastBadCount);
+	//tracking_lastGoodPerTotal = _tracker->lastGoodCount / (newFrame->width(SE3TRACKING_MIN_LEVEL)*newFrame->height(SE3TRACKING_MIN_LEVEL));
 
 
 	if(manualTrackingLossIndicated || _tracker->diverged ||
 		(_system.keyFrameGraph->keyframesAll.size() > INITIALIZATION_PHASE_COUNT && !_tracker->trackingWasGood))
 	{
-		LOGF(WARNING, "TRACKING LOST for frame %d (%1.2f%% good Points, which is %1.2f%% of available points; %s tracking; %s)!\n",
+		LOGF(WARNING, "TRACKING LOST for frame %d (%1.2f%% good Points, which is %1.2f%% of available points; %s tracking; tracker has %s)!\n",
 				newFrame->id(),
-				100*tracking_lastGoodPerTotal,
-				100*tracking_lastGoodPerBad,
+				100*_tracker->_pctGoodPerTotal,
+				100*_tracker->_pctGoodPerGoodBad,
 				_tracker->trackingWasGood ? "GOOD" : "BAD",
 				_tracker->diverged ? "DIVERGED" : "NOT DIVERGED");
 
@@ -337,7 +337,7 @@ void TrackingThread::takeRelocalizeResult( const RelocalizerResult &result  )
 			result.successfulFrame.get(),
 			result.successfulFrameToKeyframe );
 
-	if(!_tracker->trackingWasGood || _tracker->lastGoodCount / (_tracker->lastGoodCount + _tracker->lastBadCount) < 1-0.75f*(1-MIN_GOODPERGOODBAD_PIXEL))
+	if(!_tracker->trackingWasGood || _tracker->lastGoodCount() / (_tracker->lastGoodCount()) < 1-0.75f*(1-MIN_GOODPERGOODBAD_PIXEL))
 	{
 		LOG_IF(DEBUG, enablePrintDebugInfo && printRelocalizationInfo) << "RELOCALIZATION FAILED BADLY! discarding result.";
 		_trackingReference->invalidate();

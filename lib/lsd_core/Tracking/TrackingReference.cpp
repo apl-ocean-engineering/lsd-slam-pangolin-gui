@@ -141,7 +141,8 @@ void TrackingReference::makePointCloud(int level)
 			idxPT++;
 		}
 
-	numData[level] = posDataPT - posData[level];
-}
+		numData[level] = posDataPT - posData[level];
+		LOG(INFO) << "Keyframe " << frameID << " has " << numData[level] << " tracked points at level " << level;
+	}
 
 }

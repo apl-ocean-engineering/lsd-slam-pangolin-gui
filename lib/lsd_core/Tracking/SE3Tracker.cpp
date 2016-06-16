@@ -42,7 +42,11 @@ namespace lsd_slam
 
 
 SE3Tracker::SE3Tracker(const ImageSize &sz )
-	: _imgSize( sz )
+	: _imgSize( sz ),
+		_pctGoodPerTotal(-1.0),
+		_pctGoodPerGoodBad(-1.0),
+		_lastGoodCount(0),
+		_lastBadCount(0)
 {
 
 	settings = DenseDepthTrackerSettings();
@@ -71,10 +75,10 @@ SE3Tracker::SE3Tracker(const ImageSize &sz )
 
 
 
+
 	lastResidual = 0;
 	iterationNumber = 0;
 	pointUsage = 0;
-	lastGoodCount = lastBadCount = 0;
 
 	diverged = false;
 }
@@ -250,9 +254,12 @@ SE3 SE3Tracker::trackFrameOnPermaref(
 
 	lastResidual = lastErr;
 
+	_pctGoodPerTotal = _lastGoodCount / (frame->width(QUICK_KF_CHECK_LVL)*frame->height(QUICK_KF_CHECK_LVL));
+	_pctGoodPerGoodBad = _lastGoodCount / (_lastGoodCount + _lastBadCount);
+
 	trackingWasGood = !diverged
-			&& lastGoodCount / (frame->width(QUICK_KF_CHECK_LVL)*frame->height(QUICK_KF_CHECK_LVL)) > MIN_GOODPERALL_PIXEL
-			&& lastGoodCount / (lastGoodCount + lastBadCount) > MIN_GOODPERGOODBAD_PIXEL;
+			&& _pctGoodPerTotal > MIN_GOODPERALL_PIXEL
+			&& _pctGoodPerGoodBad > MIN_GOODPERGOODBAD_PIXEL;
 
 	return toSophus(referenceToFrame);
 }
@@ -292,26 +299,33 @@ SE3 SE3Tracker::trackFrame(
 	Sophus::SE3f referenceToFrame = frameToReference_initialEstimate.inverse().cast<float>();
 	LGS6 ls;
 
-
 	int numCalcResidualCalls[PYRAMID_LEVELS];
 	int numCalcWarpUpdateCalls[PYRAMID_LEVELS];
 
 	float last_residual = 0;
+	int lowestLvl;
 
-
-	for(int lvl=SE3TRACKING_MAX_LEVEL-1;lvl >= SE3TRACKING_MIN_LEVEL;lvl--)
+	for(int lvl=SE3TRACKING_MAX_LEVEL-1; lvl >= SE3TRACKING_MIN_LEVEL; lvl-- )
 	{
 		numCalcResidualCalls[lvl] = 0;
 		numCalcWarpUpdateCalls[lvl] = 0;
+		lowestLvl = lvl;
 
 		reference->makePointCloud(lvl);
 
-		callOptimized(calcResidualAndBuffers, (reference->posData[lvl], reference->colorAndVarData[lvl], SE3TRACKING_MIN_LEVEL == lvl ? reference->pointPosInXYGrid[lvl] : 0, reference->numData[lvl], frame, referenceToFrame, lvl, (plotTracking && lvl == SE3TRACKING_MIN_LEVEL)));
+		LOG(INFO) << "Calculating initial residual on frame " << frame->id() << ", level " << lvl << " against reference frame " << reference->frameID << " with " << reference->numData[lvl] << " points";
+		callOptimized(calcResidualAndBuffers, (reference->posData[lvl],
+			reference->colorAndVarData[lvl],
+			SE3TRACKING_MIN_LEVEL == lvl ? reference->pointPosInXYGrid[lvl] : 0,
+			reference->numData[lvl],
+			frame, referenceToFrame, lvl,
+			(plotTracking && lvl == SE3TRACKING_MIN_LEVEL)));
+
 		if(buf_warped_size < MIN_GOODPERALL_PIXEL_ABSMIN * (_imgSize.width>>lvl)*(_imgSize.height>>lvl))
 		{
 			diverged = true;
 			trackingWasGood = false;
-			LOG(DEBUG) << "Diverged at level " << lvl << "!  Only " << buf_warped_size << " pixel to track.";
+			LOG(INFO) << "Diverged at level " << lvl << "!  Only " << buf_warped_size << " pixel to track.";
 			return SE3();
 		}
 
@@ -359,7 +373,7 @@ SE3 SE3Tracker::trackFrame(
 				{
 					diverged = true;
 					trackingWasGood = false;
-					LOG(DEBUG) << "Diverged at level " << lvl << " on iteration " << iteration << "!  Only " << buf_warped_size << " pixels to track.";
+					LOG(INFO) << "Diverged at level " << lvl << " on iteration " << iteration << "!  Only " << buf_warped_size << " pixels to track.";
 					return SE3();
 				}
 
@@ -379,20 +393,14 @@ SE3 SE3Tracker::trackFrame(
 					}
 
 
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
-					{
-						LOGF(DEBUG,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f -> %f",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
-					}
+					LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): ACCEPTED increment of %f with lambda %.1f, residual: %f > %f",
+							lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 
 					// converged?
 					if(error / lastErr > settings.convergenceEps[lvl])
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
-						{
-							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (last residual reduction too small).",
-									lvl,iteration);
-						}
+						LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): FINISHED pyramid level (last residual reduction too small).",
+								lvl,iteration);
 						iteration = settings.maxItsPerLvl[lvl];
 					}
 
@@ -408,19 +416,15 @@ SE3 SE3Tracker::trackFrame(
 				}
 				else
 				{
-					if(enablePrintDebugInfo && printTrackingIterationInfo)
-					{
-						LOGF(DEBUG,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f -> %f).",
-								lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
-					}
+
+					LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): REJECTED increment of %f with lambda %.1f, (residual: %f < %f).",
+							lvl,iteration, sqrt(inc.dot(inc)), LM_lambda, lastErr, error);
 
 					if(!(inc.dot(inc) > settings.stepSizeMin[lvl]))
 					{
-						if(enablePrintDebugInfo && printTrackingIterationInfo)
-						{
-							LOGF(DEBUG,"(%d-%d): FINISHED pyramid level (stepsize too small).",
-									lvl,iteration);
-						}
+						LOGF_IF(DEBUG,printTrackingIterationInfo,"(%d-%d): FINISHED pyramid level (stepsize too small).",
+								lvl,iteration);
+
 						iteration = settings.maxItsPerLvl[lvl];
 						break;
 					}
@@ -439,10 +443,10 @@ SE3 SE3Tracker::trackFrame(
 		Util::displayImage("TrackingResidual", debugImageResiduals, false);
 
 
-	if(enablePrintDebugInfo && printTrackingIterationInfo)
+	if(printTrackingIterationInfo)
 	{
-		printf("Tracking: ");
-			for(int lvl=PYRAMID_LEVELS-1;lvl >= 0;lvl--)
+		printf("SE3 Tracking: ");
+			for(int lvl=PYRAMID_LEVELS-1;lvl >= lowestLvl;lvl--)
 			{
 				printf("lvl %d: %d (%d); ",
 					lvl,
@@ -457,9 +461,12 @@ SE3 SE3Tracker::trackFrame(
 
 	lastResidual = last_residual;
 
+	_pctGoodPerTotal = _lastGoodCount / (frame->width(SE3TRACKING_MIN_LEVEL)*frame->height(SE3TRACKING_MIN_LEVEL));
+	_pctGoodPerGoodBad = _lastGoodCount / (_lastGoodCount + _lastBadCount);
+
 	trackingWasGood = !diverged
-			&& lastGoodCount / (frame->width(SE3TRACKING_MIN_LEVEL)*frame->height(SE3TRACKING_MIN_LEVEL)) > MIN_GOODPERALL_PIXEL
-			&& lastGoodCount / (lastGoodCount + lastBadCount) > MIN_GOODPERGOODBAD_PIXEL;
+			&& _pctGoodPerTotal > MIN_GOODPERALL_PIXEL
+			&& _pctGoodPerGoodBad > MIN_GOODPERGOODBAD_PIXEL;
 
 	if(trackingWasGood)
 		reference->keyframe->numFramesTrackedOnThis++;
@@ -932,11 +939,10 @@ float SE3Tracker::calcResidualAndBuffers(
 		// (inverse test to exclude NANs)
 		if(!(u_new > 1 && v_new > 1 && u_new < w-2 && v_new < h-2))
 		{
-			if(isGoodOutBuffer != 0)
-				isGoodOutBuffer[*idxBuf] = false;
+			if(isGoodOutBuffer != 0) isGoodOutBuffer[*idxBuf] = false;
 
-				// LOG_IF(DEBUG, loop < 10) << "Ref point: " << *refPoint;
-				// LOG_IF(DEBUG, loop < 10) << "Wxp :" << Wxp[0] << " " << Wxp[1] << " " << Wxp[2] << " maps to " << u_new << " " << v_new;
+			LOG_IF(DEBUG, loop < 50) << "Ref point: " << *refPoint;
+			LOG_IF(DEBUG, loop < 50) << "Wxp :" << Wxp[0] << " " << Wxp[1] << " " << Wxp[2] << " maps to " << u_new << " " << v_new;
 			continue;
 		}
 
@@ -1010,11 +1016,11 @@ float SE3Tracker::calcResidualAndBuffers(
 	buf_warped_size = idx;
 
 	pointUsage = usageCount / (float)refNum;
-	lastGoodCount = goodCount;
-	lastBadCount = badCount;
+	_lastGoodCount = goodCount;
+	_lastBadCount = badCount;
 	lastMeanRes = sumSignedRes / goodCount;
 
-	// LOG(DEBUG) << "loop: " << loop << " buf_warped_size = " << buf_warped_size << "; goodCount = " << goodCount << "; badCount = " << badCount;
+	LOG(DEBUG) << "loop: " << loop << " buf_warped_size = " << buf_warped_size << "; goodCount = " << goodCount << "; badCount = " << badCount;
 	// if( buf_warped_size == 0 ) {
 	// 		LOG(DEBUG) << "Trap!";
 	// }

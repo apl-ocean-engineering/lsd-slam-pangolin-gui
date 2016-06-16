@@ -74,10 +74,13 @@ public:
 
 
 	float pointUsage;
-	float lastGoodCount;
+	float lastGoodCount() const { return _lastGoodCount; }
 	float lastMeanRes;
-	float lastBadCount;
+	float lastBadCount() const { return _lastBadCount; }
 	float lastResidual;
+
+	float _pctGoodPerGoodBad;
+	float _pctGoodPerTotal;
 
 	float affineEstimation_a;
 	float affineEstimation_b;
@@ -86,6 +89,9 @@ public:
 	bool diverged;
 	bool trackingWasGood;
 private:
+
+	float _lastGoodCount;
+	float _lastBadCount;
 
 	const ImageSize &_imgSize;
 

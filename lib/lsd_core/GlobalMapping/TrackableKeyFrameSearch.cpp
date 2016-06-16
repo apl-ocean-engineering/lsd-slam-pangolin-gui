@@ -131,7 +131,7 @@ Frame* TrackableKeyFrameSearch::findRePositionCandidate(Frame* frame, float maxS
 
 			float newScore = getRefFrameScore(dist.dot(dist), tracker->pointUsage);
 			float poseDiscrepancy = (potentialReferenceFrames[i].refToFrame * RefToFrame_tracked.inverse()).log().norm();
-			float goodVal = tracker->pointUsage * tracker->lastGoodCount / (tracker->lastGoodCount+tracker->lastBadCount);
+			float goodVal = tracker->pointUsage * tracker->lastGoodCount() / (tracker->lastGoodCount()+tracker->lastBadCount());
 			checkedSecondary++;
 
 			if(tracker->trackingWasGood && goodVal > relocalizationTH && newScore < bestScore && poseDiscrepancy < 0.2)

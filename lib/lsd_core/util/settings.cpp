@@ -85,7 +85,7 @@ bool allowNegativeIdepths = true;
 bool useMotionModel = false;
 bool useSubpixelStereo = true;
 bool multiThreading = true;
-bool useAffineLightningEstimation = true;
+bool useAffineLightningEstimation = false;
 
 
 

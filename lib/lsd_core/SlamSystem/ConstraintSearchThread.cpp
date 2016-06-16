@@ -361,7 +361,7 @@ int ConstraintSearchThread::findConstraintsForNewKeyFrames(Frame* newKeyFrame, b
 
 		if(skip)
 		{
-			LOGF_IF(DEBUG, enablePrintDebugInfo && printConstraintSearchInfo,
+			LOGF_IF(DEBUG, printConstraintSearchInfo,
 						"SKIPPING %d on %d (NEAR), cause we already have tried it.\n", (*c)->id(), newKeyFrame->id());
 			c = closeCandidates.erase(c);
 		}
@@ -444,10 +444,6 @@ int ConstraintSearchThread::findConstraintsForNewKeyFrames(Frame* newKeyFrame, b
 			farCandidates.pop_back();
 		}
 	}
-
-
-
-
 
 
 
