@@ -149,7 +149,7 @@ public:
 	 */
 	FramePoseStruct* pose;
 	Sim3 getScaledCamToWorld(int num=0) { return pose->getCamToWorld();}
-	bool hasTrackingParent() { return pose->trackingParent != nullptr;}
+	bool hasTrackingParent()   { return pose->trackingParent != nullptr;}
 	Frame* getTrackingParent() { return pose->trackingParent->frame;}
 
 	Sim3 lastConstraintTrackedCamToWorld;

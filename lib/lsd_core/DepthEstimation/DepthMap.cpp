@@ -46,19 +46,19 @@ DepthMap::DepthMap( const Configuration &conf )
 
 	activeKeyFrame = 0;
 	activeKeyFrameIsReactivated = false;
-	otherDepthMap = new DepthMapPixelHypothesis[_conf.slamImage.area()];
-	currentDepthMap = new DepthMapPixelHypothesis[_conf.slamImage.area()];
 
-	validityIntegralBuffer =new int[_conf.slamImage.area()];
+	const ImageSize &imgSize( _conf.slamImage );
+	const size_t imgArea( imgSize.area() );
+	const cv::Size imgCvSize( imgSize.cvSize() );
 
+	otherDepthMap = new DepthMapPixelHypothesis[imgArea];
+	currentDepthMap = new DepthMapPixelHypothesis[imgArea];
+	validityIntegralBuffer = new int[imgArea];
 
-
-	debugImageHypothesisHandling = cv::Mat( _conf.slamImage.cvSize(), CV_8UC3);
-	debugImageHypothesisPropagation = cv::Mat(_conf.slamImage.cvSize(), CV_8UC3);
-	debugImageStereoLines = cv::Mat(_conf.slamImage.cvSize(), CV_8UC3);
-	debugImageDepth = cv::Mat(_conf.slamImage.cvSize(), CV_8UC3);
-
-
+	debugImageHypothesisHandling = cv::Mat( imgCvSize, CV_8UC3);
+	debugImageHypothesisPropagation = cv::Mat(imgCvSize, CV_8UC3);
+	debugImageStereoLines = cv::Mat(imgCvSize, CV_8UC3);
+	debugImageDepth = cv::Mat(imgCvSize, CV_8UC3);
 
 	reset();
 
@@ -142,7 +142,7 @@ void DepthMap::observeDepth()
 
 	threadReducer.reduce(boost::bind(&DepthMap::observeDepthRow, this, _1, _2, _3), 3, _conf.slamImage.height-3, 10);
 
-	LOGF_IF(INFO, enablePrintDebugInfo && printObserveStatistics, "OBSERVE (%d): %d / %d created; %d / %d updated; %d skipped; %d init-blacklisted",
+	LOGF_IF(DEBUG, printObserveStatistics, "OBSERVE (%d): %d / %d created; %d / %d updated; %d skipped; %d init-blacklisted",
 			activeKeyFrame->id(),
 			runningStats.num_observe_created,
 			runningStats.num_observe_create_attempted,
@@ -151,7 +151,7 @@ void DepthMap::observeDepth()
 			runningStats.num_observe_skip_alreadyGood,
 			runningStats.num_observe_blacklisted );
 
-	LOGF_IF(INFO, enablePrintDebugInfo && printObservePurgeStatistics,
+	LOGF_IF(DEBUG, printObservePurgeStatistics,
 		 "OBS-PRG (%d): Good: %d; inconsistent: %d; notfound: %d; oob: %d; failed: %d; addSkip: %d;",
 			activeKeyFrame->id(),
 			runningStats.num_observe_good,
@@ -473,13 +473,12 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 	runningStats.num_prop_occluded = 0;
 	runningStats.num_prop_created = 0;
 	runningStats.num_prop_merged = 0;
+	runningStats.num_prop_source_invalid = 0;
 
-	if(new_keyframe->getTrackingParent() != activeKeyFrame)
-	{
-		LOGF(WARNING, "propagating depth from current keyframe %d to new keyframe %d, which was tracked on a different frame (%d).  While this should work, it is not recommended.",
-				activeKeyFrame->id(), new_keyframe->id(),
-				new_keyframe->getTrackingParent()->id());
-	}
+	LOGF_IF(WARNING, (activeKeyFrame != new_keyframe->getTrackingParent() ),
+			"propagating depth from current keyframe %d to new keyframe %d, which was tracked on a different frame (%d).  While this should work, it is not recommended.",
+			activeKeyFrame->id(), new_keyframe->id(),
+			new_keyframe->getTrackingParent()->id());
 
 	// wipe depthmap
 	for(DepthMapPixelHypothesis* pt = otherDepthMap+_conf.slamImage.area()-1; pt >= otherDepthMap; pt--)
@@ -517,10 +516,12 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 		{
 			DepthMapPixelHypothesis* source = currentDepthMap + x + y* _conf.slamImage.width;
 
-			if(!source->isValid)
+			if(!source->isValid) {
+				runningStats.num_prop_source_invalid++;
 				continue;
+			}
 
-			if(enablePrintDebugInfo) runningStats.num_prop_attempts++;
+		 runningStats.num_prop_attempts++;
 
 
 			Eigen::Vector3f pn = (trafoInv_R * Eigen::Vector3f(x*fxi + cxi,y*fyi + cyi,1.0f)) / source->idepth_smoothed + trafoInv_t;
@@ -533,7 +534,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 			// check if still within image, if not: DROP.
 			if(!(u_new > 2.1f && v_new > 2.1f && u_new < _conf.slamImage.width-3.1f && v_new < _conf.slamImage.height-3.1f))
 			{
-				if(enablePrintDebugInfo) runningStats.num_prop_removed_out_of_bounds++;
+				runningStats.num_prop_removed_out_of_bounds++;
 				continue;
 			}
 
@@ -545,7 +546,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 				if(!trackingWasGood[(x >> SE3TRACKING_MIN_LEVEL) + (_conf.slamImage.width >> SE3TRACKING_MIN_LEVEL)*(y >> SE3TRACKING_MIN_LEVEL)]
 				                    || destAbsGrad < MIN_ABS_GRAD_DECREASE)
 				{
-					if(enablePrintDebugInfo) runningStats.num_prop_removed_colorDiff++;
+					runningStats.num_prop_removed_colorDiff++;
 					continue;
 				}
 			}
@@ -559,7 +560,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 
 				if(residual*residual / (MAX_DIFF_CONSTANT + MAX_DIFF_GRAD_MULT*destAbsGrad*destAbsGrad) > 1.0f || destAbsGrad < MIN_ABS_GRAD_DECREASE)
 				{
-					if(enablePrintDebugInfo) runningStats.num_prop_removed_colorDiff++;
+					runningStats.num_prop_removed_colorDiff++;
 					continue;
 				}
 			}
@@ -586,12 +587,12 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 				{
 					if(new_idepth < targetBest->idepth)
 					{
-						if(enablePrintDebugInfo) runningStats.num_prop_occluded++;
+						 runningStats.num_prop_occluded++;
 						continue;
 					}
 					else
 					{
-						if(enablePrintDebugInfo) runningStats.num_prop_occluded++;
+						runningStats.num_prop_occluded++;
 						targetBest->isValid = false;
 					}
 				}
@@ -600,7 +601,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 
 			if(!targetBest->isValid)
 			{
-				if(enablePrintDebugInfo) runningStats.num_prop_created++;
+				 runningStats.num_prop_created++;
 
 				*targetBest = DepthMapPixelHypothesis(
 						new_idepth,
@@ -610,7 +611,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 			}
 			else
 			{
-				if(enablePrintDebugInfo) runningStats.num_prop_merged++;
+			 runningStats.num_prop_merged++;
 
 				// merge idepth ekf-style
 				float w = new_var / (targetBest->idepth_var + new_var);
@@ -632,9 +633,8 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 	std::swap(currentDepthMap, otherDepthMap);
 
 
-	if(enablePrintDebugInfo && printPropagationStatistics)
-	{
-		LOGF(INFO, "PROPAGATE: %d: %d drop (%d oob, %d color); %d created; %d merged; %d occluded. %d col-dec, %d grad-dec.",
+		LOGF_IF(INFO, printPropagationStatistics, "PROPAGATE: %d invalid, %d: %d drop (%d oob, %d color); %d created; %d merged; %d occluded. %d col-dec, %d grad-dec.",
+				runningStats.num_prop_source_invalid,
 				runningStats.num_prop_attempts,
 				runningStats.num_prop_removed_validity + runningStats.num_prop_removed_out_of_bounds + runningStats.num_prop_removed_colorDiff,
 				runningStats.num_prop_removed_out_of_bounds,
@@ -644,7 +644,6 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 				runningStats.num_prop_occluded,
 				runningStats.num_prop_color_decreased,
 				runningStats.num_prop_grad_decreased);
-	}
 }
 
 

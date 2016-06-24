@@ -331,6 +331,7 @@ public:
 	int num_prop_occluded;
 	int num_prop_created;
 	int num_prop_merged;
+	int num_prop_source_invalid;
 
 	int num_reg_created;
 	int num_reg_smeared;

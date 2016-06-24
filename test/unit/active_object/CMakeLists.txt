@@ -4,6 +4,8 @@ include_directories( ${GTEST_INCLUDE_DIRS}
 add_executable( active_object_test
               active_idle_test.cpp )
 
+link_directories( ${GTEST_LIBRARY_DIR} )
+
 target_link_libraries( active_object_test
           ${GTEST_BOTH_LIBRARIES}
           active_object )
