@@ -23,6 +23,7 @@ namespace fs = boost::filesystem;
 
 #include "ZedRecorder/Display.h"
 #include "ZedRecorder/ImageOutput.h"
+#include "ZedRecorder/VideoOutput.h"
 
 using namespace lsd_slam;
 
@@ -60,6 +61,7 @@ int main( int argc, char** argv )
 
 		TCLAP::ValueArg<std::string> logInputArg("","log-input","Input Logger file",false,"","", cmd);
 		TCLAP::ValueArg<std::string> svoInputArg("i","svo-input","Input SVO file",false,"","", cmd);
+
 		TCLAP::ValueArg<std::string> svoOutputArg("s","svo-output","Output SVO file",false,"","", cmd);
 		TCLAP::ValueArg<std::string> loggerOutputArg("l","log-output","Output Logger filename",false,"","", cmd);
 		TCLAP::ValueArg<std::string> calibOutputArg("","calib-output","Output calibration file (from stereolabs SDK)",false,"","Calib filename", cmd);
@@ -67,6 +69,9 @@ int main( int argc, char** argv )
 		TCLAP::ValueArg<std::string> compressionArg("","compression","",false,"snappy","SVO filename", cmd);
 
 		TCLAP::ValueArg<std::string> imageOutputArg("","image-output","",false,"","SVO filename", cmd);
+		TCLAP::ValueArg<std::string> videoOutputArg("","video-output","",false,"","SVO filename", cmd);
+
+		TCLAP::ValueArg<int> skipArg("","skip","",false,1,"", cmd);
 
 		TCLAP::ValueArg<std::string> statisticsOutputArg("","statistics-output","",false,"","", cmd);
 
@@ -97,13 +102,14 @@ int main( int argc, char** argv )
 		}
 
 		// Output validation
-		if( !svoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !guiSwitch.isSet() ) {
+		if( !svoOutputArg.isSet() && !videoOutputArg.isSet() && !imageOutputArg.isSet() && !loggerOutputArg.isSet() && !guiSwitch.isSet() ) {
 			LOG(WARNING) << "No output options set.";
 			exit(-1);
 		}
 
 		zed_recorder::Display display( guiSwitch.getValue() );
 		zed_recorder::ImageOutput imageOutput( imageOutputArg.getValue() );
+
 
 		const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
 		const sl::zed::MODE zedMode = sl::zed::MODE::NONE;
@@ -141,16 +147,23 @@ int main( int argc, char** argv )
 			if( svoOutputArg.isSet() ) {
 				err = camera->initRecording( svoOutputArg.getValue() );
 			} else {
-				err = camera->init( zedMode, whichGpu, verboseInit );
+#ifdef ZED_1_0
+				sl::zed::InitParams initParams;
+				initParams.mode = zedMode;
+				initParams.verbose = verboseInit;
+        sl::zed::ERRCODE err = camera->init( initParams );
+#else
+				sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
+#endif
 			}
-
-			dataSource = new ZedSource( camera, depthSwitch.getValue() );
 
 			if (err != sl::zed::SUCCESS) {
 				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
 				delete camera;
 				exit(-1);
 			}
+
+			dataSource = new ZedSource( camera, depthSwitch.getValue() );
 
 			if( calibOutputArg.isSet() ) {
 					LOG(INFO) << "Saving calibration to \"" << calibOutputArg.getValue() << "\"";
@@ -182,8 +195,10 @@ int main( int argc, char** argv )
 		imageOutput.registerField( rightHandle, "right" );
 		imageOutput.registerField( depthHandle, "depth" );
 
+		zed_recorder::VideoOutput videoOutput( videoOutputArg.getValue(), fps > 0 ? fps : 30 );
+
 		int dt_us = (fps > 0) ? (1e6/fps) : 0;
-		const float sleepFudge = 0.9;
+		const float sleepFudge = 1.0;
 		dt_us *= sleepFudge;
 
 		LOG(INFO) << "Input is at " << resolutionToString( zedResolution ) << " at nominal " << fps << "FPS";
@@ -200,7 +215,7 @@ int main( int argc, char** argv )
 		// Wait for the auto exposure and white balance
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 
-		int count = 0;
+		int count = 0, skip = skipArg.getValue();
 		while( keepGoing ) {
 			if( count > 0 && (count % 100)==0 ) LOG(INFO) << count << " frames";
 
@@ -212,11 +227,10 @@ int main( int argc, char** argv )
 
 				if( camera->record() ) {
 					LOG(WARNING) << "Error occured while recording from camera";
-				} else {
+				} else if( count % skip == 0 ) {
 					// According to the docs, this:
 					//		Get[s] the current side by side YUV 4:2:2 frame, CPU buffer.
 					sl::zed::Mat slRawImage( camera->getCurrentRawRecordedFrame() );
-
 					// Make a copy before enqueueing
 					Mat rawCopy;
 					sl::zed::slMat2cvMat( slRawImage ).reshape( 2, 0 ).copyTo( rawCopy );
@@ -232,6 +246,7 @@ int main( int argc, char** argv )
 					dataSource->getImage( 0, left );
 
 					imageOutput.write( leftHandle, left );
+					videoOutput.write( left );
 
 					if( loggerOutputArg.isSet() ) {
 						logWriter.newFrame();
@@ -239,7 +254,9 @@ int main( int argc, char** argv )
 						logWriter.addField( leftHandle, left );
 					}
 
-					display.showLeft( left );
+					if( count % skip == 0 ) {
+						display.showLeft( left );
+					}
 
 					if( rightSwitch.getValue() ) {
 						cv::Mat right;
@@ -251,7 +268,8 @@ int main( int argc, char** argv )
 							logWriter.addField( rightHandle, right.data );
 						}
 
-						display.showRight( right );
+						if( count % skip == 0 )
+							display.showRight( right );
 
 					}
 
@@ -264,7 +282,8 @@ int main( int argc, char** argv )
 							logWriter.addField( depthHandle, depth.data );
 						}
 
-						display.showDepth( depth );
+						if( count % skip == 0 )
+							display.showDepth( depth );
 					}
 
 					if( loggerOutputArg.isSet() ) {
@@ -279,7 +298,8 @@ int main( int argc, char** argv )
 				}
 			}
 
-			display.waitKey();
+			if( count % skip == 0 )
+				display.waitKey();
 
 
 			if( dt_us > 0 ) {

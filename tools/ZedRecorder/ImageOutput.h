@@ -26,9 +26,9 @@ public:
 				LOG(WARNING) << "Making directory " << _path.string();
 				create_directory( _path );
 			}
-		}
 
-		_active = true;
+			_active = true;
+		}
 	}
 
 	void registerField( logger::FieldHandle_t handle, const string &name )
@@ -40,6 +40,7 @@ public:
 
 	bool write( logger::FieldHandle_t handle, const Mat &img, int frame = -1 )
 	{
+		if( !_active ) return true;
 		if( _names.count(handle) == 0 ) return  false;
 		char buf[80];
 		snprintf(buf, 79, "%s_%06d.png", _names[handle].c_str(), (frame < 0 ? _count : frame ) );

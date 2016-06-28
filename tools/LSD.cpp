@@ -114,7 +114,15 @@ int main( int argc, char** argv )
           conf.stopOnFailedRead = false;
         }
 
-        sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
+				#ifdef ZED_1_0
+								sl::zed::InitParams initParams;
+								initParams.mode = zedMode;
+								initParams.verbose = verboseInit;
+				        sl::zed::ERRCODE err = camera->init( initParams );
+				#else
+								sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
+				#endif
+
         if (err != sl::zed::SUCCESS) {
           LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
           delete camera;

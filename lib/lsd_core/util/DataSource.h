@@ -159,7 +159,11 @@ protected:
 class ZedSource : public DataSource {
 public:
 
-  ZedSource( sl::zed::Camera *camera, bool doComputeDepth = false, sl::zed::SENSING_MODE mode = sl::zed::RAW )
+#ifdef ZED_1_0
+  ZedSource( sl::zed::Camera *camera, bool doComputeDepth = false, sl::zed::SENSING_MODE mode = sl::zed::STANDARD )
+#else
+	ZedSource( sl::zed::Camera *camera, bool doComputeDepth = false, sl::zed::SENSING_MODE mode = sl::zed::RAW )
+#endif
     :_cam( camera ),
      _mode( mode ),
      _computeDepth( doComputeDepth )
