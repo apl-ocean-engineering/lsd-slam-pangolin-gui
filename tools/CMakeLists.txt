@@ -18,4 +18,4 @@ endif()
 add_executable(LSD LSD.cpp
   LSD/GuiThread.cpp
   LSD/InputThread.cpp)
-target_link_libraries( LSD lsdslam GL gomp )
+target_link_libraries( LSD lsdslam )
