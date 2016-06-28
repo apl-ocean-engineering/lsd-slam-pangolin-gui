@@ -8,9 +8,9 @@ include_directories(
 # )
 
 if( USE_ZED_CAMERA )
-add_executable(ZedRecorder ZedRecorder.cpp)
-target_link_libraries(ZedRecorder lsdslam logger )
-set_target_properties( ZedRecorder PROPERTIES COMPILE_FLAGS "-ggdb")
+	add_executable(ZedRecorder ZedRecorder.cpp)
+	target_link_libraries(ZedRecorder lsdslam logger )
+	set_target_properties( ZedRecorder PROPERTIES COMPILE_FLAGS "-ggdb")
 endif()
 
 
@@ -18,4 +18,4 @@ endif()
 add_executable(LSD LSD.cpp
   LSD/GuiThread.cpp
   LSD/InputThread.cpp)
-target_link_libraries(LSD lsdslam )
+target_link_libraries( LSD lsdslam GL gomp )

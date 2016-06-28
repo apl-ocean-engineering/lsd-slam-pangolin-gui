@@ -44,7 +44,7 @@ set(lsdslam_SOURCE_FILES
 )
 
 # build shared library.
-add_library(lsdslam SHARED ${lsdslam_SOURCE_FILES})
+add_library(lsdslam STATIC ${lsdslam_SOURCE_FILES})
 target_link_libraries(lsdslam
   ${FABMAP_LIB}
   ${Pangolin_LIBRARIES}

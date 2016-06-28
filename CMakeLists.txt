@@ -6,7 +6,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ## Use ccache if available
-option( USE_CCACHE "Use CCachei (if available)" OFF )
+option( USE_CCACHE "Use CCache (if available)" OFF )
 	if( USE_CCACHE )
 	find_program(CCACHE_FOUND ccache)
 	if(CCACHE_FOUND)
@@ -18,7 +18,6 @@ endif()
 
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -103,11 +102,19 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
+	# Jetson version uses OpenCV4Tegra from NVidia
+	find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
 
 	## For compilation on Jetson TX1
 	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a") # -DENABLE_NEON" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
+	# x86 version uses Zed 1.0 SDK which is linked against Opencv 3.1
+	# find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
+	find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
+	# add_definitions( -DZED_1_0 )
+
+
   # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with gcc
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )

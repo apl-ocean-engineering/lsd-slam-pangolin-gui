@@ -10,6 +10,7 @@ ExternalProject_Add( G2O
                       -DCMAKE_INSTALL_PREFIX:path=${G2O_INSTALL_DIR}
                       -DG2O_BUILD_APPS:bool=OFF
                       -DG2O_BUILD_EXAMPLES:bool=OFF
+											-DBUILD_SHARED_LIBS:bool=OFF
                       -DBUILD_CSPARSE:bool=OFF
                       -DG2O_USE_OPENMP:bool=${G2O_USE_OPENMP})
 
