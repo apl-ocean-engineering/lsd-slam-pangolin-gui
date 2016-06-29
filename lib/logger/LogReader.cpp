@@ -76,11 +76,11 @@ bool LogReader::open( const std::string &filename )
   currentFrame = 0;
   uint16_t version = 0;
 
-  fread( &version, sizeof( int16_t), 1, fp );
+  CHECK( fread( &version, sizeof( int16_t), 1, fp ) == 1 );
   CHECK( version == LogFormatVersion );
   LOG(DEBUG) << "Format version: " << version;
 
-  fread( &_featureFlags, sizeof( int16_t), 1, fp );
+  CHECK( fread( &_featureFlags, sizeof( int16_t), 1, fp ) == 1 );
   LOG(DEBUG) << "Feature flags: " << _featureFlags;
 
 #if not defined(USE_SNAPPY)
@@ -89,11 +89,11 @@ bool LogReader::open( const std::string &filename )
 
   CHECK( _featureFlags != 0 ) << "Feature flags is zero? (" << _featureFlags << ")";
 
-  fread(&numFrames, sizeof(int32_t), 1, fp);
+  CHECK( fread(&numFrames, sizeof(int32_t), 1, fp) == 1 );
   LOG(DEBUG) << "Num frames: " << numFrames;
 
 	int32_t numFields = 0;
-	fread(&numFields, sizeof(int32_t), 1, fp);
+	CHECK(fread(&numFields, sizeof(int32_t), 1, fp) == 1);
   LOG(DEBUG) << "Num fields: " << numFields;
 
   CHECK( numFields > 0 && numFields < 5 ) << "Don't believe the number of fields: " << numFields;
@@ -103,12 +103,12 @@ bool LogReader::open( const std::string &filename )
 		int32_t h, w, type, len;
     char buf[80];
 
-		fread(&h, sizeof(int32_t), 1, fp);
-		fread(&w, sizeof(int32_t), 1, fp);
-		fread(&type, sizeof(int32_t), 1, fp);
-		fread(&len, sizeof(int32_t), 1, fp);
+		CHECK(fread(&h, sizeof(int32_t), 1, fp) == 1);
+		CHECK(fread(&w, sizeof(int32_t), 1, fp) == 1);
+		CHECK(fread(&type, sizeof(int32_t), 1, fp) == 1);
+		CHECK(fread(&len, sizeof(int32_t), 1, fp) == 1);
     len = std::min(len,80);
-		fread(buf, sizeof(std::string::value_type), len, fp);
+		CHECK(fread(buf, sizeof(std::string::value_type), len, fp) == len);
 
     LOG(DEBUG) << "Field " << i << " is " << h << " x " << w << "; type " << type << "  name \"" << std::string(buf,len) << "\"";
 
