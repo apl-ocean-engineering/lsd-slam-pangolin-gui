@@ -10,6 +10,7 @@ find_package( OpenGL REQUIRED )
 find_package( JPEG REQUIRED )
 find_package( PNG REQUIRED )
 find_package( PythonLibs REQUIRED )
+find_package( OpenEXR QUIET )
 
 ExternalProject_Add( Pangolin
                       GIT_REPOSITORY https://github.com/amarburg/Pangolin.git
@@ -30,7 +31,8 @@ set( Pangolin_LIBRARIES
       ${PNG_LIBRARIES}
       ${PYTHON_LIBRARIES}
       ${GLUT_LIBRARIES}
-      ${GLEW_LIBRARIES} )
+      ${GLEW_LIBRARIES}
+      ${OpenEXR_LIBRARIES})
 
 set( Pangolin_INCLUDE_DIRS
     ${PANGOLIN_INSTALL_DIR}/include )
