@@ -93,7 +93,7 @@ private:
 	const unsigned long _capacity;
 public:
 
-	unsigned long size;
+	uint32_t size;
 	std::unique_ptr<char[]> data;
 
 	unsigned long capacity( void ) const { return _capacity; }
