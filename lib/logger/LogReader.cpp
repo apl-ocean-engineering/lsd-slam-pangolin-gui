@@ -110,6 +110,8 @@ bool LogReader::open( const std::string &filename )
     len = std::min(len,80);
 		fread(buf, sizeof(std::string::value_type), len, fp);
 
+    LOG(DEBUG) << "Field " << i << " is " << h << " x " << w << "; type " << type << "  name \"" << std::string(buf,len) << "\"";
+
     _fields.emplace_back( std::string( buf, len), cv::Size( w, h ), static_cast<FieldType_t>(type) );
 
     const Field &f( _fields.back() );
@@ -137,9 +139,14 @@ bool LogReader::grab()
   currentFrame++;
 
   for( unsigned int i = 0; i < _fields.size(); ++i ) {
-    unsigned int len;
-    CHECK( fread( &len, sizeof(uint32_t), 1, fp ) == sizeof(uint32_t) );
-    CHECK( fread( _compressed[i].data.get(), sizeof( unsigned char), len, fp ) == len*sizeof(unsigned char));
+    CHECK( fp != NULL );
+    CHECK( ferror( fp ) == 0 ) << "Error reading stream: " << ferror( fp );
+
+    uint32_t len = 0;
+    CHECK( fread( &len, sizeof(uint32_t), 1, fp ) == 1 );
+
+    size_t nread = fread( _compressed[i].data.get(), sizeof(unsigned char), len, fp );
+    CHECK( nread == len ) << "Expected " << len << " read " << nread;
     _compressed[i].size = len;
   }
 

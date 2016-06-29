@@ -77,7 +77,8 @@ class LogWriter
         void writeData( std::shared_ptr<Chunk> chunk )
         {
           if( fp ) {
-            fwrite( &(chunk->size), sizeof( uint32_t), 1, fp );
+            uint32_t sz = chunk->size;
+            fwrite( &sz, sizeof(uint32_t), 1, fp );
             fwrite( chunk->data.get(), sizeof(unsigned char), chunk->size, fp );
           }
           else LOG(WARNING) << "Trying to write but fp doesn't exist!";

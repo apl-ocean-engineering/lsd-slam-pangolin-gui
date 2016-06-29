@@ -72,6 +72,8 @@ int main( int argc, char** argv )
 		TCLAP::ValueArg<std::string> videoOutputArg("","video-output","",false,"","SVO filename", cmd);
 
 		TCLAP::ValueArg<int> skipArg("","skip","",false,1,"", cmd);
+		TCLAP::ValueArg<int> startAtArg("","start-at","",false,0,"", cmd);
+
 
 		TCLAP::ValueArg<std::string> statisticsOutputArg("","statistics-output","",false,"","", cmd);
 
@@ -112,7 +114,7 @@ int main( int argc, char** argv )
 
 
 		const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
-		const sl::zed::MODE zedMode = sl::zed::MODE::NONE;
+		const sl::zed::MODE zedMode = (depthSwitch.getValue() ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE);
 		const int whichGpu = -1;
 		const bool verboseInit = true;
 
@@ -242,6 +244,8 @@ int main( int argc, char** argv )
 
 				if( dataSource->grab() ) {
 
+					if( count > startAtArg.getValue() ) {
+
 					cv::Mat left;
 					dataSource->getImage( 0, left );
 
@@ -291,6 +295,7 @@ int main( int argc, char** argv )
 						if( !logWriter.writeFrame( doBlock ) ) {
 							LOG(WARNING) << "Error while writing frame...";
 						}
+					}
 					}
 
 				} else {
