@@ -145,7 +145,7 @@ int main( int argc, char** argv )
 				camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
 			}
 
-			sl::zed::ERRCODE err;
+			sl::zed::ERRCODE err = sl::zed::LAST_ERRCODE;
 			if( svoOutputArg.isSet() ) {
 				err = camera->initRecording( svoOutputArg.getValue() );
 			} else {
@@ -153,14 +153,14 @@ int main( int argc, char** argv )
 				sl::zed::InitParams initParams;
 				initParams.mode = zedMode;
 				initParams.verbose = verboseInit;
-        sl::zed::ERRCODE err = camera->init( initParams );
+        err = camera->init( initParams );
 #else
-				sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
-#endif
+				err = camera->init( zedMode, whichGpu, verboseInit );
+ #endif
 			}
 
 			if (err != sl::zed::SUCCESS) {
-				LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
+				LOG(WARNING) << "Unable to init the Zed camera (" << err << "): " << errcode2str(err);
 				delete camera;
 				exit(-1);
 			}
@@ -179,7 +179,7 @@ int main( int argc, char** argv )
 		CHECK( fps >= 0 );
 
 		logger::LogWriter logWriter( compressLevel );
-		logger::FieldHandle_t leftHandle, rightHandle = -1, depthHandle = -1;
+		logger::FieldHandle_t leftHandle = 0, rightHandle = 1, depthHandle = 2;
 		if( loggerOutputArg.isSet() ) {
 			sl::zed::resolution res( camera->getImageSize() );
 			cv::Size sz( res.width, res.height);
@@ -280,11 +280,18 @@ int main( int argc, char** argv )
 					if( depthSwitch.getValue() ) {
 						cv::Mat depth;
 						dataSource->getDepth( depth );
-						imageOutput.write( depthHandle, depth );
 
-						if( loggerOutputArg.isSet() ) {
+						// Before normalization
+						if( loggerOutputArg.isSet() ) 
 							logWriter.addField( depthHandle, depth.data );
-						}
+
+						// Normalize depth
+						double mn = 1.0, mx = 1.0;
+						minMaxLoc( depth, &mn, &mx );
+						depth /= mx;
+
+						imageOutput.write( depthHandle, depth);
+
 
 						if( count % skip == 0 )
 							display.showDepth( depth );
