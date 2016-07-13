@@ -282,20 +282,21 @@ int main( int argc, char** argv )
 						dataSource->getDepth( depth );
 
 						// Before normalization
-						if( loggerOutputArg.isSet() ) 
+						if( loggerOutputArg.isSet() )
 							logWriter.addField( depthHandle, depth.data );
 
 						// Normalize depth
 						double mn = 1.0, mx = 1.0;
 						minMaxLoc( depth, &mn, &mx );
-						depth /= mx;
+						Mat depthInt( depth.cols, depth.rows, CV_8UC1 ), depthNorm( depth.cols, depth.rows, depth.type() );
+						depthNorm = depth * 255 / mx;
+						depthNorm.convertTo( depthInt, CV_8UC1 );
 
-						imageOutput.write( depthHandle, depth);
-
+						imageOutput.write( depthHandle, depthInt );
 
 						if( count % skip == 0 )
 							display.showDepth( depth );
-					}
+						}
 
 					if( loggerOutputArg.isSet() ) {
 						const bool doBlock = false; //( dt_us == 0 );

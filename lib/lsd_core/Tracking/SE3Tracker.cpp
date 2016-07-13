@@ -465,6 +465,10 @@ SE3 SE3Tracker::trackFrame(
 	_pctGoodPerTotal = _lastGoodCount / (frame->width(SE3TRACKING_MIN_LEVEL)*frame->height(SE3TRACKING_MIN_LEVEL));
 	_pctGoodPerGoodBad = _lastGoodCount / (_lastGoodCount + _lastBadCount);
 
+	LOG(INFO) << "lastGoodCount " << _lastGoodCount << " lastBadCount " << _lastBadCount;
+	LOG(INFO) << frame->width(SE3TRACKING_MIN_LEVEL) << " " << frame->height(SE3TRACKING_MIN_LEVEL);
+	LOG(INFO) << _pctGoodPerTotal << " " << _pctGoodPerGoodBad;
+
 	trackingWasGood = !diverged
 			&& _pctGoodPerTotal > MIN_GOODPERALL_PIXEL
 			&& _pctGoodPerGoodBad > MIN_GOODPERGOODBAD_PIXEL;
