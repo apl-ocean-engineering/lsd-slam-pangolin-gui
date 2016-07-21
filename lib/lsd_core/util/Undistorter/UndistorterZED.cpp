@@ -19,6 +19,8 @@ UndistorterZED::UndistorterZED( sl::zed::Camera *camera  )
 	unsigned int h = camera->getImageSize().height,
 							 w = camera->getImageSize().width;
 
+	// This is inflexible.   On the other hand, the Zed resolutions don't
+	// scale directly to LSD-SLAM compatible resolutions (divisible by 16, etc)
 	if(  h==1080 && w ==1920 ) {
 		_cropSize = ImageSize( 1920, 1056 );
 		_finalSize = SlamImageSize( _cropSize.width / 2, _cropSize.height / 2 );

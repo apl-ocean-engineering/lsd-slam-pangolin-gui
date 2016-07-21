@@ -320,7 +320,8 @@ class UndistorterZED : public UndistorterLogger
 {
 public:
 	/**
-	 * Creates an Undistorter by reading the distortion parameters from a file.
+	 * Creates an Undistorter which wraps a Zed camera.  Doesn't
+   * take any further parameters, as the Zed does its own undistorion.
 	 * for a Zed camera.  Determines cropped and final size automatically
 	 * from input resolution.
 	 */
