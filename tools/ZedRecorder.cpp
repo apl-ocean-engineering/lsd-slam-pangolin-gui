@@ -331,7 +331,7 @@ int main( int argc, char** argv )
 
 
 		LOG(INFO) << "Cleaning up...";
-		if( camera ) camera->stopRecording();
+		if( camera && svoOutputArg.isSet() ) camera->stopRecording();
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
 
