@@ -79,6 +79,8 @@ int main( int argc, char** argv )
 
 		// TCLAP::SwitchArg noGuiSwitch("","no-gui","Don't show a GUI", cmd, false);
 
+		TCLAP::SwitchArg disableSelfCalibSwitch("","disable-self-calib","", cmd, false);
+
 		TCLAP::SwitchArg depthSwitch("","depth","", cmd, false);
 		TCLAP::SwitchArg rightSwitch("","right","", cmd, false);
 
@@ -153,9 +155,11 @@ int main( int argc, char** argv )
 				sl::zed::InitParams initParams;
 				initParams.mode = zedMode;
 				initParams.verbose = verboseInit;
+				iniParams.disableSelfCalib = disableSelfCalibSwitch.getValue();
         err = camera->init( initParams );
 #else
-				err = camera->init( zedMode, whichGpu, verboseInit );
+				// Disabling self-calibration
+				err = camera->init( zedMode, whichGpu, verboseInit, false, disableSelfCalibSwitch.getValue() );
  #endif
 			}
 
@@ -331,14 +335,14 @@ int main( int argc, char** argv )
 
 
 		LOG(INFO) << "Cleaning up...";
-		if( camera ) camera->stopRecording();
+		if( camera && svoOutputArg.isSet() ) camera->stopRecording();
 
 		std::chrono::duration<float> dur( std::chrono::steady_clock::now()  - start );
 
 		LOG(INFO) << "Recorded " << count << " frames in " <<   dur.count();
 		LOG(INFO) << " Average of " << (float)count / dur.count() << " FPS";
 
-		std::string fileName("");
+		std::string fileName;
 		if( svoOutputArg.isSet() ) {
 			fileName = svoOutputArg.getValue();
 		} else if( loggerOutputArg.isSet() ) {
@@ -347,7 +351,7 @@ int main( int argc, char** argv )
 		}
 
 		if( !fileName.empty() ) {
-			unsigned int fileSize = fs::file_size( fs::path(svoOutputArg.getValue() ));
+			unsigned int fileSize = fs::file_size( fs::path(fileName));
 			float fileSizeMB = float(fileSize) / (1024*1024);
 			LOG(INFO) << "Resulting file is " << fileSizeMB << " MB";
 			LOG(INFO) << "     " << fileSizeMB/dur.count() << " MB/sec";

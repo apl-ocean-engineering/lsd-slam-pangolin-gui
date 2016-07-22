@@ -155,10 +155,13 @@ bool UndistorterLogger::calibrationFromZed( sl::zed::Camera *camera, const std::
 	sl::zed::StereoParameters *params = camera->getParameters();
 
 	const sl::zed::CamParameters &left( params->LeftCam );
-	out << left.fx << " " << left.fy << " " << left.cx << " " << left.cy << std::endl;
+	out << left.fx << " " << left.fy << " " << left.cx << " " << left.cy <<
+ 					" " << left.disto[0] << " " << left.disto[1] << " " << left.disto[2] <<
+					" " << left.disto[3] << " " << left.disto[4] << std::endl;
 
 	sl::zed::resolution res( camera->getImageSize() );
 	out << res.width << " " << res.height << std::endl;
+
 
 	return true;
 }
