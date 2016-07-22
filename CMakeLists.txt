@@ -16,7 +16,6 @@ option( USE_CCACHE "Use CCache (if available)" OFF )
 	endif(CCACHE_FOUND)
 endif()
 
-
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -83,10 +82,6 @@ elseif()
 endif()
 
 
-##=====  Support for the Zed stereo camera ==========================
-option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
-include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
-
 ##====== Support for Google Snappy compression lib ==================
 option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
 if( USE_GOOGLE_SNAPPY )
@@ -94,11 +89,18 @@ if( USE_GOOGLE_SNAPPY )
 	list( APPEND EXTERNAL_PROJECTS snappy )
 endif()
 
-## C++ flags applied to all builds
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-
+##==== Check and define the architecture (this is used in e.g. Zed.cmake )
 ## Architecture-specific optimizations
+option( CUDA_VERSION "Use CUDA" "")
+
+##=====  Support for the Zed stereo camera ==========================
+option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
+if( USE_ZED_CAMERA )
+	include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
+	set( CUDA_VERSION 6.5 )
+endif()
+
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
@@ -110,15 +112,26 @@ if( ${ARCHITECTURE} STREQUAL "aarch64" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
 	# x86 version uses Zed 1.0 SDK which is linked against Opencv 3.1
-	# find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
-	find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
+	if( ZED_VERSION VERSION_EQUAL "1.0.0")
+		find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
+		set( CUDA_VERSION 7.5 )
+	else()
+		find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
+	endif()
+
 	# add_definitions( -DZED_1_0 )
 
-
   # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,
-	# it has nothing to do with gcc
+	# it has nothing to do with compiler behavior
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )
 endif()
+
+if( CUDA_VERSION )
+	find_package( CUDA REQUIRED ${CUDA_VERSION} )
+endif()
+
+## C++ flags applied to all builds
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 
 if(APPLE)
@@ -135,11 +148,14 @@ set( LSDSLAM_INCLUDE_DIRS
   ${Pangolin_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${G2O_INCLUDE_DIR}
-  ${ZED_CAMERA_INCLUDE_DIRS}
+  ${ZED_INCLUDE_DIRS}
+	${CUDA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
 )
 include_directories( ${LSDSLAM_INCLUDE_DIRS} )
 
+link_directories( ${ZED_LIBRARY_DIRS}
+ 									${CUDA_LIBRARY_DIRS} )
 
 add_subdirectory("lib/active_object")
 add_subdirectory("lib/logger")
