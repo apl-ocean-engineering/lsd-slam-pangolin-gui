@@ -43,7 +43,7 @@ protected:
 	void onShowDepth( const Mat &img )
 	{
 		cv::Mat resized;
-		cv::resize( img, resized, _displaySize );
+		cv::resize( img*255, resized, _displaySize );
 		imshow( "Display", resized );
 	}
 
