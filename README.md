@@ -2,6 +2,8 @@
 
 CI Status: [![Build Status](https://travis-ci.org/amarburg/lsd_slam.svg)](https://travis-ci.org/amarburg/lsd_slam)
 
+See my [Development Blog](https://faculty.washington.edu/amarburg/press/category/lsdslam/) for current status. 
+
 This fork started from [Thomas Whelan's fork](https://github.com/mp3guy/lsd_slam) which "relieves the user of the horrors of a ROS dependency and uses the much nicer lightweight [Pangolin](https://github.com/stevenlovegrove/Pangolin) framework instead."
 
 Here is Jakob's original description:
