@@ -1,12 +1,17 @@
 
 require 'pathname'
 
-root_dir = Pathname.new(__FILE__).parent
+def root_dir
+  Pathname.new(__FILE__).parent
+end
+
 build_root = ENV['LSDSLAM_BUILD_DIR'] || "build"
 
 builds = %w( release debug )
 
 builds.each do |build|
+
+  deps_touchfile = '.DEPS_MADE'
 
   namespace build do
 
@@ -23,15 +28,27 @@ builds.each do |build|
     #
     desc "Make lsd_slam for #{build}"
     task :make => build_dir do
-
-
       ##-Bbuild_ci -H.
       chdir build_dir do
         args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
               #{ENV['CMAKE_FLAGS']}
               -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
         sh "cmake", *args
-        sh "make deps && make"
+        sh "make deps && touch #{deps_touchfile}" unless File.readable? deps_touchfile
+        sh "make"
+      end
+    end
+
+    ## Force make deps
+    desc "Force make deps for #{build}"
+    task :make_deps => build_dir do
+      chdir build_dir do
+        args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
+              #{ENV['CMAKE_FLAGS']}
+              -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
+        sh "cmake", *args
+        FileUtils.rm deps_touchfile
+        sh "make deps && touch #{deps_touchfile}"
       end
     end
 
@@ -57,6 +74,9 @@ builds.each do |build|
 
 end
 
+#
+# Platform-specific tasks for installing dependencies
+#
 namespace :dependencies do
 
   desc "Install dependencies for Ubuntu trusty"
@@ -74,30 +94,60 @@ end
 #
 # Tasks for creating a Docker instance for testing
 #
+
+def docker_image
+  "lsdslam:test"
+end
+
+
+def docker_run_opts
+    %W( --rm
+        -v #{root_dir}:/opt/lsd_slam
+        #{docker_image})
+end
+
+def in_docker
+  chdir ".docker" do
+      yield
+  end
+end
+
+def docker_run *args
+  in_docker do
+    sh *(['docker', 'run'] + docker_run_opts + args)
+  end
+end
+
 namespace :docker do
-  docker_image = "lsdslam:test"
 
   desc "Build test docker image."
   task :build_image do
-    sh "cd .docker && docker build -t #{docker_image} ."
+    in_docker {
+      sh "docker build -t #{docker_image} ."
+    }
   end
-
-  docker_run_opts = %W( --rm
-                        -v #{root_dir}:/opt/lsd_slam
-                        #{docker_image}).join(' ')
 
   builds.each do |build|
 
     namespace build do
 
+      desc "Make deps for #{build} in Docker"
+      task :make_deps do
+        docker_run "#{build}:make_deps"
+      end
+
       desc "Make #{build} in Docker"
       task :make do
-        sh "cd .docker && docker run #{docker_run_opts} #{build}:make"
+        docker_run "#{build}:make"
       end
 
       desc "Run #{build} tests in Docker"
       task :tests do
-        sh "cd .docker && docker run #{docker_run_opts} #{build}:tests"
+        docker_run "#{build}:tests"
+      end
+
+      task :clean do
+        docker_run "#{build}:clean"
       end
 
     end
@@ -105,6 +155,8 @@ namespace :docker do
 
   desc "Open console in Docker"
   task :console do
-    sh "cd .docker && docker run -ti --entrypoint \"/bin/bash\" #{docker_run_opts} "
+    in_docker {
+      sh "docker run -ti --entrypoint \"/bin/bash\" #{docker_run_opts} "
+    }
   end
 end
