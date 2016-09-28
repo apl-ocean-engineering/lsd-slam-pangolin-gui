@@ -50,7 +50,7 @@ target_link_libraries(lsdslam
   ${Pangolin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
-  ${ZED_CAMERA_LIBRARIES}
+  ${ZED_CUDA_LIBRARIES}
   ${G2O_LIBRARIES}
   ${G3LOG_LIB}
   logger
