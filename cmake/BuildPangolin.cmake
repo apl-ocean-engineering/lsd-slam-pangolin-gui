@@ -30,9 +30,15 @@ set( Pangolin_LIBRARIES
       ${JPEG_LIBRARIES}
       ${PNG_LIBRARIES}
       ${PYTHON_LIBRARIES}
-      ${GLUT_LIBRARIES}
       ${GLEW_LIBRARIES}
-      ${OpenEXR_LIBRARIES})
+      ${OpenEXR_LIBRARIES} )
+
+if(APPLE)
+  ## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
+  list( APPEND Pangolin_LIBRARIES  glut  )
+else()
+  list( APPEND Pangolin_LIBRARIES  ${GLUT_LIBRARIES}  )
+endif()
 
 set( Pangolin_INCLUDE_DIRS
     ${PANGOLIN_INSTALL_DIR}/include )
