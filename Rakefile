@@ -15,6 +15,10 @@ builds.each do |build|
 
   namespace build do
 
+    cmake_args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
+          #{ENV['CMAKE_FLAGS']}
+          -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
+
     build_dir = [build_root, build].join('_')
     build_dir = root_dir.join(build_dir)
 
@@ -30,10 +34,7 @@ builds.each do |build|
     task :make => build_dir do
       ##-Bbuild_ci -H.
       chdir build_dir do
-        args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
-              #{ENV['CMAKE_FLAGS']}
-              -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
-        sh "cmake", *args
+        sh "cmake", *cmake_args
         sh "make deps && touch #{deps_touchfile}" unless File.readable? deps_touchfile
         sh "make"
       end
@@ -43,10 +44,7 @@ builds.each do |build|
     desc "Force make deps for #{build}"
     task :make_deps => build_dir do
       chdir build_dir do
-        args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
-              #{ENV['CMAKE_FLAGS']}
-              -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
-        sh "cmake", *args
+        sh "cmake", *cmake_args
         FileUtils.rm deps_touchfile
         sh "make deps && touch #{deps_touchfile}"
       end
