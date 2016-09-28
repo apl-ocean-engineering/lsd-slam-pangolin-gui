@@ -8,7 +8,7 @@ notifications:
 # Per-OS configuration
 matrix:
   env:
-    - BUILD_TYPE=Release
+    - BUILD_TYPE=release
 #    - BUILD_TYPE=Debug
   include:
     - os: linux
