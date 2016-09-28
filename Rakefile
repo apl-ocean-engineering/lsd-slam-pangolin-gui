@@ -154,7 +154,8 @@ namespace :docker do
   desc "Open console in Docker"
   task :console do
     in_docker {
-      sh "docker run -ti --entrypoint \"/bin/bash\" #{docker_run_opts} "
+      args = %w(docker run -ti --entrypoint /bin/bash) + docker_run_opts
+      sh *args
     }
   end
 end
