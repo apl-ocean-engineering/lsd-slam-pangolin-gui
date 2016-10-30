@@ -42,7 +42,7 @@ ConstraintSearchThread::~ConstraintSearchThread( void )
 
 void ConstraintSearchThread::callbackIdle( void )
 {
-	bool doneSomething = false;
+	// bool doneSomething = false;
 
 	{
 		std::lock_guard< std::mutex > lock( _system.keyFrameGraph->keyframesForRetrackMutex );
@@ -63,12 +63,14 @@ void ConstraintSearchThread::callbackIdle( void )
 				_failedToRetrack=0;
 
 			if(_failedToRetrack < (int)_system.keyFrameGraph->keyframesForRetrack.size() - 5)
-				doneSomething = true;
+				_thread->send( std::bind( &ConstraintSearchThread::callbackIdle, this ) );
+
+				// doneSomething = true;
 		}
 	}
 
 	// If you did something, go again immediately
-	if( doneSomething ) _thread->send( std::bind( &ConstraintSearchThread::callbackIdle, this ) );
+	// if( doneSomething ) _thread->send( std::bind( &ConstraintSearchThread::callbackIdle, this ) );
 
 			// if(!doneSomething)
 			// {
