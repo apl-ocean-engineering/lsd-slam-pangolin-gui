@@ -36,9 +36,6 @@
 
 #include "LSD/LSD.h"
 
-#ifdef USE_ZED
-#include "util/ZedUtils.h"
-#endif
 
 using namespace lsd_slam;
 
@@ -72,14 +69,6 @@ int main( int argc, char** argv )
       TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
       TCLAP::ValueArg<std::string> resolutionArg("r", "resolution", "", false, "hd1080", "{hd2k, hd1080, hd720, vga}", cmd );
 
-#ifdef USE_ZED
-      TCLAP::SwitchArg zedSwitch("","zed","Use ZED", cmd, false);
-      TCLAP::ValueArg<std::string> svoFileArg("","svo-input","Name of SVO file to read",false,"","SVO filename", cmd);
-      TCLAP::SwitchArg depthSwitch("","depth","Use depth data", cmd, false);
-#endif
-
-      TCLAP::ValueArg<std::string> logFileArg("","log-input","Name of logger file to read",false,"","Logger filename", cmd);
-
       TCLAP::SwitchArg debugOutputSwitch("","debug-to-console","Print DEBUG output to console", cmd, false);
       TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
       TCLAP::ValueArg<int> fpsArg("", "fps","FPS", false, 0, "", cmd );
@@ -90,71 +79,19 @@ int main( int argc, char** argv )
 
       if( debugOutputSwitch.getValue() ) stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
 
-#ifdef USE_ZED
-      if( zedSwitch.getValue() || svoFileArg.isSet() ) {
-        if( depthSwitch.getValue() ) {
-          LOG(INFO) << "Using depth data from Stereolabs libraries";
-          conf.doDepth = Configuration::STEREO_ZED;
-        }
+      std::vector< std::string > imageFiles = imageFilesArg.getValue();
 
-        const sl::zed::MODE zedMode = ( conf.doDepth == Configuration::STEREO_ZED ) ? sl::zed::MODE::QUALITY : sl::zed::MODE::NONE;
-        const int whichGpu = -1;
-        const bool verboseInit = true;
+      dataSource = new ImagesSource( imageFiles );
 
-        sl::zed::Camera *camera = NULL;
+      if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
 
-        if( svoFileArg.isSet() )
-      	{
-          LOG(INFO) << "Loading SVO file " << svoFileArg.getValue();
-          camera = new sl::zed::Camera( svoFileArg.getValue() );
-      	} else {
-          const sl::zed::ZEDResolution_mode zedResolution = parseResolution( resolutionArg.getValue() );
-          LOG(INFO) << "Using live Zed data";
-          camera = new sl::zed::Camera( zedResolution, fpsArg.getValue() );
-          conf.stopOnFailedRead = false;
-        }
-
-				#ifdef ZED_1_0
-								sl::zed::InitParams initParams;
-								initParams.mode = zedMode;
-								initParams.verbose = verboseInit;
-				        sl::zed::ERRCODE err = camera->init( initParams );
-				#else
-								sl::zed::ERRCODE err = camera->init( zedMode, whichGpu, verboseInit );
-				#endif
-
-        if (err != sl::zed::SUCCESS) {
-          LOG(WARNING) << "Unable to init the zed: " << errcode2str(err);
-          delete camera;
-          exit(-1);
-        }
-
-        dataSource = new ZedSource( camera, conf.doDepth == Configuration::STEREO_ZED );
-        if( fpsArg.isSet() && svoFileArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
-        undistorter = new UndistorterZED( camera );
-      } else
-#endif
-      {
-        std::vector< std::string > imageFiles = imageFilesArg.getValue();
-
-        if( logFileArg.isSet() ) {
-          dataSource = new LoggerSource( logFileArg.getValue() );
-        } else if ( imageFiles.size() > 0 && fs::path(imageFiles[0]).extension().string() == ".log" ) {
-          dataSource = new LoggerSource( imageFiles[0] );
-        } else {
-          dataSource = new ImagesSource( imageFiles );
-        }
-
-        if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
-
-        if( !calibFileArg.isSet() ) {
-          LOG(WARNING) << "Must specify camera calibration!";
-          exit(-1);
-        }
-
-        undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
-        CHECK(undistorter != NULL);
+      if( !calibFileArg.isSet() ) {
+        LOG(WARNING) << "Must specify camera calibration!";
+        exit(-1);
       }
+
+      undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
+      CHECK(undistorter != NULL);
 
       doGui = !noGuiSwitch.getValue();
 

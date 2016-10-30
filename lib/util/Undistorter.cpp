@@ -66,14 +66,6 @@ Undistorter* Undistorter::getUndistorterForFile(const std::string &configFilenam
 		Undistorter* u = new UndistorterPTAM(configFilename.c_str());
 		if(!u->isValid()) return 0;
 		return u;
-	}
-	else if(std::sscanf(l1.c_str(), "%f %f %f %f",
-				&ic[0], &ic[1], &ic[2], &ic[3]) == 4)
-	{
-		LOG(INFO) << "Found Logger camera model, building rectifier.";
-		Undistorter* u = new UndistorterLogger(configFilename.c_str());
-		if(!u->isValid()) return 0;
-		return u;
 	} else	{
 		LOG(INFO) << "Found ATAN camera model, building rectifier.";
 		Undistorter* u = new UndistorterPTAM(configFilename.c_str());

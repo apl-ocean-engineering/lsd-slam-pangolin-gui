@@ -4,11 +4,6 @@ set(GUI_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/IOWrapper/Pangolin/PangolinOutput3DWrapper.cpp
 )
 
-if( USE_ZED_CAMERA )
-  set( ZED_SRCS
-      ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterZED.cpp )
-endif()
-
 # Set source files
 set(lsdslam_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/DataStructures/Frame.cpp
@@ -25,7 +20,6 @@ set(lsdslam_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterOpenCV.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterPTAM.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/util/Undistorter/UndistorterLogger.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Sim3Tracker.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/Relocalizer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Tracking/SE3Tracker.cpp
@@ -53,5 +47,4 @@ target_link_libraries(lsdslam
   ${ZED_CUDA_LIBRARIES}
   ${G2O_LIBRARIES}
   ${G3LOG_LIB}
-  logger
   active_object )

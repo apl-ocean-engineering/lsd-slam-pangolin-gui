@@ -25,6 +25,7 @@ find_package(ZLIB REQUIRED)
 
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
+
 set( EXTERNAL_PROJECTS g3log )
 ## Command used to build the external projects
 set( EXTERNAL_PROJECT_PARALLELISM 4 CACHE STRING "Level of parallelism when making ExternalProjects" )
@@ -81,25 +82,9 @@ elseif()
 	find_package(Pangolin 0.1 REQUIRED)
 endif()
 
-
-##====== Support for Google Snappy compression lib ==================
-option( USE_GOOGLE_SNAPPY "Use Google Snappy" ON )
-if( USE_GOOGLE_SNAPPY )
-	include( ${PROJECT_SOURCE_DIR}/cmake/BuildGoogleSnappy.cmake )
-	list( APPEND EXTERNAL_PROJECTS snappy )
-endif()
-
-
 ##==== Check and define the architecture (this is used in e.g. Zed.cmake )
 ## Architecture-specific optimizations
 option( CUDA_VERSION "Use CUDA" "")
-
-##=====  Support for the Zed stereo camera ==========================
-option( USE_ZED_CAMERA "Use Zed Stereo camera" OFF )
-if( USE_ZED_CAMERA )
-	include( ${PROJECT_SOURCE_DIR}/cmake/Zed.cmake )
-	set( CUDA_VERSION 6.5 )
-endif()
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
@@ -111,13 +96,11 @@ if( ${ARCHITECTURE} STREQUAL "aarch64" )
 	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a") # -DENABLE_NEON" )
 
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
-	# x86 version uses Zed 1.0 SDK which is linked against Opencv 3.1
-	if( ZED_VERSION VERSION_EQUAL "1.0.0")
-		find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
-		set( CUDA_VERSION 7.5 )
-	else()
+	# if( ZED_VERSION VERSION_EQUAL "1.0.0")
+	# 	find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
+	# else()
 		find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
-	endif()
+#	endif()
 
 	# add_definitions( -DZED_1_0 )
 
@@ -129,6 +112,8 @@ endif()
 if( CUDA_VERSION )
 	find_package( CUDA REQUIRED ${CUDA_VERSION} )
 endif()
+
+include( ${PROJECT_SOURCE_DIR}/cmake/BuildLibActiveObject.cmake )
 
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -148,20 +133,16 @@ set( LSDSLAM_INCLUDE_DIRS
   ${Pangolin_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${G2O_INCLUDE_DIR}
-  ${ZED_INCLUDE_DIRS}
-	${CUDA_INCLUDE_DIRS}
   ${G3LOG_INCLUDE_DIR}
+	${LIBACTIVE_OBJECT_INCLUDE_DIRS}
 )
 include_directories( ${LSDSLAM_INCLUDE_DIRS} )
 
-link_directories( ${ZED_LIBRARY_DIRS}
- 									${CUDA_LIBRARY_DIRS} )
+# link_directories( ${ZED_LIBRARY_DIRS}
+#  									${CUDA_LIBRARY_DIRS} )
 
-add_subdirectory("lib/active_object")
-add_subdirectory("lib/logger")
-add_subdirectory("lib/lsd_core")
-
-add_subdirectory("tools")
+add_subdirectory( lib/ )
+add_subdirectory( tools/ )
 
 option( BUILD_UNIT_TESTS "Build unit tests" ON )
 if( BUILD_UNIT_TESTS )
@@ -169,9 +150,7 @@ if( BUILD_UNIT_TESTS )
   include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
 	list( APPEND EXTERNAL_PROJECTS gtest )
 
-  add_subdirectory( test/unit/active_object )
-  add_subdirectory( test/unit/logger )
-  add_subdirectory( test/unit/lsd_core )
+  add_subdirectory( test/unit/ )
 endif()
 
 add_custom_target( deps DEPENDS ${EXTERNAL_PROJECTS} )

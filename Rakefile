@@ -1,14 +1,21 @@
 
 require 'pathname'
 
+$:.unshift File.dirname(__FILE__) + "/.rb"
+require 'docker'
+
 def root_dir
   Pathname.new(__FILE__).parent
 end
 
+@cmake_opts = ['-D BUILD_UNIT_TESTS:BOOL=True']
+load 'config.rb' if FileTest::exists? 'config.rb'
+
 build_root = ENV['LSDSLAM_BUILD_DIR'] || "build"
 
-builds = %w( release debug )
+task :default => "debug:test"
 
+builds = %w( release debug )
 builds.each do |build|
 
   deps_touchfile = '.DEPS_MADE'
@@ -31,7 +38,7 @@ builds.each do |build|
     # n.b. CMAKE_FLAGS='-DOpenCV_DIR=/opt/opencv-2.4/share/opencv' rake debug:make
     #
     desc "Make lsd_slam for #{build}"
-    task :make => build_dir do
+    task :build => build_dir do
       ##-Bbuild_ci -H.
       chdir build_dir do
         sh "cmake", *cmake_args
@@ -42,7 +49,7 @@ builds.each do |build|
 
     ## Force make deps
     desc "Force make deps for #{build}"
-    task :make_deps => build_dir do
+    task :deps => build_dir do
       chdir build_dir do
         sh "cmake", *cmake_args
         FileUtils.rm deps_touchfile
@@ -57,7 +64,7 @@ builds.each do |build|
     end
 
     desc "Run all tests"
-    task :tests => [ "test:unit" ]
+    task :test => [ :build, "test:unit" ]
 
     namespace :test do
       desc "Unit tests for #{build}"
@@ -86,76 +93,4 @@ namespace :dependencies do
       		libglew-dev libglm-dev autoconf libtool freeglut3-dev"
   end
 
-end
-
-
-#
-# Tasks for creating a Docker instance for testing
-#
-
-def docker_image
-  "lsdslam:test"
-end
-
-
-def docker_run_opts
-    %W( --rm
-        -v #{root_dir}:/opt/lsd_slam
-        #{docker_image})
-end
-
-def in_docker
-  chdir ".docker" do
-      yield
-  end
-end
-
-def docker_run *args
-  in_docker do
-    sh *(['docker', 'run'] + docker_run_opts + args)
-  end
-end
-
-namespace :docker do
-
-  desc "Build test docker image."
-  task :build_image do
-    in_docker {
-      sh "docker build -t #{docker_image} ."
-    }
-  end
-
-  builds.each do |build|
-
-    namespace build do
-
-      desc "Make deps for #{build} in Docker"
-      task :make_deps do
-        docker_run "#{build}:make_deps"
-      end
-
-      desc "Make #{build} in Docker"
-      task :make do
-        docker_run "#{build}:make"
-      end
-
-      desc "Run #{build} tests in Docker"
-      task :tests do
-        docker_run "#{build}:tests"
-      end
-
-      task :clean do
-        docker_run "#{build}:clean"
-      end
-
-    end
-  end
-
-  desc "Open console in Docker"
-  task :console do
-    in_docker {
-      args = %w(docker run -ti --entrypoint /bin/bash) + docker_run_opts
-      sh *args
-    }
-  end
 end
