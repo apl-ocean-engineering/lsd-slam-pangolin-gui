@@ -105,7 +105,7 @@ namespace :dependencies do
   ## Travis-specific depenendcy rules
   namespace :travis do
 
-    task :trusty => "dependencies:trusty"
+    task :linux => "dependencies:trusty"
 
     task :osx do
       sh "pip uninstall numpy"

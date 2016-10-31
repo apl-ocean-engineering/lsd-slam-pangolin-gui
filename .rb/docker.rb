@@ -40,7 +40,6 @@ class DockerTasks
     end
   end
 
-
   def define_tasks
 
 
@@ -58,18 +57,18 @@ class DockerTasks
         namespace build do
 
           desc "Make deps for #{build} in Docker"
-          task :make_deps do
-            docker_run "#{build}:make_deps"
+          task :deps do
+            docker_run "#{build}:deps"
           end
 
           desc "Make #{build} in Docker"
-          task :make do
-            docker_run "#{build}:make"
+          task :build do
+            docker_run "#{build}:build"
           end
 
           desc "Run #{build} tests in Docker"
-          task :tests do
-            docker_run "#{build}:tests"
+          task :test do
+            docker_run "#{build}:test"
           end
 
           task :clean do

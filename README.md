@@ -43,7 +43,11 @@ Assuming all of the "standard" (apt-gettable/Brew-able) deps have been installed
     cmake ..
     make deps
     make
-    make unit_Test
+    make unit_test
+
+Or
+
+    rake test
 
 Should work.
 
@@ -52,7 +56,7 @@ LSD-SLAM uses these "non-standard" dependencies:
  * [Pangolin](https://github.com/stevenlovegrove/Pangolin)
  * [g2o](https://github.com/RainerKuemmerle/g2o)
  * A [custom fork](https://github.com/amarburg/g3log.git) of [g3log](https://github.com/KjellKod/g3log)
- * [Google Test](https://github.com/google/googletest) for (optional) unit testing
+ * (Optionally)[Google Test](https://github.com/google/googletest) for unit testing
 
 LSD-SLAM will use CMake ExternalProjects to build each of these
 dependencies automatically.  **This no longer happens automatically as part
