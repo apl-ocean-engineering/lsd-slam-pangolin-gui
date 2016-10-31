@@ -107,7 +107,7 @@ namespace :dependencies do
 
     task :linux => "dependencies:trusty"
 
-    task :osx => [:pip_uninstall_numpy, "depenencies:osx"]
+    task :osx => [:pip_uninstall_numpy, "dependencies:osx"]
 
     task :pip_uninstall_numpy do
       sh "pip uninstall -y numpy"
