@@ -99,7 +99,7 @@ namespace :dependencies do
   task :osx do
     sh "brew update"
     sh "brew tap homebrew/science"
-    sh "brew install homebrew/science/opencv"
+    sh "brew install homebrew/science/opencv tclap"
   end
 
   ## Travis-specific depenendcy rules
@@ -107,11 +107,10 @@ namespace :dependencies do
 
     task :linux => "dependencies:trusty"
 
-    task :osx do
-      sh "pip uninstall numpy"
-      sh "brew update"
-      sh "brew tap homebrew/science"
-      sh "brew install homebrew/science/opencv"
+    task :osx => [:pip_uninstall_numpy, "depenencies:osx"]
+
+    task :pip_uninstall_numpy do
+      sh "pip uninstall -y numpy"
     end
 
   end
