@@ -5,9 +5,11 @@ SET( G3LOG_SOURCE_DIR ${G3LOG_PREFIX_DIR}/src/g3log )
 
 SET( G3LOG_CMAKE_OPTS -DADD_FATAL_EXAMPLE:bool=OFF  )
 LIST(APPEND G3LOG_CMAKE_OPTS -DCMAKE_BUILD_TYPE:string=${CMAKE_BUILD_TYPE} )
-IF( ${CMAKE_BUILD_TYPE} STREQUAL Release )
-	message( "Disabling the DEBUG level in G3LOG" )
-	LIST(APPEND G3LOG_CMAKE_OPTS -DIGNORE_DEBUG_LEVEL:bool=ON )
+IF( DEFINED ${CMAKE_BUILD_TYPE} )
+	IF( ${CMAKE_BUILD_TYPE} STREQUAL Release )
+		message( "Disabling the DEBUG level in G3LOG" )
+		LIST(APPEND G3LOG_CMAKE_OPTS -DIGNORE_DEBUG_LEVEL:bool=ON )
+	ENDIF()
 ENDIF()
 
 ## Uses my fork which doesn't create src/g3log/generated_definitions.hpp

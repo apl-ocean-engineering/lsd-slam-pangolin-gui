@@ -2,7 +2,7 @@
 
 CI Status: [![Build Status](https://travis-ci.org/amarburg/lsd_slam.svg)](https://travis-ci.org/amarburg/lsd_slam)
 
-See my [Development Blog](https://faculty.washington.edu/amarburg/press/category/lsdslam/) for current status. 
+See my [Development Blog](https://faculty.washington.edu/amarburg/press/category/lsdslam/) for current status.
 
 This fork started from [Thomas Whelan's fork](https://github.com/mp3guy/lsd_slam) which "relieves the user of the horrors of a ROS dependency and uses the much nicer lightweight [Pangolin](https://github.com/stevenlovegrove/Pangolin) framework instead."
 
@@ -32,22 +32,27 @@ and use CMake to turn hardware-specific elements on and off.
 
 My targeted environments are Ubuntu 14.04.2, the [Jetson TX1](http://www.nvidia.com/object/jetson-tx1-module.html) using [NVidia Jetpack 2.0](https://developer.nvidia.com/embedded/jetpack) , and OS X 10.11 with [Homebrew](http://brew.sh/).
 
-The most authoritative set of dependencies is stored in the [Travis CI](https://travis-ci.org/amarburg/lsd_slam) bootstrap files.  Do:
+The most authoritative documentation is stored in the Ruby Rakefile (don't be scared, it's
+pretty readable).   This includes tasks for setting dependencies (in Travis and Docker images for example),
+and for automating building and testing.
 
-    .travis/install_deps_{osx,trusty}.sh
-    .travis/build.sh
+Assuming all of the "standard" (apt-gettable/Brew-able) deps have been installed, then a standard-ish cmake-ish:
 
-In addition to a number of "standard" (apt-gettable) dependencies,
+    mkdir build
+    cd build/
+    cmake ..
+    make deps
+    make
+    make unit_Test
+
+Should work.
+
+In addition to a number of "standard"  dependencies,
 LSD-SLAM uses these "non-standard" dependencies:
  * [Pangolin](https://github.com/stevenlovegrove/Pangolin)
  * [g2o](https://github.com/RainerKuemmerle/g2o)
  * A [custom fork](https://github.com/amarburg/g3log.git) of [g3log](https://github.com/KjellKod/g3log)
  * [Google Test](https://github.com/google/googletest) for (optional) unit testing
-
-and optionally
-
-  * the [StereoLabs Zed](https://www.stereolabs.com/) SDK
-  * [Google Snappy](https://github.com/google/snappy) for file compression.
 
 LSD-SLAM will use CMake ExternalProjects to build each of these
 dependencies automatically.  **This no longer happens automatically as part
@@ -64,8 +69,8 @@ See also [doc/CommonProblems.md](doc/CommonProblems.md)
 
 # 4. Running
 
-Supports directories or sets of raw PNG images. For example, you can download
-any dataset from [here](http://vision.in.tum.de/lsdslam) in PNG format, and run:
+Supports directories or sets of raw images. For example, you can download
+any dataset from [here](http://vision.in.tum.de/lsdslam), and run:
 
     ./LSD --calib datasets/LSD_machine/cameraCalibration.cfg  datasets/LSD_machine/images/
 
