@@ -79,6 +79,8 @@ builds.each do |build|
 
 end
 
+DockerTasks.new( builds: builds )
+
 #
 # Platform-specific tasks for installing dependencies
 #
@@ -92,5 +94,28 @@ namespace :dependencies do
       		libtclap-dev libgomp1 libsuitesparse-dev git \
       		libglew-dev libglm-dev autoconf libtool freeglut3-dev"
   end
+
+
+  task :osx do
+    sh "brew update"
+    sh "brew tap homebrew/science"
+    sh "brew install homebrew/science/opencv"
+  end
+
+  ## Travis-specific depenendcy rules
+  namespace :travis do
+
+    task :trusty => "dependencies:trusty"
+
+    task :osx do
+      sh "pip uninstall numpy"
+      sh "brew update"
+      sh "brew tap homebrew/science"
+      sh "brew install homebrew/science/opencv"
+    end
+
+  end
+
+
 
 end
