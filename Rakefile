@@ -1,14 +1,10 @@
 
-require 'pathname'
-
 $:.unshift File.dirname(__FILE__) + "/.rb"
+require 'pathname'
 require 'docker'
 
-def root_dir
-  Pathname.new(__FILE__).parent
-end
-
-@cmake_opts = ['-D BUILD_UNIT_TESTS:BOOL=True']
+## Set defaults
+@cmake_opts = ['-DBUILD_UNIT_TESTS:BOOL=True']
 load 'config.rb' if FileTest::exists? 'config.rb'
 
 build_root = ENV['LSDSLAM_BUILD_DIR'] || "build"
@@ -24,31 +20,22 @@ builds.each do |build|
 
     cmake_args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
           #{ENV['CMAKE_FLAGS']}
-          -DEXTERNAL_PROJECT_PARALLELISM:string=0 #{root_dir})
+          -DEXTERNAL_PROJECT_PARALLELISM:string=0 )
 
     build_dir = [build_root, build].join('_')
-    build_dir = root_dir.join(build_dir)
 
-    directory build_dir.to_s do |t|
-      FileUtils::mkdir t.name
-    end
-
-    # On my system I need to specify the location of OpenCV by hand:
-    #
-    # n.b. CMAKE_FLAGS='-DOpenCV_DIR=/opt/opencv-2.4/share/opencv' rake debug:make
-    #
     desc "Make lsd_slam for #{build}"
     task :build => build_dir do
-      ##-Bbuild_ci -H.
+      mkdir build_dir unless FileTest.directory? build_dir
       chdir build_dir do
-        sh "cmake", *cmake_args
+        sh "cmake % s .." % cmake_args
         sh "make deps && touch #{deps_touchfile}" unless File.readable? deps_touchfile
         sh "make"
       end
     end
 
     ## Force make deps
-    desc "Force make deps for #{build}"
+    desc "Force rebuild of the dependencies for #{build}"
     task :deps => build_dir do
       chdir build_dir do
         sh "cmake", *cmake_args

@@ -89,3 +89,9 @@ I've started to document my performance testing in [doc/Performance.md](doc/Perf
 # 6. License
 
 LSD-SLAM is licensed under the GNU General Public License Version 3 (GPLv3), see http://www.gnu.org/licenses/gpl.html.
+
+# 7. TODOS
+
+ * remove dependencies on TCLAP and Pangolin.  Trying to minimize the dependencies/design
+ decisions built into this core repo
+ and move them to "application" repos.  I will retain g3log for logging and g2o.

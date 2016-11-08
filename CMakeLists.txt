@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.7)
-project(lsd_slam_core)
+project(lsd_slam)
 include(ExternalProject)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
@@ -21,7 +21,6 @@ find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 find_package(TCLAP REQUIRED )
-find_package(ZLIB REQUIRED)
 
 include( ${PROJECT_SOURCE_DIR}/cmake/BuildG3Log.cmake )
 
@@ -73,7 +72,7 @@ list( APPEND G2O_INCLUDE_DIR
 	${CHOLMOD_INCLUDE_DIR} )
 
 
-##====  Option to build local copy of Pangolin ======================
+##====  Build local copy of Pangolin? ======================
 option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
 if( BUILD_LOCAL_PANGOLIN )
 	list( APPEND EXTERNAL_PROJECTS Pangolin )
@@ -82,7 +81,7 @@ elseif()
 	find_package(Pangolin 0.1 REQUIRED)
 endif()
 
-##==== Check and define the architecture (this is used in e.g. Zed.cmake )
+##==== Check and define the architecture
 ## Architecture-specific optimizations
 option( CUDA_VERSION "Use CUDA" "")
 
@@ -149,8 +148,8 @@ if( BUILD_UNIT_TESTS )
   ## Build a local copy of gtest (as per the GTest FAQ)
   include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
 	list( APPEND EXTERNAL_PROJECTS gtest )
-
   add_subdirectory( test/unit/ )
 endif()
 
+# Custom target to build dependencies
 add_custom_target( deps DEPENDS ${EXTERNAL_PROJECTS} )
