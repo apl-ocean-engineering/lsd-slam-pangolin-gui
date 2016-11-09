@@ -1,95 +1,47 @@
 
-$:.unshift File.dirname(__FILE__) + "/.rb"
-require 'pathname'
-require 'docker'
-
-## Set defaults
-@cmake_opts = ['-DBUILD_UNIT_TESTS:BOOL=True']
-load 'config.rb' if FileTest::exists? 'config.rb'
-
-build_root = ENV['LSDSLAM_BUILD_DIR'] || "build"
-
 task :default => "debug:test"
 
-builds = %w( release debug )
-builds.each do |build|
+@build_opts = {}
+load 'config.rb' if FileTest::exists? 'config.rb'
 
-  deps_touchfile = '.DEPS_MADE'
+['Debug','Release'].each { |build_type|
+  namespace build_type.downcase.to_sym do
+    build_dir = ENV['BUILD_DIR'] || "build-#{build_type}"
 
-  namespace build do
-
-    cmake_args = %W(-DCMAKE_BUILD_TYPE:string=#{build}
-          #{ENV['CMAKE_FLAGS']}
-          -DEXTERNAL_PROJECT_PARALLELISM:string=0 )
-
-    build_dir = [build_root, build].join('_')
-
-    desc "Make lsd_slam for #{build}"
-    task :build => build_dir do
-      mkdir build_dir unless FileTest.directory? build_dir
-      chdir build_dir do
-        sh "cmake % s .." % cmake_args
-        sh "make deps && touch #{deps_touchfile}" unless File.readable? deps_touchfile
-        sh "make"
-      end
+    task :build do
+      FileUtils::mkdir build_dir unless FileTest::directory? build_dir
+      opencv_opt = "-o opencv_dir=%s" % @build_opts[:opencv_dir] if @build_opts[:opencv_dir]
+      sh "cd %s && conan install --scope build_tests=True -s build_type=%s %s .. --build=missing" % [build_dir, build_type, opencv_opt]
+      sh "cd %s && conan build .." % [build_dir]
     end
 
-    ## Force make deps
-    desc "Force rebuild of the dependencies for #{build}"
-    task :deps => build_dir do
-      chdir build_dir do
-        sh "cmake", *cmake_args
-        FileUtils.rm deps_touchfile
-        sh "make deps && touch #{deps_touchfile}"
-      end
-    end
-
-    task :clean => build_dir do
-      chdir build_dir do
-        sh "make clean"
-      end
-    end
-
-    desc "Run all tests"
-    task :test => [ :build, "test:unit" ]
-
-    namespace :test do
-      desc "Unit tests for #{build}"
-      task :unit do
-        chdir build_dir do
-          sh "make unit_test"
-        end
-      end
+    task :test => :build do
+      sh "cd %s && make unit_test" % build_dir
     end
 
   end
+}
 
+namespace :conan do
+  task :export do
+    sh "rm -rf build-*"
+    sh "conan export amarburg/testing"
+  end
 end
 
-DockerTasks.new( builds: builds )
-
-#
-# Platform-specific tasks for installing dependencies
-#
 namespace :dependencies do
 
-  desc "Install dependencies for Ubuntu trusty"
   task :trusty do
-    sh "sudo apt-get update &&
-        sudo apt-get install -y cmake \
-      		libopencv-dev libboost-all-dev libeigen3-dev \
-      		libtclap-dev libgomp1 libsuitesparse-dev git \
-      		libglew-dev libglm-dev autoconf libtool freeglut3-dev"
+    sh "sudo apt-get install -y cmake libopencv-dev libtclap-dev libboost-all-dev"
+    sh "pip install conan"
   end
-
 
   task :osx do
     sh "brew update"
     sh "brew tap homebrew/science"
-    sh "brew install homebrew/science/opencv tclap"
+    sh "brew install homebrew/science/opencv tclap conan"
   end
 
-  ## Travis-specific depenendcy rules
   namespace :travis do
 
     task :linux => "dependencies:trusty"
@@ -101,7 +53,4 @@ namespace :dependencies do
     end
 
   end
-
-
-
 end
