@@ -16,19 +16,10 @@ matrix:
       sudo: required
     - os: osx
       osx_image: xcode7.3
+      compiler: clang
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install rake ; fi
   - rake dependencies:travis:$TRAVIS_OS_NAME
 
 script: rake debug:test release:test
-
-
-## Try caching these ExternalProjects.   I believe the CMake dependency
-## process will correctly rebuild these if upstream changes.
-cache:
-  directories:
-  - build_ci/g2o
-  - build_ci/g3log
-  - build_ci/google-snappy
-  - build_ci/Pangolin
