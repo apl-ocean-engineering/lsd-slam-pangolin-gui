@@ -19,7 +19,18 @@ endif()
 
 ##==== Check and define the architecture
 ## Architecture-specific optimizations
-option( CUDA_VERSION "Use CUDA" "")
+## Need this workaround for CUDA 8.0
+find_package( CUDA )
+if( CUDA_VERSION )
+	message("Found CUDA version ${CUDA_VERSION}")
+	if(${CUDA_VERSION} VERSION_EQUAL "8.0")
+		message("Disabling CUDA_USE_STATIC_CUDA_RUNTIME")
+		set( CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE BOOL "" FORCE  )
+	endif()
+	find_package( CUDA )
+endif()
+
+
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
@@ -42,10 +53,6 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with compiler behavior
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )
-endif()
-
-if( CUDA_VERSION )
-	find_package( CUDA REQUIRED ${CUDA_VERSION} )
 endif()
 
 

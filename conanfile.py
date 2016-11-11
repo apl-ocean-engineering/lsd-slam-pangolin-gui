@@ -9,9 +9,10 @@ class LsdSlamConan(ConanFile):
   default_options = "opencv_dir=''", "build_parallel=True"
   exports = ['lib/*', 'include/**', 'test/', 'CMakeLists.txt', 'Rakefile', 'conanfile.py', '.rb/']
   requires = "lsd_slam/master@amarburg/testing", \
-  #             "g3log/0.1@amarburg/testing"
+             "libvideoio/master@amarburg/testing"
 
   def config(self):
+    #self.options['lsd_slam'].build_parallel = self.options.build_parallel
     self.options['lsd_slam'].opencv_dir = self.options.opencv_dir
     if self.scope.dev and self.scope.build_tests:
       self.requires( "gtest/1.8.0@lasote/stable" )
