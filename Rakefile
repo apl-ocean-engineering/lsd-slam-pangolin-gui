@@ -41,14 +41,18 @@ end
 namespace :dependencies do
 
   task :trusty do
-    sh "sudo apt-get install -y cmake libopencv-dev libtclap-dev libboost-all-dev"
+    sh "sudo apt-get install -y cmake \
+      libopencv-dev libboost-all-dev libeigen3-dev \
+      libgomp1 libsuitesparse-dev git \
+      autoconf libtool libglew-dev libglm-dev freeglut3-dev"
     sh "pip install conan"
   end
 
   task :osx do
     sh "brew update"
     sh "brew tap homebrew/science"
-    sh "brew install homebrew/science/opencv tclap conan"
+    sh "brew install homebrew/science/opencv tclap homebrew/science/suitesparse \
+              eigen conan glew glm homebrew/x11/freeglut"
   end
 
   namespace :travis do
