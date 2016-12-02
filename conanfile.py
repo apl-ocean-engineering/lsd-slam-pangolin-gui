@@ -13,7 +13,13 @@ class LsdSlamConan(ConanFile):
 
   def config(self):
     #self.options['lsd_slam'].build_parallel = self.options.build_parallel
+
+    ## Which of these are strictly necessary?
     self.options['lsd_slam'].opencv_dir = self.options.opencv_dir
+    self.options['liblogger'].opencv_dir = self.options.opencv_dir
+    self.options['libvideoio'].opencv_dir = self.options.opencv_dir
+    self.options['g2o_conan'].build_type = 'Release'
+
     if self.scope.dev and self.scope.build_tests:
       self.requires( "gtest/1.8.0@lasote/stable" )
       self.options["gtest"].shared = False
@@ -33,8 +39,7 @@ class LsdSlamConan(ConanFile):
     flag_build_tests = "-DBUILD_UNIT_TESTS=1" if self.scope.dev and self.scope.build_tests else ""
 
     self.run('cmake "%s" %s %s %s' % (self.conanfile_directory, cmake.command_line, cmake_opts, flag_build_tests))
-    self.run('make deps')
-    self.run('cmake --build . %s -- %s' % cmake.build_config, build_opts )
+    self.run('cmake --build . %s -- %s' % (cmake.build_config, build_opts) )
     if self.scope.dev and self.scope.build_tests:
       self.run('make unit_test')
 
@@ -48,5 +53,5 @@ class LsdSlamConan(ConanFile):
     #else:
     #    self.copy(pattern="*.a", dst="lib", src="lib", keep_path=False)
 
-  def package_info(self):
-      self.cpp_info.libs = ["lsdslam"]
+  #def package_info(self):
+      #self.cpp_info.libs = ["lsdslam"]

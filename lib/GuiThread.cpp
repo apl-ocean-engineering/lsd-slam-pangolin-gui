@@ -1,7 +1,7 @@
 
 #include "LSD.h"
 
-#include "IOWrapper/Pangolin/PangolinOutput3DWrapper.h"
+#include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
 
 
 using namespace lsd_slam;

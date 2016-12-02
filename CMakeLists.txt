@@ -5,30 +5,59 @@ include(ExternalProject)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
+## Pull in cmake files from the LSD_SLAM package
+list(APPEND CMAKE_MODULE_PATH ${CONAN_LSD_SLAM_ROOT}/../../export/cmake )
+
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-##====  Build local copy of Pangolin? ======================
-option( BUILD_LOCAL_PANGOLIN "Build a local copy of Pangolin" ON )
-if( BUILD_LOCAL_PANGOLIN )
-	list( APPEND EXTERNAL_PROJECTS Pangolin )
-	include( ${PROJECT_SOURCE_DIR}/cmake/BuildPangolin.cmake )
-elseif()
-	find_package(Pangolin 0.1 REQUIRED)
+
+## This is hackish, needs to be expressed in the conanfile for Pangolin
+## Check for dependencies for Pangolin
+find_package( GLEW REQUIRED )
+find_package( GLUT REQUIRED )
+find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
+find_package( OpenGL REQUIRED )
+find_package( JPEG REQUIRED )
+find_package( PNG REQUIRED )
+find_package( PythonLibs REQUIRED )
+find_package( OpenEXR QUIET )
+
+set( Pangolin_LIBRARIES
+			${OPENGL_LIBRARIES}
+			${JPEG_LIBRARIES}
+			${PNG_LIBRARIES}
+			${PYTHON_LIBRARIES}
+			${GLEW_LIBRARIES}
+			${OpenEXR_LIBRARIES} )
+
+if(APPLE)
+	## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
+	list( APPEND Pangolin_LIBRARIES glut  )
+else()
+	list( APPEND Pangolin_LIBRARIES  ${GLUT_LIBRARIES}  )
 endif()
+
+## This is hackish, needs to be expressed in the conanfile for G2O
+find_package(SuiteParse REQUIRED)
+list( APPEND G2O_LIBRARIES
+  ${CSPARSE_LIBRARY} )
+list( APPEND G2O_INCLUDE_DIR
+  ${CSPARSE_INCLUDE_DIR}
+  ${CHOLMOD_INCLUDE_DIR} )
 
 ##==== Check and define the architecture
 ## Architecture-specific optimizations
 ## Need this workaround for CUDA 8.0
-find_package( CUDA )
-if( CUDA_VERSION )
-	message("Found CUDA version ${CUDA_VERSION}")
-	if(${CUDA_VERSION} VERSION_EQUAL "8.0")
-		message("Disabling CUDA_USE_STATIC_CUDA_RUNTIME")
-		set( CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE BOOL "" FORCE  )
-	endif()
-	find_package( CUDA )
-endif()
+# find_package( CUDA )
+# if( CUDA_VERSION )
+# 	message("Found CUDA version ${CUDA_VERSION}")
+# 	if(${CUDA_VERSION} VERSION_EQUAL "8.0")
+# 		message("Disabling CUDA_USE_STATIC_CUDA_RUNTIME")
+# 		set( CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE BOOL "" FORCE  )
+# 	endif()
+# 	find_package( CUDA )
+# endif()
 
 
 
@@ -59,28 +88,22 @@ endif()
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+list(APPEND CONAN_LIBS ${G2O_LIBRARIES}
+			${Pangolin_LIBRARIES}
+	    ${OpenCV_LIBS}
+    	${Boost_LIBRARIES})
 
-set( LSDSLAM_INCLUDE_DIRS
+include_directories( LSDSLAM_INCLUDE_DIRS
+	${CMAKE_SOURCE_DIR}/lib
 	${EIGEN3_INCLUDE_DIR}
 	${OpenCV_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
-	${Pangolin_INCLUDE_DIRS}
-	${G2O_INCLUDE_DIR}
   ${CONAN_INCLUDE_DIRS})
 
-include_directories( ${LSDSLAM_INCLUDE_DIRS} )
-
-# link_directories( ${ZED_LIBRARY_DIRS}
-#  									${CUDA_LIBRARY_DIRS} )
-
-#add_subdirectory( lib/ )
+add_subdirectory( lib/ )
 add_subdirectory( tools/ )
 
 option( BUILD_UNIT_TESTS "Build unit tests" OFF )
 if( BUILD_UNIT_TESTS )
-  ## Build a local copy of gtest (as per the GTest FAQ)
-	include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
-	list( APPEND EXTERNAL_PROJECTS gtest )
-
   add_subdirectory( test/unit/ )
 endif()

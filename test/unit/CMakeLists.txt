@@ -5,9 +5,11 @@ add_executable( lsdslam_test
               test_test.cpp )
 
 target_link_libraries( lsdslam_test
-          ${GTEST_BOTH_LIBRARIES}
-          lsdslam )
+    ${CONAN_LIBS}
+        lsdgui )
 
 # # Don't use ctest, instead just execture the Google test binaries
-add_custom_target( unit_test ${PROJECT_BINARY_DIR}/lsdslam_test
+add_custom_target( unit_test
+                COMMAND ./lsdslam_test
+                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin
                     DEPENDS lsdslam_test )

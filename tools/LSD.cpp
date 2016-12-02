@@ -26,7 +26,8 @@
 
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
-#include "util/G3LogSinks.h"
+
+#include "libvideoio/G3LogSinks.h"
 
 #include "util/settings.h"
 #include "util/Parse.h"
@@ -34,7 +35,7 @@
 #include "util/ThreadMutexObject.h"
 #include "util/Configuration.h"
 
-#include "LSD/LSD.h"
+#include "LSD.h"
 
 
 using namespace lsd_slam;
