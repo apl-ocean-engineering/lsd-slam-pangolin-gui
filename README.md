@@ -10,6 +10,8 @@ I expect greater divergence.
 
 I've automated the building with a Rakefile (yes, I now, Ruby to coordinate Python, thanx).   
 
+Assuming all the (non-Conan, apt-gettable) dependencies are in place,
+
 > rake debug:test
 
 Should work.
