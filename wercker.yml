@@ -1,0 +1,18 @@
+# wercker version for box creation
+box: amarburg/lsdslam-dev-host
+
+dev:
+  steps:
+    - script:
+      name: Build
+      code: |
+           LSDSLAM_BUILD_DIR=build_wercker rake 
+
+build:
+  steps:
+    - script:
+      name: Build
+      code: |
+           LSDSLAM_BUILD_DIR=build_wercker rake
+
+
