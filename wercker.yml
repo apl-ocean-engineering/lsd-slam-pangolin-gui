@@ -3,6 +3,10 @@ box: amarburg/lsdslam-dev-host
 
 dev:
   steps:
+    - script: 
+      name: Install conan
+      code:  pip install conan
+
     - script:
       name: Build
       code: |
@@ -10,6 +14,13 @@ dev:
 
 build:
   steps:
+    - install-packages:
+      packages: python-pip
+
+    - script: 
+      name: Install conan
+      code:  pip install conan
+
     - script:
       name: Build
       code: |
