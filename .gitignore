@@ -3,3 +3,4 @@
 *.so
 .DS_Store
 build[_-]*/
+.wercker/

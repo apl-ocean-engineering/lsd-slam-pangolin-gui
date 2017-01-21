@@ -1,26 +1,8 @@
 # wercker version for box creation
-box: amarburg/lsdslam-dev-host
-
-dev:
-  steps:
-    - script:
-      name: Install conan
-      code:  pip install conan
-
-    - script:
-      name: Build
-      code: |
-           LSDSLAM_BUILD_DIR=build_wercker CONAN_USER_HOME=$WERCKER_CACHE_DIR rake
+box: amarburg/lsdslam-dev-host:conan-latest
 
 build:
   steps:
-    - install-packages:
-      packages: python-pip
-
-    - script:
-      name: Install conan
-      code:  pip install conan
-
     - script:
       name: Build
       code: |
