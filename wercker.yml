@@ -6,4 +6,5 @@ build:
     - script:
       name: Build
       code: |
-           LSDSLAM_BUILD_DIR=build_wercker CONAN_USER_HOME=$WERCKER_CACHE_DIR rake
+          echo '@conan_settings = {"compiler": "gcc", "compiler.libcxx": "libstdc++11"}' > config.rb
+          LSDSLAM_BUILD_DIR=build_wercker CONAN_USER_HOME=$WERCKER_CACHE_DIR/.conan rake
