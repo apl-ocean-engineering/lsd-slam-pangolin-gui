@@ -30,9 +30,11 @@ class LsdSlamConan(ConanFile):
 
   def build(self):
     cmake = CMake(self.settings)
-    build_opts=""
+    build_opts = ""
+    cmake_opts = ""
+    cmake_opts += "-DCUDA_USE_STATIC_CUDA_RUNTIME:bool=OFF "
     if self.options.opencv_dir:
-      cmake_opts = "-DOpenCV_DIR=%s" % (self.options.opencv_dir)
+      cmake_opts += "-DOpenCV_DIR=%s " % (self.options.opencv_dir)
 
     build_opts = "-j" if self.options.build_parallel else ""
 

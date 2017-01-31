@@ -7,5 +7,5 @@ set(lsdgui_SOURCE_FILES
 )
 
 # build shared library.
-add_library( lsdgui STATIC ${lsdgui_SOURCE_FILES})
+add_library( lsdgui ${lsdgui_SOURCE_FILES})
 target_link_libraries( lsdgui lsdslam )

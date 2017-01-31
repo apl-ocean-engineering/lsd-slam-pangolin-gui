@@ -90,6 +90,7 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 list(APPEND CONAN_LIBS ${G2O_LIBRARIES}
 			pthread
+			GLEW
 			${Pangolin_LIBRARIES}
 	    ${OpenCV_LIBS}
     	${Boost_LIBRARIES})
