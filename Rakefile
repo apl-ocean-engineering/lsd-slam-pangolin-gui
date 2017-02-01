@@ -40,6 +40,9 @@ end
 
 namespace :dependencies do
 
+
+  task :xenial => :trusty
+
   task :trusty do
     sh "sudo apt-get install -y cmake \
       libopencv-dev libboost-all-dev libeigen3-dev \
