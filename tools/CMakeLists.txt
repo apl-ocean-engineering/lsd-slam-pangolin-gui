@@ -6,6 +6,7 @@ include_directories(
 # build image node
 add_executable( LSD LSD.cpp )
 target_link_libraries( LSD
+    lsdgui
     ${CONAN_LIBS}
     GLEW
-    lsdgui )
+    GL )
