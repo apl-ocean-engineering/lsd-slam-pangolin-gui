@@ -12,7 +12,7 @@ class LsdSlamConan(ConanFile):
              "libvideoio/master@amarburg/testing"
 
   def config(self):
-    #self.options['lsd_slam'].build_parallel = self.options.build_parallel
+    self.options['lsd_slam'].build_parallel = self.options.build_parallel
 
     ## Which of these are strictly necessary?
     self.options['lsd_slam'].opencv_dir = self.options.opencv_dir
