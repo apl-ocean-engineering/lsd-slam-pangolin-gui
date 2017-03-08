@@ -10,7 +10,7 @@ InputThread::InputThread(  std::shared_ptr<lsd_slam::SlamSystem> &sys,
                    std::shared_ptr<lsd_slam::DataSource> &src,
                    std::shared_ptr<lsd_slam::Undistorter> &und )
   : system( sys ), dataSource( src ), undistorter( und ),
-    inputDone(),
+    inputDone( false ),
     inputReady()
   {
   }

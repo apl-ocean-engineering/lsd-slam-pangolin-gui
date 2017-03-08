@@ -4,19 +4,17 @@
 
 #include "util/Parse.h"
 
-#include "ParseArgs.h"
+#include "LSDArgs.h"
 
 
 
 namespace lsd_slam {
 
-  ParseArgs::ParseArgs( int argc, char **argv )
+  LSDArgs::LSDArgs( int argc, char **argv )
     : dataSource( nullptr ),
       undistorter( nullptr ),
       doGui( true )
   {
-
-    bool doGui = true;
 
       try {
         TCLAP::CmdLine cmd("LSD", ' ', "0.1");

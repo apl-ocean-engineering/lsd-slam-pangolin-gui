@@ -7,9 +7,9 @@
 
 namespace lsd_slam {
 
-struct ParseArgs {
+struct LSDArgs {
 
-  ParseArgs( int argc, char **argv );
+  LSDArgs( int argc, char **argv );
 
   std::shared_ptr<DataSource> dataSource;
   std::shared_ptr<Undistorter> undistorter;

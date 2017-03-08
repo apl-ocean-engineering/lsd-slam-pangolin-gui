@@ -34,7 +34,7 @@
 #include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
 
 #include "LSD.h"
-#include "ParseArgs.h"
+#include "LSDArgs.h"
 #include "InputThread.h"
 
 
@@ -45,10 +45,10 @@ int main( int argc, char** argv )
   auto logWorker = initializeG3Log( argv[0] );
   logBanner();
 
-  Configuration conf;
-  ParseArgs args( argc, argv );
+  LSDArgs args( argc, argv );
 
   // Load configuration for LSD-SLAM
+  lsd_slam::Configuration conf;
   conf.inputImage = args.undistorter->inputImageSize();
   conf.slamImage  = args.undistorter->outputImageSize();
   conf.camera     = args.undistorter->getCamera();
@@ -56,17 +56,17 @@ int main( int argc, char** argv )
   LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
-	std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );
+  std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );
 
-  // GUI elements need to be initialized in main thread on OSX, so run GUI elements
-  // in this thread by default.
+  // GUI elements need to be initialized in main thread on OSX,
+  // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
 
   if( args.doGui ) {
     gui.reset( new GUI( system->conf() ) );
-	lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
-	system->set3DOutputWrapper( outputWrapper );
-}
+    lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
+    system->set3DOutputWrapper( outputWrapper );
+  }
 
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, args.dataSource, args.undistorter );
@@ -77,16 +77,17 @@ int main( int argc, char** argv )
   LOG(INFO) << "Starting all threads.";
   startAll.notify();
 
+  if( gui ) {
     while(!pangolin::ShouldQuit() && !input.inputDone.getValue() )
-  	{
+    {
       if( gui ) gui->update();
-    
     }
+  } else {
+    input.inputDone.wait();
+  }
 
-    LOG(INFO) << "Finalizing system.";
-    system->finalize();
-
-    while( ! system->finalized() ) { sleep(1); }
+  LOG(INFO) << "Finalizing system.";
+  system->finalize();
 
   return 0;
 }

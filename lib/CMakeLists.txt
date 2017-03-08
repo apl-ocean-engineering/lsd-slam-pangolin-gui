@@ -1,7 +1,7 @@
 # Set source files
 set(lsdgui_SOURCE_FILES
   GUI.cpp
-  ParseArgs.cpp
+  LSDArgs.cpp
   InputThread.cpp
   LSD.cpp
   Pangolin_IOWrapper/PangolinOutput3DWrapper.cpp
