@@ -7,6 +7,4 @@ include_directories(
 add_executable( LSD LSD.cpp )
 target_link_libraries( LSD
     lsdgui
-    ${CONAN_LIBS}
-    GLEW
-    GL )
+    ${CONAN_LIBS} )

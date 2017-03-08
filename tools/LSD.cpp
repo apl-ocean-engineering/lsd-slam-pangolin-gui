@@ -24,9 +24,6 @@
 
 #include <tclap/CmdLine.h>
 
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
-
 #include "libvideoio/G3LogSinks.h"
 
 #include "util/settings.h"
@@ -46,16 +43,7 @@ ThreadSynchronizer lsdReady, guiReady, startAll;
 
 int main( int argc, char** argv )
 {
-  auto worker = g3::LogWorker::createLogWorker();
-  auto handle = worker->addDefaultLogger(argv[0], ".");
-  auto stderrHandle = worker->addSink(std::unique_ptr<ColorStderrSink>( new ColorStderrSink ),
-                                       &ColorStderrSink::ReceiveLogMessage);
-
-  g3::initializeLogging(worker.get());
-  std::future<std::string> log_file_name = handle->call(&g3::FileSink::fileName);
-  std::cout << "*\n*   Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
-
-  LOG(INFO) << "Starting log.";
+  initializeG3Logger();
 
   DataSource *dataSource = NULL;
   Undistorter* undistorter = NULL;
@@ -67,7 +55,7 @@ int main( int argc, char** argv )
     try {
       TCLAP::CmdLine cmd("LSD", ' ', "0.1");
 
-      TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", false, "", "Calibration filename", cmd );
+      TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", true, "", "Calibration filename", cmd );
       TCLAP::ValueArg<std::string> resolutionArg("r", "resolution", "", false, "hd1080", "{hd2k, hd1080, hd720, vga}", cmd );
 
       TCLAP::SwitchArg debugOutputSwitch("","debug-to-console","Print DEBUG output to console", cmd, false);
@@ -78,7 +66,8 @@ int main( int argc, char** argv )
 
       cmd.parse(argc, argv );
 
-      if( debugOutputSwitch.getValue() ) stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
+      // if( debugOutputSwitch.getValue() )
+      //   stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
 
       std::vector< std::string > imageFiles = imageFilesArg.getValue();
 
@@ -86,10 +75,7 @@ int main( int argc, char** argv )
 
       if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
 
-      if( !calibFileArg.isSet() ) {
-        LOG(WARNING) << "Must specify camera calibration!";
-        exit(-1);
-      }
+      //CHECK( calibFileArg.isSet() ) << "Must specify camera calibration!";
 
       undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
       CHECK(undistorter != NULL);
@@ -102,11 +88,6 @@ int main( int argc, char** argv )
       exit(-1);
     }
 
-#ifdef ENABLE_SSE
-  LOG(INFO) << "With SSE optimizations.";
-#elif ENABLE_NEON
-  LOG(INFO) << "With NEON optimizations.";
-#endif
 
   CHECK( undistorter != NULL ) << "Could not create undistorter.";
   CHECK( dataSource != NULL ) << "Could not create data source.";

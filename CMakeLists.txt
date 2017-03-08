@@ -29,14 +29,15 @@ set( Pangolin_LIBRARIES
 			${PNG_LIBRARIES}
 			${PYTHON_LIBRARIES}
 			${GLEW_LIBRARIES}
+			${GLUT_LIBRARIES}
 			${OpenEXR_LIBRARIES} )
 
-if(APPLE)
-	## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
-	list( APPEND Pangolin_LIBRARIES glut  )
-else()
-	list( APPEND Pangolin_LIBRARIES  ${GLUT_LIBRARIES}  )
-endif()
+# if(APPLE)
+# 	## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
+# 	list( APPEND Pangolin_LIBRARIES glut  )
+# else()
+# 	list( APPEND Pangolin_LIBRARIES    )
+# endif()
 
 ## This is hackish, needs to be expressed in the conanfile for G2O
 find_package(SuiteParse REQUIRED)
