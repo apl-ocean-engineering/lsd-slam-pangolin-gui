@@ -1,12 +1,21 @@
 
 
+#include "InputThread.h"
 #include "LSD.h"
 
-using namespace lsd_slam;
+namespace lsd_slam {
 
 
-void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistorter )
-{
+InputThread::InputThread(  std::shared_ptr<lsd_slam::SlamSystem> &sys,
+                   std::shared_ptr<lsd_slam::DataSource> &src,
+                   std::shared_ptr<lsd_slam::Undistorter> &und )
+  : system( sys ), dataSource( src ), undistorter( und ),
+    inputDone(),
+    inputReady()
+  {
+  }
+
+  void InputThread::operator()() {
     // get HZ
     float fps = dataSource->fps();
     long int dt_us = (fps > 0) ? (1e6/fps) : 0;
@@ -14,7 +23,8 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
 
     const bool doDepth( system->conf().doDepth && dataSource->hasDepth() );
 
-    lsdReady.notify();
+    inputReady.notify();
+
     startAll.wait();
 
     int numFrames = dataSource->numFrames();
@@ -26,76 +36,77 @@ void runInput(SlamSystem * system, DataSource *dataSource, Undistorter* undistor
 
     for(unsigned int i = 0; (numFrames < 0) || (i < numFrames); ++i)
     {
-        if(lsdDone.getValue()) break;
+      if(inputDone.getValue()) break;
 
-        std::chrono::time_point<std::chrono::steady_clock> start(std::chrono::steady_clock::now());
+      std::chrono::time_point<std::chrono::steady_clock> start(std::chrono::steady_clock::now());
 
-        cv::Mat imageDist = cv::Mat( system->conf().inputImage.cvSize(), CV_8U);
+      cv::Mat imageDist = cv::Mat( system->conf().inputImage.cvSize(), CV_8U);
 
-        if( dataSource->grab() ) {
+      if( dataSource->grab() ) {
 
-          dataSource->getImage( imageDist );
-          undistorter->undistort(imageDist, image);
+        dataSource->getImage( imageDist );
+        undistorter->undistort(imageDist, image);
 
-          CHECK(image.type() == CV_8U);
+        CHECK(image.type() == CV_8U);
 
-          std::shared_ptr<Frame> frame( new Frame( runningIdx, system->conf(), fakeTimeStamp, image.data ));
+        std::shared_ptr<Frame> frame( new Frame( runningIdx, system->conf(), fakeTimeStamp, image.data ));
 
-          if( doDepth ) {
-            cv::Mat depthOrig, depth;
-            dataSource->getDepth( depthOrig );
+        if( doDepth ) {
+          cv::Mat depthOrig, depth;
+          dataSource->getDepth( depthOrig );
 
-            // Depth needs to be scaled as well...
-            undistorter->undistortDepth( depthOrig, depth );
+          // Depth needs to be scaled as well...
+          undistorter->undistortDepth( depthOrig, depth );
 
-            CHECK(depth.type() == CV_32F );
-            CHECK( (depth.rows == image.rows) && (depth.cols == image.cols) );
+          CHECK(depth.type() == CV_32F );
+          CHECK( (depth.rows == image.rows) && (depth.cols == image.cols) );
 
-            frame->setDepthFromGroundTruth( depth.ptr<float>() );
-          }
-
-          if(runningIdx == 0)
-          {
-            if( doDepth )
-              system->gtDepthInit( frame );
-            else
-              system->randomInit( frame );
-          }
-          else
-          {
-              system->trackFrame( frame, fps == 0 );
-          }
-
-          if( gui ){
-            gui->pose.assignValue(system->getCurrentPoseEstimateScale());
-            gui->updateFrameNumber( runningIdx );
-            gui->updateLiveImage( image.data );
-          }
-
-          runningIdx++;
-          fakeTimeStamp += (fps > 0) ? (1.0/fps) : 0.03;
-
-          if(fullResetRequested)
-          {
-              SlamSystem *newSystem = new SlamSystem( system->conf() );
-              newSystem->set3DOutputWrapper( system->outputWrapper() );
-
-              LOG(WARNING) << "FULL RESET!";
-              delete system;
-
-              system = newSystem;
-
-              fullResetRequested = false;
-              runningIdx = 0;
-          }
-
-        } else {
-          if( system->conf().stopOnFailedRead ) break;
+          frame->setDepthFromGroundTruth( depth.ptr<float>() );
         }
 
-        if( dt_us > 0 ) std::this_thread::sleep_until( start + std::chrono::microseconds( dt_us + dt_wiggle ) );
+        if(runningIdx == 0)
+        {
+          if( doDepth )
+          system->gtDepthInit( frame );
+          else
+          system->randomInit( frame );
+        }
+        else
+        {
+          system->trackFrame( frame, fps == 0 );
+        }
+
+        // if( gui ){
+        //   gui->pose.assignValue(system->getCurrentPoseEstimateScale());
+        //   gui->updateFrameNumber( runningIdx );
+        //   gui->updateLiveImage( image.data );
+        // }
+
+        runningIdx++;
+        fakeTimeStamp += (fps > 0) ? (1.0/fps) : 0.03;
+
+        if(fullResetRequested)
+        {
+          SlamSystem *newSystem = new SlamSystem( system->conf() );
+          newSystem->set3DOutputWrapper( system->outputWrapper() );
+
+          LOG(WARNING) << "FULL RESET!";
+
+          system.reset( newSystem );
+
+          fullResetRequested = false;
+          runningIdx = 0;
+        }
+
+      } else {
+        if( system->conf().stopOnFailedRead ) break;
+      }
+
+      if( dt_us > 0 ) std::this_thread::sleep_until( start + std::chrono::microseconds( dt_us + dt_wiggle ) );
     }
 
     LOG(INFO) << "Have processed all input frames.";
-    lsdDone.assignValue(true);
+    inputDone.assignValue(true);
+  }
+
 }

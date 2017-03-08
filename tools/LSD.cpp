@@ -18,120 +18,74 @@
 * along with LSD-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <opencv2/opencv.hpp>
-
 #include <boost/thread.hpp>
 
-#include <tclap/CmdLine.h>
+#include "App/g3logger.h"
 
-#include "libvideoio/G3LogSinks.h"
+#include "SlamSystem.h"
 
 #include "util/settings.h"
 #include "util/Parse.h"
 #include "util/globalFuncs.h"
-#include "util/ThreadMutexObject.h"
 #include "util/Configuration.h"
 
+
+#include "GUI.h"
+#include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
+
 #include "LSD.h"
+#include "ParseArgs.h"
+#include "InputThread.h"
 
 
 using namespace lsd_slam;
 
-ThreadMutexObject<bool> lsdDone(false), guiDone(false);
-
-ThreadSynchronizer lsdReady, guiReady, startAll;
-
 int main( int argc, char** argv )
 {
-  initializeG3Logger();
-
-  DataSource *dataSource = NULL;
-  Undistorter* undistorter = NULL;
+  auto logWorker = initializeG3Log( argv[0] );
+  logBanner();
 
   Configuration conf;
+  ParseArgs args( argc, argv );
 
-  bool doGui = true;
-
-    try {
-      TCLAP::CmdLine cmd("LSD", ' ', "0.1");
-
-      TCLAP::ValueArg<std::string> calibFileArg("c", "calib", "Calibration file", true, "", "Calibration filename", cmd );
-      TCLAP::ValueArg<std::string> resolutionArg("r", "resolution", "", false, "hd1080", "{hd2k, hd1080, hd720, vga}", cmd );
-
-      TCLAP::SwitchArg debugOutputSwitch("","debug-to-console","Print DEBUG output to console", cmd, false);
-      TCLAP::SwitchArg noGuiSwitch("","no-gui","Do not run GUI", cmd, false);
-      TCLAP::ValueArg<int> fpsArg("", "fps","FPS", false, 0, "", cmd );
-
-      TCLAP::UnlabeledMultiArg<std::string> imageFilesArg("input-files","Name of image files / directories to read", false, "Files or directories", cmd );
-
-      cmd.parse(argc, argv );
-
-      // if( debugOutputSwitch.getValue() )
-      //   stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
-
-      std::vector< std::string > imageFiles = imageFilesArg.getValue();
-
-      dataSource = new ImagesSource( imageFiles );
-
-      if( fpsArg.isSet() ) dataSource->setFPS( fpsArg.getValue() );
-
-      //CHECK( calibFileArg.isSet() ) << "Must specify camera calibration!";
-
-      undistorter = Undistorter::getUndistorterForFile(calibFileArg.getValue());
-      CHECK(undistorter != NULL);
-
-      doGui = !noGuiSwitch.getValue();
-
-    } catch (TCLAP::ArgException &e)  // catch any exceptions
-  	{
-      LOG(WARNING) << "error: " << e.error() << " for arg " << e.argId();
-      exit(-1);
-    }
-
-
-  CHECK( undistorter != NULL ) << "Could not create undistorter.";
-  CHECK( dataSource != NULL ) << "Could not create data source.";
-
-  // Load the configuration object
-
-  conf.inputImage = undistorter->inputImageSize();
-  conf.slamImage  = undistorter->outputImageSize();
-  conf.camera     = undistorter->getCamera();
+  // Load configuration for LSD-SLAM
+  conf.inputImage = args.undistorter->inputImageSize();
+  conf.slamImage  = args.undistorter->outputImageSize();
+  conf.camera     = args.undistorter->getCamera();
 
   LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
-
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
-	SlamSystem * system = new SlamSystem(conf);
+	std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );
 
-  if( doGui ) {
-    LOG(INFO) << "Starting GUI thread";
-    boost::thread guiThread(runGui, system );
-    guiReady.wait();
-  }
+  // GUI elements need to be initialized in main thread on OSX, so run GUI elements
+  // in this thread by default.
+  std::shared_ptr<GUI> gui( new GUI( system->conf() ) );
+	lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
+	system->set3DOutputWrapper( outputWrapper );
 
   LOG(INFO) << "Starting input thread.";
-  boost::thread inputThread(runInput, system, dataSource, undistorter );
-  lsdReady.wait();
+  InputThread input( system, args.dataSource, args.undistorter );
+  boost::thread inputThread( boost::ref(input) );
+  input.inputReady.wait();
 
   // Wait for all threads to be ready.
   LOG(INFO) << "Starting all threads.";
   startAll.notify();
 
-  while(true)
-  {
-      if( (lsdDone.getValue() || guiDone.getValue()) && !system->finalized)
-      {
-          LOG(INFO) << "Finalizing system.";
-          system->finalize();
-      }
+    while(!pangolin::ShouldQuit() && !input.inputDone.getValue() )
+  	{
+  		gui->preCall();
+  		gui->drawKeyframes();
+  		gui->drawFrustum();
+  		gui->drawImages();
+  		gui->postCall();
+    }
 
-    sleep(1);
-  }
+    LOG(INFO) << "Finalizing system.";
+    system->finalize();
 
-
-  if( system ) delete system;
-  if( undistorter ) delete undistorter;
+    while( ! system->finalized() ) { sleep(1); }
 
   return 0;
 }
