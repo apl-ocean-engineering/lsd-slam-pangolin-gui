@@ -60,9 +60,13 @@ int main( int argc, char** argv )
 
   // GUI elements need to be initialized in main thread on OSX, so run GUI elements
   // in this thread by default.
-  std::shared_ptr<GUI> gui( new GUI( system->conf() ) );
+  std::shared_ptr<GUI> gui( nullptr );
+
+  if( args.doGui ) {
+    gui.reset( new GUI( system->conf() ) );
 	lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
 	system->set3DOutputWrapper( outputWrapper );
+}
 
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, args.dataSource, args.undistorter );
@@ -75,11 +79,8 @@ int main( int argc, char** argv )
 
     while(!pangolin::ShouldQuit() && !input.inputDone.getValue() )
   	{
-  		gui->preCall();
-  		gui->drawKeyframes();
-  		gui->drawFrustum();
-  		gui->drawImages();
-  		gui->postCall();
+      if( gui ) gui->update();
+    
     }
 
     LOG(INFO) << "Finalizing system.";

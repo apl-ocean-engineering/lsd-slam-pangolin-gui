@@ -88,6 +88,16 @@ void GUI::initImages()
     liveImgBuffer.assignValue(new unsigned char[_conf.slamImage.area()]);
 }
 
+void GUI::update( void )
+{
+  preCall();
+  drawKeyframes();
+  drawFrustum();
+  drawImages();
+  postCall();
+}
+
+
 void GUI::updateDepthImage(unsigned char * data)
 {
   std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());

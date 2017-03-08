@@ -51,6 +51,10 @@ class GUI
 
         void updateFrameNumber( int frameNumber );
 
+
+        // The master roll-up of all of the updating
+        void update( void );
+
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:

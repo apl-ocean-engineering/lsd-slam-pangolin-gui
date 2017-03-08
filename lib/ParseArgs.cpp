@@ -49,6 +49,7 @@ namespace lsd_slam {
         CHECK(undistorter) << "Undistorter shouldn't be null";
 
         doGui = !noGuiSwitch.getValue();
+        LOG(INFO) << ( doGui ? "Running" : "Not running" ) << " GUI";
 
       } catch (TCLAP::ArgException &e)  // catch any exceptions
     	{
