@@ -7,7 +7,6 @@
 #include "LSDArgs.h"
 
 
-
 namespace lsd_slam {
 
   LSDArgs::LSDArgs( int argc, char **argv )
@@ -45,7 +44,7 @@ namespace lsd_slam {
         }
 
         undistorter.reset( Undistorter::getUndistorterForFile(calibFileArg.getValue()) );
-        CHECK(undistorter) << "Undistorter shouldn't be null";
+        CHECK((bool)undistorter) << "Undistorter shouldn't be null";
 
         doGui = !noGuiSwitch.getValue();
         LOG(INFO) << ( doGui ? "Running" : "Not running" ) << " GUI";
