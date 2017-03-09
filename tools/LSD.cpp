@@ -42,10 +42,14 @@ using namespace lsd_slam;
 
 int main( int argc, char** argv )
 {
-  auto logWorker = initializeG3Log( argv[0] );
-  logBanner();
+  // Initialize the logging system
+  G3Logger logWorker( argv[0] );
+  logWorker.logBanner();
 
+  // Parse command line args
   LSDArgs args( argc, argv );
+
+  logWorker.verbose( args.verbose() );
 
   // Load configuration for LSD-SLAM
   lsd_slam::Configuration conf;
@@ -58,7 +62,7 @@ int main( int argc, char** argv )
 
   std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );
 
-  // GUI elements need to be initialized in main thread on OSX,
+  // GUI need to be initialized in main thread on OSX,
   // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
 
@@ -71,9 +75,10 @@ int main( int argc, char** argv )
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, args.dataSource, args.undistorter );
   boost::thread inputThread( boost::ref(input) );
+
+  // Wait for all threads to indicate they are ready to go
   input.inputReady.wait();
 
-  // Wait for all threads to be ready.
   LOG(INFO) << "Starting all threads.";
   startAll.notify();
 

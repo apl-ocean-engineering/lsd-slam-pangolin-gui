@@ -15,6 +15,12 @@ struct LSDArgs {
   std::shared_ptr<Undistorter> undistorter;
   bool doGui;
 
+  bool verbose() { return _verbose; }
+
+
+private:
+
+  bool _verbose;
 };
 
 

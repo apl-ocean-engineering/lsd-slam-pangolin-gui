@@ -13,7 +13,8 @@ namespace lsd_slam {
   LSDArgs::LSDArgs( int argc, char **argv )
     : dataSource( nullptr ),
       undistorter( nullptr ),
-      doGui( true )
+      doGui( true ),
+      _verbose( false )
   {
 
       try {
@@ -30,7 +31,7 @@ namespace lsd_slam {
 
         cmd.parse(argc, argv );
 
-        //if( debugOutputSwitch.getValue() ) stderrHandle->call( &ColorStderrSink::setThreshold, DEBUG );
+        _verbose = debugOutputSwitch.getValue();
 
         std::vector< std::string > imageFiles = imageFilesArg.getValue();
 
