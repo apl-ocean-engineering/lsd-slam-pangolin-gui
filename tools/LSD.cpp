@@ -80,7 +80,8 @@ std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
   }
 
   LOG(INFO) << "Starting input thread.";
-  InputThread input( system, args.dataSource, args.undistorter, ioWrapper );
+  InputThread input( system, args.dataSource, args.undistorter );
+  input.setIOOutputWrapper( ioWrapper );
   boost::thread inputThread( boost::ref(input) );
 
   // Wait for all threads to indicate they are ready to go
