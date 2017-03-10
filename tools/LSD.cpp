@@ -32,10 +32,13 @@
 
 #include "GUI.h"
 #include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
+#include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
 
-#include "LSD.h"
+
 #include "LSDArgs.h"
-#include "InputThread.h"
+
+#include <App/InputThread.h>
+#include <App/App.h>
 
 
 using namespace lsd_slam;
@@ -65,15 +68,19 @@ int main( int argc, char** argv )
   // GUI need to be initialized in main thread on OSX,
   // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
+std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
 
   if( args.doGui ) {
     gui.reset( new GUI( system->conf() ) );
     lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
     system->set3DOutputWrapper( outputWrapper );
+
+    ioWrapper.reset( new PangolinOutputIOWrapper( system->conf(), *gui ));
+
   }
 
   LOG(INFO) << "Starting input thread.";
-  InputThread input( system, args.dataSource, args.undistorter );
+  InputThread input( system, args.dataSource, args.undistorter, ioWrapper );
   boost::thread inputThread( boost::ref(input) );
 
   // Wait for all threads to indicate they are ready to go

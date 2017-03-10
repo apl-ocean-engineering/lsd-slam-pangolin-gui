@@ -28,6 +28,18 @@ load 'config.rb' if FileTest.readable? 'config.rb'
     task :test => :build do
       #
     end
+
+    namespace :run do
+
+      task :lsd_room do
+        dataset = { calib: "#{ENV['HOME']}/workspace/lsd_slam/datasets/LSD_room/cameraCalibration.cfg",
+                    images: "#{ENV['HOME']}/workspace/lsd_slam/datasets/LSD_room/images/"}
+        chdir build_dir + "/bin" do
+          sh *%W( ./LSD --calib #{dataset[:calib]} #{dataset[:images]} )
+        end
+      end
+
+    end
   end
 }
 

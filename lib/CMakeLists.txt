@@ -2,9 +2,8 @@
 set(lsdgui_SOURCE_FILES
   GUI.cpp
   LSDArgs.cpp
-  InputThread.cpp
-  LSD.cpp
   Pangolin_IOWrapper/PangolinOutput3DWrapper.cpp
+  Pangolin_IOWrapper/PangolinOutputIOWrapper.cpp
 )
 
 # build shared library.

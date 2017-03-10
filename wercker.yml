@@ -1,5 +1,6 @@
 # wercker version for box creation
 box: amarburg/lsdslam-dev-host:conan-latest
+command-timeout: 30
 
 build:
   steps:
