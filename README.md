@@ -1,5 +1,6 @@
 # LSD-SLAM: Large-Scale Direct Monocular SLAM
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/707295ecece34e7f813b9003ddbff750)](https://www.codacy.com/app/amarburg/lsd_slam_conan?utm_source=github.com&utm_medium=referral&utm_content=amarburg/lsd_slam_conan&utm_campaign=badger)
 CI Status: [![Build Status](https://travis-ci.org/amarburg/lsd_slam_conan.svg)](https://travis-ci.org/amarburg/lsd_slam_conan)
 
 See my [Development Blog](https://faculty.washington.edu/amarburg/press/category/lsdslam/) for current status.
