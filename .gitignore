@@ -6,3 +6,5 @@ build[_-]*/
 .wercker/
 __pycache__/
 config.rb
+
+.fips-*

@@ -1,36 +1,41 @@
-cmake_minimum_required(VERSION 2.8.7)
-project(lsd_slam_conan)
-include(ExternalProject)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
+if( NOT FIPS_IMPORT)
+  cmake_minimum_required(VERSION 3.5)
+  get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
+  include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
 
-## Pull in cmake files from the LSD_SLAM package
-list(APPEND CMAKE_MODULE_PATH ${CONAN_LSD_SLAM_ROOT}/../../export/cmake )
+  fips_setup(PROJECT fips-lsd-slam)
+endif()
+
+# ## Pull in cmake files from the LSD_SLAM package
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+find_package(SuiteParse REQUIRED)
 
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 
+
 ## This is hackish, needs to be expressed in the conanfile for Pangolin
 ## Check for dependencies for Pangolin
-find_package( GLEW REQUIRED )
-find_package( GLUT REQUIRED )
-find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
-find_package( OpenGL REQUIRED )
-find_package( JPEG REQUIRED )
-find_package( PNG REQUIRED )
-find_package( PythonLibs REQUIRED )
-find_package( OpenEXR QUIET )
-
-set( Pangolin_LIBRARIES
-			${OPENGL_LIBRARIES}
-			${JPEG_LIBRARIES}
-			${PNG_LIBRARIES}
-			${PYTHON_LIBRARIES}
-			${GLEW_LIBRARIES}
-			${GLUT_LIBRARIES}
-			${OpenEXR_LIBRARIES} )
+# find_package( GLEW REQUIRED )
+# find_package( GLUT REQUIRED )
+# find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
+# find_package( OpenGL REQUIRED )
+# find_package( JPEG REQUIRED )
+# find_package( PNG REQUIRED )
+# find_package( PythonLibs REQUIRED )
+# find_package( OpenEXR QUIET )
+#
+# set( Pangolin_LIBRARIES
+# 			${OPENGL_LIBRARIES}
+# 			${JPEG_LIBRARIES}
+# 			${PNG_LIBRARIES}
+# 			${PYTHON_LIBRARIES}
+# 			${GLEW_LIBRARIES}
+# 			${GLUT_LIBRARIES}
+# 			${OpenEXR_LIBRARIES} )
 
 # if(APPLE)
 # 	## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
@@ -85,27 +90,27 @@ elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )
 endif()
 
-
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-list(APPEND CONAN_LIBS ${G2O_LIBRARIES}
-			pthread
-			${Pangolin_LIBRARIES}
-	    ${OpenCV_LIBS}
-    	${Boost_LIBRARIES})
 
 include_directories( LSDSLAM_INCLUDE_DIRS
 	${CMAKE_SOURCE_DIR}/lib
 	${EIGEN3_INCLUDE_DIR}
 	${OpenCV_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
-  ${CONAN_INCLUDE_DIRS})
+)
 
-add_subdirectory( lib/ )
-add_subdirectory( tools/ )
+fips_add_subdirectory( lib/ )
+fips_add_subdirectory( tools/ )
 
-option( BUILD_UNIT_TESTS "Build unit tests" OFF )
-if( BUILD_UNIT_TESTS )
-  add_subdirectory( test/unit/ )
+if( FIPS_UNITTESTS )
+  fips_add_subdirectory( test/unit/ )
+
+  if( FIPS_UNITTESTS_RUN_AFTER_BUILD )
+    ## TODO
+  endif()
+endif()
+
+if( NOT FIPS_IMPORT )
+  fips_finish()
 endif()
