@@ -5,3 +5,7 @@ imports:
     fips-pangolin:
         git: https://github.com/amarburg/Pangolin.git
         branch: fips
+
+defines:
+  FIPS_RTTI: ON
+  FIPS_EXCEPTIONS: ON

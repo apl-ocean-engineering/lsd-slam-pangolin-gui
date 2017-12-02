@@ -12,6 +12,6 @@ fips_begin_module( lsdgui )
     PangolinOutputIOWrapper.cpp
   )
 
-  fips_deps( lsdslam )
+  fips_deps( lsdslam pangolin )
 
 fips_end_module()

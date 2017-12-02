@@ -16,34 +16,6 @@ find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 
-
-## This is hackish, needs to be expressed in the conanfile for Pangolin
-## Check for dependencies for Pangolin
-# find_package( GLEW REQUIRED )
-# find_package( GLUT REQUIRED )
-# find_package( GLM REQUIRED )  # n.b. we provide the FindGLM.cmake file
-# find_package( OpenGL REQUIRED )
-# find_package( JPEG REQUIRED )
-# find_package( PNG REQUIRED )
-# find_package( PythonLibs REQUIRED )
-# find_package( OpenEXR QUIET )
-#
-# set( Pangolin_LIBRARIES
-# 			${OPENGL_LIBRARIES}
-# 			${JPEG_LIBRARIES}
-# 			${PNG_LIBRARIES}
-# 			${PYTHON_LIBRARIES}
-# 			${GLEW_LIBRARIES}
-# 			${GLUT_LIBRARIES}
-# 			${OpenEXR_LIBRARIES} )
-
-# if(APPLE)
-# 	## Pangolin prefers FreeGLUT over the GLUT Framework from XCode
-# 	list( APPEND Pangolin_LIBRARIES glut  )
-# else()
-# 	list( APPEND Pangolin_LIBRARIES    )
-# endif()
-
 ## This is hackish, needs to be expressed in the conanfile for G2O
 find_package(SuiteParse REQUIRED)
 list( APPEND G2O_LIBRARIES
@@ -66,25 +38,24 @@ list( APPEND G2O_INCLUDE_DIR
 # endif()
 
 
+set( OPENCV_COMPONENTS core highgui imgproc video)
+find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
+
+if( OpenCV_VERSION_MAJOR EQUAL "3" )
+  message( STATUS "Using OpenCV 3.x")
+  add_definitions( -DOPENCV3 )
+else()
+  message( STATUS "Using OpenCV 2.x")
+  add_definitions( -DOPENCV2 )
+endif()
+
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 if( ${ARCHITECTURE} STREQUAL "aarch64" )
-	# Jetson version uses OpenCV4Tegra from NVidia
-	find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
-
 	## For compilation on Jetson TX1
 	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a") # -DENABLE_NEON" )
-
 elseif( ${ARCHITECTURE} STREQUAL "x86_64" )
-	# if( ZED_VERSION VERSION_EQUAL "1.0.0")
-	# 	find_package(OpenCV 3.1 COMPONENTS core highgui imgproc calib3d videoio imgcodecs REQUIRED)
-	# else()
-		find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
-#	endif()
-
-	# add_definitions( -DZED_1_0 )
-
   # -DENABLE_SSE enables Jakob's original SSE optimizations in his code,
 	# it has nothing to do with compiler behavior
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse4.1 -msse3 -msse2 -msse -march=native -DENABLE_SSE" )

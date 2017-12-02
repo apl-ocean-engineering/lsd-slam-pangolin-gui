@@ -18,9 +18,9 @@ namespace lsd_slam
 {
 
 PangolinOutput3DWrapper::PangolinOutput3DWrapper( const Configuration &conf, GUI & gui)
- : _conf( conf ),
-   _gui(gui),
-   publishLvl(0)
+ : publishLvl(0),
+    _conf( conf ),
+   _gui(gui)
 {
 
 }
@@ -48,7 +48,7 @@ void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
     int w = f->width(publishLvl);
     int h = f->height(publishLvl);
 
-    fMsg->camToWorld = f->getScaledCamToWorld().cast<float>();
+    fMsg->camToWorld = f->getCamToWorld().cast<float>();
 
     fMsg->fx = f->fx(publishLvl);
     fMsg->fy = f->fy(publishLvl);
@@ -83,6 +83,7 @@ void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
 
 void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
 {
+  // TODO.  Get working again...
 //    lsd_slam_viewer::keyframeMsg fMsg;
 //
 //
@@ -142,7 +143,7 @@ void PangolinOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
     for(unsigned int i = 0; i < graph->keyframesAll.size(); i++)
     {
         framePoseData[i].id = graph->keyframesAll[i]->id();
-        memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getScaledCamToWorld().cast<float>().data(), sizeof(float) * 7);
+        memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getCamToWorld().cast<float>().data(), sizeof(float) * 7);
     }
 
     graph->keyframesAllMutex.unlock_shared();
