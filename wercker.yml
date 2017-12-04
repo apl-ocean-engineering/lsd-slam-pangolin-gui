@@ -1,5 +1,5 @@
 # wercker version for box creation
-box: amarburg/lsdslam-dev-host:conan-latest
+box: amarburg/lsdslam-dev-host:latest
 command-timeout: 30
 
 build:
@@ -7,5 +7,5 @@ build:
     - script:
       name: Build
       code: |
-          echo '@conan_settings = {"compiler": "gcc", "compiler.libcxx": "libstdc++11"}' > config.rb
-          LSDSLAM_BUILD_DIR=build_wercker CONAN_USER_HOME=$WERCKER_CACHE_DIR/ rake
+          ./fips set config linux-make-unittest
+          ./fips build
