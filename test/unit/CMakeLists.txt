@@ -1,4 +1,4 @@
-gtest_begin( sdgui )
+gtest_begin( lsdgui )
 
   fips_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
