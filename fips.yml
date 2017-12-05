@@ -1,7 +1,6 @@
 imports:
     lsd_slam:
         git: https://github.com/amarburg/lsd_slam.git
-        branch: fips
     fips-pangolin:
         git: https://github.com/amarburg/Pangolin.git
         branch: fips
