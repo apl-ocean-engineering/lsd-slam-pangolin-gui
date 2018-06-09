@@ -4,6 +4,9 @@ imports:
     fips-pangolin:
         git: https://github.com/amarburg/Pangolin.git
         branch: fips
+    libvideoio-go:
+      git: https://github.com/amarburg/libvideoio-go.git
+      cond: "USE_LIBVIDEIO_GO"
 
 defines:
   FIPS_RTTI: ON

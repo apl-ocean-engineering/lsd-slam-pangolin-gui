@@ -12,6 +12,6 @@ fips_begin_module( lsdgui )
     PangolinOutputIOWrapper.cpp
   )
 
-  fips_deps( lsdslam pangolin )
+  fips_deps( lsdslam pangolin videoio ${FIPS_DEPS} )
 
 fips_end_module()

@@ -7,22 +7,20 @@ if( NOT FIPS_IMPORT)
   fips_setup(PROJECT fips-lsd-slam)
 endif()
 
-# ## Pull in cmake files from the LSD_SLAM package
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
-find_package(SuiteParse REQUIRED)
-
 find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package( SuiteParse REQUIRED )
+find_package( TinyXML2 REQUIRED )
 
 ## This is hackish, needs to be expressed in the conanfile for G2O
-find_package(SuiteParse REQUIRED)
-list( APPEND G2O_LIBRARIES
-  ${CSPARSE_LIBRARY} )
-list( APPEND G2O_INCLUDE_DIR
-  ${CSPARSE_INCLUDE_DIR}
-  ${CHOLMOD_INCLUDE_DIR} )
+# find_package(SuiteParse REQUIRED)
+# list( APPEND G2O_LIBRARIES
+#   ${CSPARSE_LIBRARY} )
+# list( APPEND G2O_INCLUDE_DIR
+#   ${CSPARSE_INCLUDE_DIR}
+#   ${CHOLMOD_INCLUDE_DIR} )
 
 ##==== Check and define the architecture
 ## Architecture-specific optimizations
@@ -36,6 +34,13 @@ list( APPEND G2O_INCLUDE_DIR
 # 	endif()
 # 	find_package( CUDA )
 # endif()
+
+## Configuration options
+option( USE_LIBVIDEIO_GO "Enable the Go-based Libvideio" OFF)
+if( USE_LIBVIDEIO_GO )
+  list( APPEND FIPS_DEPS videoio_go )
+  add_definitions( -DVIDEOIO_GO )
+endif()
 
 
 set( OPENCV_COMPONENTS core highgui imgproc video)
