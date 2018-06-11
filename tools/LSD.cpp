@@ -29,19 +29,21 @@
 #include "util/globalFuncs.h"
 #include "util/Configuration.h"
 
-
 #include "GUI.h"
 #include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
 #include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
 
+#include "libvideoio/DataSource.h"
+#include "libvideoio/Undistorter.h"
 
-#include "LSDArgs.h"
+#include "CLI11.hpp"
 
 #include <App/InputThread.h>
 #include <App/App.h>
 
 
 using namespace lsd_slam;
+using namespace libvideoio;
 
 int main( int argc, char** argv )
 {
@@ -49,16 +51,37 @@ int main( int argc, char** argv )
   G3Logger logWorker( argv[0] );
   logWorker.logBanner();
 
-  // Parse command line args
-  LSDArgs args( argc, argv );
+  CLI::App app;
 
-  logWorker.verbose( args.verbose() );
+  // Add new options/flags here
+  std::string calibFile;
+  app.add_option("-c,--calib", calibFile, "Calibration file" )->required()->check(CLI::ExistingFile);
+
+  bool verbose;
+  app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
+
+  bool noGui ;
+  app.add_flag("-no-gui", noGui, "Don't display GUI");
+
+  CLI11_PARSE(app, argc, argv);
+
+  std::shared_ptr<DataSource> dataSource;
+  std::shared_ptr<Undistorter> undistorter;
+
+  undistorter.reset( libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ) );
+  CHECK((bool)undistorter) << "Undistorter shouldn't be null";
+
+
+  // Parse command line args
+  //LSDArgs args( argc, argv );
+
+  logWorker.verbose( verbose );
 
   // Load configuration for LSD-SLAM
   lsd_slam::Configuration conf;
-  conf.inputImage = args.undistorter->inputImageSize();
-  conf.slamImage  = args.undistorter->outputImageSize();
-  conf.camera     = args.undistorter->getCamera();
+  conf.inputImage = undistorter->inputImageSize();
+  conf.slamImage  = undistorter->outputImageSize();
+  conf.camera     = undistorter->getCamera();
 
   LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
@@ -70,7 +93,7 @@ int main( int argc, char** argv )
   std::shared_ptr<GUI> gui( nullptr );
 std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
 
-  if( args.doGui ) {
+  if( !noGui ) {
     gui.reset( new GUI( system->conf() ) );
     lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
     system->set3DOutputWrapper( outputWrapper );
@@ -80,7 +103,7 @@ std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
   }
 
   LOG(INFO) << "Starting input thread.";
-  InputThread input( system, args.dataSource, args.undistorter );
+  InputThread input( system, dataSource, undistorter );
   input.setIOOutputWrapper( ioWrapper );
   boost::thread inputThread( boost::ref(input) );
 

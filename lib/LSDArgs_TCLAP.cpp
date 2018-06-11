@@ -43,7 +43,7 @@ namespace lsd_slam {
           exit(-1);
         }
 
-        undistorter.reset( Undistorter::getUndistorterForFile(calibFileArg.getValue()) );
+        undistorter.reset( libvideoio::UndistorterFactory::getUndistorterForFile(calibFileArg.getValue()) );
         CHECK((bool)undistorter) << "Undistorter shouldn't be null";
 
         doGui = !noGuiSwitch.getValue();

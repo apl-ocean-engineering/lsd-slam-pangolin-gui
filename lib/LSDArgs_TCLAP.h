@@ -2,10 +2,12 @@
 
 #include <memory>
 
-#include "util/DataSource.h"
-#include "util/Undistorter.h"
+#include "libvideoio/DataSource.h"
+#include "libvideoio/Undistorter.h"
 
 namespace lsd_slam {
+
+using namespace libvideoio;
 
 struct LSDArgs {
 

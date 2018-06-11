@@ -69,12 +69,14 @@ endif()
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-include_directories( LSDSLAM_INCLUDE_DIRS
+fips_include_directories( LSDSLAM_INCLUDE_DIRS
 	${CMAKE_SOURCE_DIR}/lib
 	${EIGEN3_INCLUDE_DIR}
 	${OpenCV_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
 )
+
+fips_include_directories( third_party/CLI11/ )
 
 fips_add_subdirectory( lib/ )
 fips_add_subdirectory( tools/ )
