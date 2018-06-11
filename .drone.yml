@@ -1,0 +1,15 @@
+pipeline:
+  build:
+    image: amarburg/lsdslam-dev-host:latest
+    pull:  true
+    commands:
+          - ./fips set config linux-make-unittest
+          - ./fips build
+
+  slack:
+    image: plugins/slack
+    secrets: [ slack_webhook ]
+    when:
+      status:
+        - success
+        - failure
