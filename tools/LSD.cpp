@@ -61,19 +61,20 @@ int main( int argc, char** argv )
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
 
   bool noGui ;
-  app.add_flag("-no-gui", noGui, "Don't display GUI");
+  app.add_flag("--no-gui", noGui, "Don't display GUI");
+
+  std::vector<std::string> inFiles;
+  app.add_option("--input,input", inFiles, "Input files or directories");
+
+  app.set_config("--config");
 
   CLI11_PARSE(app, argc, argv);
 
-  std::shared_ptr<DataSource> dataSource;
-  std::shared_ptr<Undistorter> undistorter;
+  std::shared_ptr<DataSource> dataSource(new ImagesSource( inFiles ));
+  dataSource->setFPS( 30 ); //fpsArg.getValue() );
 
-  undistorter.reset( libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ) );
+  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
-
-
-  // Parse command line args
-  //LSDArgs args( argc, argv );
 
   logWorker.verbose( verbose );
 
@@ -91,7 +92,7 @@ int main( int argc, char** argv )
   // GUI need to be initialized in main thread on OSX,
   // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
-std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
+  std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
 
   if( !noGui ) {
     gui.reset( new GUI( system->conf() ) );
