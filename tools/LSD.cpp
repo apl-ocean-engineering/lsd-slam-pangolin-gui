@@ -41,6 +41,8 @@
 #include <App/InputThread.h>
 #include <App/App.h>
 
+#include "Input.h"
+
 
 using namespace lsd_slam;
 using namespace libvideoio;
@@ -70,7 +72,8 @@ int main( int argc, char** argv )
 
   CLI11_PARSE(app, argc, argv);
 
-  std::shared_ptr<DataSource> dataSource(new ImagesSource( inFiles ));
+  std::shared_ptr<DataSource> dataSource( makeInput( inFiles ));
+  CHECK((bool)dataSource) << "Data source shouldn't be null";
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
 
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ));
