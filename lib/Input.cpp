@@ -24,6 +24,7 @@ std::shared_ptr<ImageSource> Input::makeInput( const std::vector<std::string> &i
     return nullptr;
   }
 
+  if( asPath.extension() == ".json" || asPath.extension() == ".mov" ) {
 #ifdef VIDEOIO_GO
   auto src( new GoSource( asPath.string() ) );
 
@@ -31,7 +32,12 @@ std::shared_ptr<ImageSource> Input::makeInput( const std::vector<std::string> &i
     LOG(INFO) << " Success opening " << asPath << " as a Go source";
     return std::shared_ptr<ImageSource>(src);
   }
+#else
+    LOG(FATAL) << "Trying to open .json or .mov without Videoio-go installed.";
 #endif
+}
+
+
 
   // Attempt to intuit the input type from the first  entry in the vector
   return std::shared_ptr<ImageSource>(new ImageFilesSource( inputs ));
