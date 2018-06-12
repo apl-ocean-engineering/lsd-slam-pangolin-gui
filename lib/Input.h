@@ -4,6 +4,18 @@
 #include <vector>
 #include <memory>
 
-#include "libvideoio/DataSource.h"
+#include "libvideoio/ImageSource.h"
 
-std::shared_ptr<libvideoio::DataSource> makeInput( const std::vector<std::string> &inputs );
+namespace lsd_slam {
+
+  class Input {
+  public:
+
+    Input() = delete;
+    Input(const Input &) = delete;
+
+    static std::shared_ptr<libvideoio::ImageSource> makeInput( const std::vector<std::string> &inputs );
+
+  };
+
+}

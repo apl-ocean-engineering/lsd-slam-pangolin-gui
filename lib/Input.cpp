@@ -10,7 +10,9 @@ namespace fs = boost::filesystem;
 
 using namespace libvideoio;
 
-std::shared_ptr<DataSource> makeInput( const std::vector<std::string> &inputs ) {
+namespace lsd_slam {
+
+std::shared_ptr<ImageSource> Input::makeInput( const std::vector<std::string> &inputs ) {
 
   if( inputs.size() == 0 ) return nullptr;
 
@@ -27,12 +29,14 @@ std::shared_ptr<DataSource> makeInput( const std::vector<std::string> &inputs ) 
 
   if( src->isOpened() ) {
     LOG(INFO) << " Success opening " << asPath << " as a Go source";
-    return std::shared_ptr<DataSource>(src);
+    return std::shared_ptr<ImageSource>(src);
   }
 #endif
 
   // Attempt to intuit the input type from the first  entry in the vector
-  return std::shared_ptr<DataSource>(new ImagesSource( inputs ));
+  return std::shared_ptr<ImageSource>(new ImageFilesSource( inputs ));
 
   //  return std::shared_ptr<DataSource>( nullptr );
+}
+
 }

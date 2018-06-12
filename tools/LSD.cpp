@@ -33,7 +33,7 @@
 #include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
 #include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
 
-#include "libvideoio/DataSource.h"
+#include "libvideoio/ImageSource.h"
 #include "libvideoio/Undistorter.h"
 
 #include "CLI11.hpp"
@@ -72,10 +72,10 @@ int main( int argc, char** argv )
 
   CLI11_PARSE(app, argc, argv);
 
-  std::shared_ptr<DataSource> dataSource( makeInput( inFiles ));
+  std::shared_ptr<ImageSource> dataSource( Input::makeInput( inFiles ));
   CHECK((bool)dataSource) << "Data source shouldn't be null";
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
-  dataSource->setOutputFormat( CV_8UC1 );
+  dataSource->setOutputType( CV_8UC1 );
 
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
