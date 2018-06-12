@@ -75,6 +75,7 @@ int main( int argc, char** argv )
   std::shared_ptr<DataSource> dataSource( makeInput( inFiles ));
   CHECK((bool)dataSource) << "Data source shouldn't be null";
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
+  dataSource->setOutputFormat( CV_8UC1 );
 
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
