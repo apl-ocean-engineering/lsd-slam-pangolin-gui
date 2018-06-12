@@ -20,7 +20,7 @@
 
 #include <boost/thread.hpp>
 
-#include "App/g3logger.h"
+#include "libg3logger/g3logger.h"
 
 #include "SlamSystem.h"
 
@@ -50,7 +50,7 @@ using namespace libvideoio;
 int main( int argc, char** argv )
 {
   // Initialize the logging system
-  G3Logger logWorker( argv[0] );
+  libg3log::G3Logger logWorker( argv[0] );
   logWorker.logBanner();
 
   CLI::App app;
