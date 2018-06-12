@@ -77,7 +77,7 @@ int main( int argc, char** argv )
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
-  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterForFile( calibFile ));
+  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
 
   logWorker.verbose( verbose );
