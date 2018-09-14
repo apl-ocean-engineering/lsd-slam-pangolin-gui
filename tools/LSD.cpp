@@ -36,6 +36,8 @@
 #include "libvideoio/ImageSource.h"
 #include "libvideoio/Undistorter.h"
 
+#include "libvideoio-go/FrameSet.h"
+
 #include "CLI11.hpp"
 
 #include <App/InputThread.h>
@@ -47,10 +49,13 @@
 using namespace lsd_slam;
 using namespace libvideoio;
 
+using std::string;
+
 int main( int argc, char** argv )
 {
   // Initialize the logging system
-  libg3log::G3Logger logWorker( argv[0] );
+  libg3logger::G3Logger logWorker( argv[0] );
+  logWorker.verbose(true);
   logWorker.logBanner();
 
   CLI::App app;
@@ -62,8 +67,11 @@ int main( int argc, char** argv )
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
 
-  bool noGui ;
+  bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
+
+  std::string chunk;
+  app.add_option("--chunk", chunk, "Chunk");
 
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
@@ -72,8 +80,23 @@ int main( int argc, char** argv )
 
   CLI11_PARSE(app, argc, argv);
 
-  std::shared_ptr<ImageSource> dataSource( Input::makeInput( inFiles ));
-  CHECK((bool)dataSource) << "Data source shouldn't be null";
+  std::string setPath( inFiles.front() );
+
+  auto frameSet( new libvideoio::FrameSet( setPath ) );
+  if( !frameSet->isOpened() ) {
+    LOG(FATAL) << " Failed to open " << setPath << " as a Go FrameSet";
+  }
+
+  if( chunk.size() > 0 ) {
+    if( !frameSet->openChunk( chunk ) ) {
+      LOG(FATAL) << "Unable to find chunk " << chunk << " in frameset " << setPath;
+    }
+  }
+
+  std::shared_ptr<ImageSource> dataSource( frameSet );
+  CHECK((bool)dataSource) << "Data source is null";
+
+
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
@@ -110,6 +133,7 @@ int main( int argc, char** argv )
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, dataSource, undistorter );
   input.setIOOutputWrapper( ioWrapper );
+
   boost::thread inputThread( boost::ref(input) );
 
   // Wait for all threads to indicate they are ready to go

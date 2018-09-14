@@ -1,6 +1,6 @@
 imports:
-    lsd_slam:
-        git: https://github.com/amarburg/lsd_slam.git
+    lsd-slam:
+        git: https://github.com/amarburg/lsd-slam.git
     fips-pangolin:
         git: https://github.com/amarburg/Pangolin.git
     libvideoio-go:
