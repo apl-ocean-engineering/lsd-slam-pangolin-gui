@@ -103,12 +103,14 @@ int main( int argc, char** argv )
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
 
+  std::shared_ptr<Undistorter> cropper( new ImageCropper( 1920, 1024, 0, 0, undistorter ) );
+
   logWorker.verbose( verbose );
 
   // Load configuration for LSD-SLAM
   lsd_slam::Configuration conf;
   conf.inputImage = undistorter->inputImageSize();
-  conf.slamImage  = undistorter->outputImageSize();
+  conf.slamImage  = cropper->outputImageSize();
   conf.camera     = undistorter->getCamera();
 
   LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;

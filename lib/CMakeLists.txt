@@ -3,7 +3,7 @@ fips_begin_module( lsdgui )
   fips_files(
     GUI.cpp
     Input.cpp
- )
+   )
 
   fips_dir(Pangolin_IOWrapper)
 
