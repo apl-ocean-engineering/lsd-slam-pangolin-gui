@@ -100,10 +100,14 @@ int main( int argc, char** argv )
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
-  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
-  CHECK((bool)undistorter) << "Undistorter shouldn't be null";
 
-  std::shared_ptr<Undistorter> cropper( new ImageCropper( 1920, 1024, 0, 0, undistorter ) );
+//  std::shared_ptr<Undistorter> cropper( new ImageCropper( 1920, 1024, 0, 0, undistorter ) );
+
+  std::shared_ptr<Undistorter> shrinker( new ImageResizer( 640, 360 ) );
+  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile, shrinker ));
+  CHECK((bool)undistorter) << "Undistorter shouldn't be null";
+  std::shared_ptr<Undistorter> cropper( new ImageCropper( 640, 320, 0, 0, undistorter ) );
+
 
   logWorker.verbose( verbose );
 
@@ -132,10 +136,10 @@ int main( int argc, char** argv )
 
   }
 
-  LOG(INFO) << "Starting input thread.";
-  InputThread input( system, dataSource, undistorter );
+  InputThread input( system, dataSource, cropper );
   input.setIOOutputWrapper( ioWrapper );
 
+  LOG(INFO) << "Starting input thread.";
   boost::thread inputThread( boost::ref(input) );
 
   // Wait for all threads to indicate they are ready to go
