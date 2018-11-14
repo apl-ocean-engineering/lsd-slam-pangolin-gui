@@ -1,10 +1,11 @@
 imports:
-    lsd_slam:
-        git: https://github.com/amarburg/lsd_slam.git
-    fips-pangolin:
+    lsd-slam:
+        git: https://github.com/apl-ocean-engineering/lsd-slam.git
+    pangolin-fips:
         git: https://github.com/amarburg/Pangolin.git
+        branch: fips
     libvideoio-go:
-      git: https://github.com/amarburg/libvideoio-go.git
+      git: https://github.com/apl-ocean-engineering/libvideoio-go.git
       cond: "USE_LIBVIDEIO_GO"
 
 defines:
