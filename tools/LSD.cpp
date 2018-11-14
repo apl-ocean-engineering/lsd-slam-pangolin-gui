@@ -50,7 +50,7 @@ using namespace libvideoio;
 int main( int argc, char** argv )
 {
   // Initialize the logging system
-  libg3log::G3Logger logWorker( argv[0] );
+  libg3logger::G3Logger logWorker( argv[0] );
   logWorker.logBanner();
 
   CLI::App app;
