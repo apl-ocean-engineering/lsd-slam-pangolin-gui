@@ -68,6 +68,8 @@ int main( int argc, char** argv )
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
 
+  // Defines the configuration file;  see
+  //    https://cliutils.gitlab.io/CLI11Tutorial/chapters/config.html
   app.set_config("--config");
 
   CLI11_PARSE(app, argc, argv);
