@@ -55,7 +55,7 @@ int main( int argc, char** argv )
 {
   // Initialize the logging system
   libg3logger::G3Logger logWorker( argv[0] );
-  logWorker.verbose(true);
+  logWorker.verbose(true);   /// Set verbose output during program initialization
   logWorker.logBanner();
 
   CLI::App app;
@@ -76,6 +76,9 @@ int main( int argc, char** argv )
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
 
+  int skip = 0;
+  app.add_option("--skip", skip, "Skip frames");
+
   app.set_config("--config");
 
   CLI11_PARSE(app, argc, argv);
@@ -92,6 +95,9 @@ int main( int argc, char** argv )
       LOG(FATAL) << "Unable to find chunk " << chunk << " in frameset " << setPath;
     }
   }
+
+  if( skip > 0 ) frameSet->setSkip( skip );
+
 
   std::shared_ptr<ImageSource> dataSource( frameSet );
   CHECK((bool)dataSource) << "Data source is null";
@@ -133,7 +139,6 @@ int main( int argc, char** argv )
     system->set3DOutputWrapper( outputWrapper );
 
     ioWrapper.reset( new PangolinOutputIOWrapper( system->conf(), *gui ));
-
   }
 
   InputThread input( system, dataSource, cropper );
