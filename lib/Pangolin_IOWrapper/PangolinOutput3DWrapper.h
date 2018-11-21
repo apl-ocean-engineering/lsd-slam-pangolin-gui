@@ -31,15 +31,17 @@ class PangolinOutput3DWrapper : public Output3DWrapper
         PangolinOutput3DWrapper( const Configuration &conf, GUI & gui);
         virtual ~PangolinOutput3DWrapper();
 
-        virtual void publishKeyframeGraph(KeyFrameGraph* graph);
+        virtual void publishPose( const Sophus::Sim3f &pose ) {;}
 
-        // publishes a keyframe. if that frame already existis, it is overwritten, otherwise it is added.
-        virtual void publishKeyframe(Frame* f);
+      	virtual void publishKeyframeGraph( const std::shared_ptr<KeyFrameGraph> &graph);
+
+        // publishes a keyframe. if that frame already exists, it is overwritten, otherwise it is added.
+        virtual void publishKeyframe(const std::shared_ptr<Frame> &kf);
 
         virtual void updateDepthImage(unsigned char * data);
 
         // published a tracked frame that did not become a keyframe (i.e. has no depth data)
-        virtual void publishTrackedFrame(Frame* f);
+        virtual void publishTrackedFrame(const std::shared_ptr<Frame> &kf);
 
         // publishes graph and all constraints, as well as updated KF poses.
         virtual void publishTrajectory(std::vector<Eigen::Matrix<float, 3, 1>> trajectory, std::string identifier);

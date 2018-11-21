@@ -43,6 +43,9 @@ GUI::GUI( const lsd_slam::Configuration &conf )
 
     gpuMem = new pangolin::Var<int>("ui.GPU memory free", 0);
     frameNumber = new pangolin::Var<int>("ui.Frame number", 0);
+    keyframeNumber = new pangolin::Var<int>("ui.Keyframe number", 0);
+    keyframeCount = new pangolin::Var<int>("ui.Keyframe count", 0);
+
 
     totalPoints = new pangolin::Var<std::string>("ui.Total points", "0");
 
@@ -77,6 +80,8 @@ GUI::~GUI()
     delete totalPoints;
     delete gpuMem;
     delete frameNumber;
+    delete keyframeNumber;
+    delete keyframeCount;
 }
 
 void GUI::initImages()
@@ -111,14 +116,26 @@ void GUI::updateLiveImage(unsigned char * data)
   memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
 }
 
-void GUI::updateFrameNumber( int fn )
+void GUI::updateFrameNumber( int frameNum )
 {
-  frameNumber->operator=(fn);
+  frameNumber->operator=(frameNum);
 }
+
+void GUI::updateKeyFrameNumber( int frameNum )
+{
+  keyframeNumber->operator=(frameNum);
+}
+
+void GUI::updateKeyFrameCount( int count )
+{
+  keyframeCount->operator=(count);
+}
+
 
 void GUI::addKeyframe(Keyframe * newFrame)
 {
   std::lock_guard<std::mutex> lock(keyframes.mutex());
+
 
   //Exists
   if(keyframes.getReference().find(newFrame->id) != keyframes.getReference().end())
@@ -132,6 +149,9 @@ void GUI::addKeyframe(Keyframe * newFrame)
       newFrame->initId = keyframes.getReference().size();
       keyframes.getReference()[newFrame->id] = newFrame;
   }
+
+  updateKeyFrameNumber( newFrame->id );
+  updateKeyFrameCount( keyframes().size() );
 }
 
 void GUI::updateKeyframePoses(GraphFramePose* framePoseData, int num)
@@ -188,7 +208,7 @@ void GUI::drawKeyframes()
     for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
     {
         // Don't render first five, according to original code
-        if(i->second->initId >= 5)
+        if(i->second->initId >= 2)
         {
             if(!i->second->hasVbo || i->second->needsUpdate)
             {

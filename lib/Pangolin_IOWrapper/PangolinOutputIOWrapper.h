@@ -23,6 +23,7 @@ class PangolinOutputIOWrapper : public OutputIOWrapper
         virtual ~PangolinOutputIOWrapper();
 
       	virtual void updateFrameNumber( int );
+        virtual void updateKeyFrameNumber( int );
       	virtual void updateLiveImage( const cv::Mat &img );
 
     private:

@@ -32,56 +32,59 @@ PangolinOutput3DWrapper::~PangolinOutput3DWrapper()
 
 void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
 {
+  LOG(INFO) << "Update depth image";
     _gui.updateDepthImage(data);
 }
 
-void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
+void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
 {
-    Keyframe * fMsg = new Keyframe;
+  LOG(INFO) << "Publishing new keyframe";
 
-    boost::shared_lock<boost::shared_mutex> lock = f->getActiveLock();
+  Keyframe * fMsg = new Keyframe;
 
-    fMsg->id = f->id();
-    fMsg->time = f->timestamp();
-    fMsg->isKeyframe = true;
+  boost::shared_lock<boost::shared_mutex> lock = f->getActiveLock();
 
-    int w = f->width(publishLvl);
-    int h = f->height(publishLvl);
+  fMsg->id = f->id();
+  fMsg->time = f->timestamp();
+  fMsg->isKeyframe = true;
 
-    fMsg->camToWorld = f->getCamToWorld().cast<float>();
+  int w = f->width(publishLvl);
+  int h = f->height(publishLvl);
 
-    fMsg->fx = f->fx(publishLvl);
-    fMsg->fy = f->fy(publishLvl);
-    fMsg->cx = f->cx(publishLvl);
-    fMsg->cy = f->cy(publishLvl);
+  fMsg->camToWorld = f->getCamToWorld().cast<float>();
 
-    fMsg->width = w;
-    fMsg->height = h;
+  fMsg->fx = f->fx(publishLvl);
+  fMsg->fy = f->fy(publishLvl);
+  fMsg->cx = f->cx(publishLvl);
+  fMsg->cy = f->cy(publishLvl);
 
-    fMsg->pointData = new unsigned char[w * h * sizeof(InputPointDense)];
+  fMsg->width = w;
+  fMsg->height = h;
 
-    InputPointDense * pc = (InputPointDense*)fMsg->pointData;
+  fMsg->pointData = new unsigned char[w * h * sizeof(InputPointDense)];
 
-    const float* idepth = f->idepth(publishLvl);
-    const float* idepthVar = f->idepthVar(publishLvl);
-    const float* color = f->image(publishLvl);
+  InputPointDense * pc = (InputPointDense*)fMsg->pointData;
 
-    for(int idx = 0;idx < w * h; idx++)
-    {
-        pc[idx].idepth = idepth[idx];
-        pc[idx].idepth_var = idepthVar[idx];
-        pc[idx].color[0] = color[idx];
-        pc[idx].color[1] = color[idx];
-        pc[idx].color[2] = color[idx];
-        pc[idx].color[3] = color[idx];
-    }
+  const float* idepth = f->idepth(publishLvl);
+  const float* idepthVar = f->idepthVar(publishLvl);
+  const float* color = f->image(publishLvl);
 
-    lock.unlock();
+  for(int idx = 0;idx < w * h; idx++)
+  {
+      pc[idx].idepth = idepth[idx];
+      pc[idx].idepth_var = idepthVar[idx];
+      pc[idx].color[0] = color[idx];
+      pc[idx].color[1] = color[idx];
+      pc[idx].color[2] = color[idx];
+      pc[idx].color[3] = color[idx];
+  }
 
-    _gui.addKeyframe(fMsg);
+  lock.unlock();
+
+  _gui.addKeyframe(fMsg);
 }
 
-void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
+void PangolinOutput3DWrapper::publishTrackedFrame(const std::shared_ptr<Frame> &kf)
 {
   // TODO.  Get working again...
 //    lsd_slam_viewer::keyframeMsg fMsg;
@@ -130,27 +133,29 @@ void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
 //    pose_publisher.publish(pMsg);
 }
 
-void PangolinOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
+void PangolinOutput3DWrapper::publishKeyframeGraph( const std::shared_ptr<KeyFrameGraph> &graph)
 {
-    graph->keyframesAllMutex.lock_shared();
+  LOG(INFO) << "Updating key frame graph";
 
-    int num = graph->keyframesAll.size();
+  graph->keyframesAllMutex.lock_shared();
 
-    unsigned char * buffer = new unsigned char[num * sizeof(GraphFramePose)];
+  int num = graph->keyframesAll.size();
 
-    GraphFramePose* framePoseData = (GraphFramePose*)buffer;
+  unsigned char * buffer = new unsigned char[num * sizeof(GraphFramePose)];
 
-    for(unsigned int i = 0; i < graph->keyframesAll.size(); i++)
-    {
-        framePoseData[i].id = graph->keyframesAll[i]->id();
-        memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getCamToWorld().cast<float>().data(), sizeof(float) * 7);
-    }
+  GraphFramePose* framePoseData = (GraphFramePose*)buffer;
 
-    graph->keyframesAllMutex.unlock_shared();
+  for(unsigned int i = 0; i < graph->keyframesAll.size(); i++)
+  {
+      framePoseData[i].id = graph->keyframesAll[i]->id();
+      memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getCamToWorld().cast<float>().data(), sizeof(float) * 7);
+  }
 
-    _gui.updateKeyframePoses(framePoseData, num);
+  graph->keyframesAllMutex.unlock_shared();
 
-    delete [] buffer;
+  _gui.updateKeyframePoses(framePoseData, num);
+
+  delete [] buffer;
 }
 
 void PangolinOutput3DWrapper::publishTrajectory(std::vector<Eigen::Matrix<float, 3, 1>> trajectory, std::string identifier)

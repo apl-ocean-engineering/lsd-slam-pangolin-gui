@@ -34,6 +34,11 @@ void PangolinOutputIOWrapper::updateFrameNumber( int runningIdx )
   _gui.updateFrameNumber( runningIdx );
 }
 
+void PangolinOutputIOWrapper::updateKeyFrameNumber( int frameNum )
+{
+  _gui.updateKeyFrameNumber( frameNum );
+}
+
 void PangolinOutputIOWrapper::updateLiveImage( const cv::Mat &img )
 {
   _gui.updateLiveImage( img.data );
