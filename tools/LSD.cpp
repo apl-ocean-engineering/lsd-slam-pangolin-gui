@@ -47,6 +47,8 @@
 using namespace lsd_slam;
 using namespace libvideoio;
 
+using std::string;
+
 int main( int argc, char** argv )
 {
   // Initialize the logging system
@@ -62,8 +64,9 @@ int main( int argc, char** argv )
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
 
-  bool noGui ;
+  bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
+
 
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
@@ -76,6 +79,7 @@ int main( int argc, char** argv )
 
   std::shared_ptr<ImageSource> dataSource( Input::makeInput( inFiles ));
   CHECK((bool)dataSource) << "Data source shouldn't be null";
+
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
@@ -112,6 +116,7 @@ int main( int argc, char** argv )
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, dataSource, undistorter );
   input.setIOOutputWrapper( ioWrapper );
+
   boost::thread inputThread( boost::ref(input) );
 
   // Wait for all threads to indicate they are ready to go
