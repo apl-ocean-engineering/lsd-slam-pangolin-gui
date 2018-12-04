@@ -55,7 +55,6 @@ int main( int argc, char** argv )
 {
   // Initialize the logging system
   libg3logger::G3Logger logWorker( argv[0] );
-  logWorker.verbose(true);   /// Set verbose output during program initialization
   logWorker.logBanner();
 
   CLI::App app;
@@ -79,41 +78,44 @@ int main( int argc, char** argv )
   int skip = 0;
   app.add_option("--skip", skip, "Skip frames");
 
+  // Defines the configuration file;  see
+  //    https://cliutils.gitlab.io/CLI11Tutorial/chapters/config.html
   app.set_config("--config");
 
   CLI11_PARSE(app, argc, argv);
 
-  std::string setPath( inFiles.front() );
+  std::shared_ptr<ImageSource> dataSource;
+  fs::path setPath( inFiles.front() );
 
-  auto frameSet( new libvideoio::FrameSet( setPath ) );
-  if( !frameSet->isOpened() ) {
-    LOG(FATAL) << " Failed to open " << setPath << " as a Go FrameSet";
-  }
+  if( setPath.extension() == ".json" ) {
+    auto frameSet( new libvideoio::FrameSet( setPath.string() ) );
+    if( !frameSet->isOpened() ) {
+      LOG(FATAL) << " Failed to open " << setPath << " as a Go FrameSet";
+    }
 
-  if( chunk.size() > 0 ) {
-    if( !frameSet->openChunk( chunk ) ) {
+    if( chunk.size() > 0 && !frameSet->openChunk( chunk ) ) {
       LOG(FATAL) << "Unable to find chunk " << chunk << " in frameset " << setPath;
     }
+
+    if( skip > 0 ) frameSet->setSkip( skip );
+
+    dataSource.reset( frameSet );
+
+    dataSource->setFPS( 30 ); //fpsArg.getValue() );
+    dataSource->setOutputType( CV_8UC1 );
+
+  } else {
+    dataSource = Input::makeInput( inFiles );
   }
 
-  if( skip > 0 ) frameSet->setSkip( skip );
-
-
-  std::shared_ptr<ImageSource> dataSource( frameSet );
   CHECK((bool)dataSource) << "Data source is null";
-
-
-  dataSource->setFPS( 30 ); //fpsArg.getValue() );
-  dataSource->setOutputType( CV_8UC1 );
-
 
 //  std::shared_ptr<Undistorter> cropper( new ImageCropper( 1920, 1024, 0, 0, undistorter ) );
 
   std::shared_ptr<Undistorter> shrinker( new ImageResizer( 640, 360 ) );
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile, shrinker ));
   CHECK((bool)undistorter) << "Undistorter shouldn't be null";
-  std::shared_ptr<Undistorter> cropper( new ImageCropper( 640, 320, 0, 0, undistorter ) );
-
+  std::shared_ptr<Undistorter> cropper( new ImageCropper( 640, 320, 00, 20, undistorter ) );
 
   logWorker.verbose( verbose );
 

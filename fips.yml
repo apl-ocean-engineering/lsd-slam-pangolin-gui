@@ -1,7 +1,7 @@
 imports:
     lsd-slam:
-        git: https://github.com/amarburg/lsd-slam.git
-    fips-pangolin:
+        git: https://github.com/apl-ocean-engineering/lsd-slam.git
+    pangolin-fips:
         git: https://github.com/amarburg/Pangolin.git
         branch: fips
     libvideoio-go:
@@ -10,3 +10,4 @@ imports:
 defines:
   FIPS_RTTI: ON
   FIPS_EXCEPTIONS: ON
+  BUILD_PANGOLIN_VIDEO: OFF
