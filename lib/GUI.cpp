@@ -41,11 +41,9 @@ GUI::GUI( const lsd_slam::Configuration &conf )
 
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
-    gpuMem = new pangolin::Var<int>("ui.GPU memory free", 0);
     frameNumber = new pangolin::Var<int>("ui.Frame number", 0);
     keyframeNumber = new pangolin::Var<int>("ui.Keyframe number", 0);
     keyframeCount = new pangolin::Var<int>("ui.Keyframe count", 0);
-
 
     totalPoints = new pangolin::Var<std::string>("ui.Total points", "0");
 
@@ -78,7 +76,6 @@ GUI::~GUI()
     }
 
     delete totalPoints;
-    delete gpuMem;
     delete frameNumber;
     delete keyframeNumber;
     delete keyframeCount;
@@ -340,12 +337,9 @@ void GUI::drawGrid()
 
 void GUI::postCall()
 {
-    GLint cur_avail_mem_kb = 0;
-    glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &cur_avail_mem_kb);
-
-    int memFree = cur_avail_mem_kb / 1024;
-
-    gpuMem->operator=(memFree);
+    //GLint cur_avail_mem_kb = 0;
+    //glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &cur_avail_mem_kb);
+    //int memFree = cur_avail_mem_kb / 1024;
 
     pangolin::FinishFrame();
 

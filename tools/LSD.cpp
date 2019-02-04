@@ -63,11 +63,14 @@ int main( int argc, char** argv )
   std::string calibFile;
   app.add_option("-c,--calib", calibFile, "Calibration file" )->required()->check(CLI::ExistingFile);
 
-  bool verbose;
-  app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
+  int verbose;
+  app.add_flag("-v,--verbose", verbose, "Increase output verbosity (can be specified more than once)");
 
   bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
+
+  bool doCrop;
+  app.add_flag("--crop", doCrop, "Crop input to 640x320");
 
   std::string chunk;
   app.add_option("--chunk", chunk, "Chunk");
@@ -83,6 +86,8 @@ int main( int argc, char** argv )
   app.set_config("--config");
 
   CLI11_PARSE(app, argc, argv);
+
+  logWorker.setLevel( verbose );
 
   std::shared_ptr<ImageSource> dataSource;
   fs::path setPath( inFiles.front() );
@@ -112,18 +117,36 @@ int main( int argc, char** argv )
 
 //  std::shared_ptr<Undistorter> cropper( new ImageCropper( 1920, 1024, 0, 0, undistorter ) );
 
-  std::shared_ptr<Undistorter> shrinker( new ImageResizer( 640, 360 ) );
-  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile, shrinker ));
-  CHECK((bool)undistorter) << "Undistorter shouldn't be null";
-  std::shared_ptr<Undistorter> cropper( new ImageCropper( 640, 320, 00, 20, undistorter ) );
-
-  logWorker.verbose( verbose );
+  std::shared_ptr<Undistorter> finalDistorter;
 
   // Load configuration for LSD-SLAM
   lsd_slam::Configuration conf;
-  conf.inputImage = undistorter->inputImageSize();
-  conf.slamImage  = cropper->outputImageSize();
-  conf.camera     = undistorter->getCamera();
+
+  if( doCrop ) {
+    LOG(INFO) << "Cropping images to 640x320";
+    std::shared_ptr<Undistorter> shrinker( new ImageResizer( 640, 360 ) );
+    std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile, shrinker ));
+    CHECK((bool)undistorter) << "Undistorter shouldn't be null";
+    std::shared_ptr<Undistorter> cropper( new ImageCropper( 640, 320, 00, 20, undistorter ) );
+
+    conf.inputImage = undistorter->inputImageSize();
+    conf.slamImage  = cropper->outputImageSize();
+    conf.camera     = undistorter->getCamera();
+
+    finalDistorter = cropper;
+  } else {
+    std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
+
+    conf.inputImage = undistorter->inputImageSize();
+    conf.slamImage  = undistorter->outputImageSize();
+    conf.camera     = undistorter->getCamera();
+
+    finalDistorter = undistorter;
+  }
+
+
+  LOG(INFO) << "Camera: " << finalDistorter->getK();
+
 
   LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
@@ -143,7 +166,7 @@ int main( int argc, char** argv )
     ioWrapper.reset( new PangolinOutputIOWrapper( system->conf(), *gui ));
   }
 
-  InputThread input( system, dataSource, cropper );
+  InputThread input( system, dataSource, finalDistorter );
   input.setIOOutputWrapper( ioWrapper );
 
   LOG(INFO) << "Starting input thread.";

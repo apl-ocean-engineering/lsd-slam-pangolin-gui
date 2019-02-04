@@ -53,8 +53,6 @@ class GUI
         void updateKeyFrameNumber( int frameNumber );
         void updateKeyFrameCount( int frameCount );
 
-
-
         // The master roll-up of all of the updating
         void update( void );
 
@@ -71,11 +69,9 @@ class GUI
         ThreadMutexObject<unsigned char * > liveImgBuffer;
         ThreadMutexObject<unsigned char * > depthImgBuffer;
 
-        pangolin::Var<int> * gpuMem;
         pangolin::Var<int> * frameNumber;
         pangolin::Var<int> * keyframeNumber;
         pangolin::Var<int> * keyframeCount;
-
 
         pangolin::Var<std::string> * totalPoints;
 
