@@ -35,13 +35,6 @@ find_package( TinyXML2 REQUIRED )
 # 	find_package( CUDA )
 # endif()
 
-## Configuration options
-option( USE_LIBVIDEIO_GO "Enable the Go-based Libvideio" OFF)
-if( USE_LIBVIDEIO_GO )
-  list( APPEND FIPS_DEPS videoio_go )
-  add_definitions( -DVIDEOIO_GO )
-endif()
-
 
 set( OPENCV_COMPONENTS core highgui imgproc video)
 find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
