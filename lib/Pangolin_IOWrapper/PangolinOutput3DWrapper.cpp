@@ -30,12 +30,17 @@ PangolinOutput3DWrapper::~PangolinOutput3DWrapper()
 
 }
 
+void PangolinOutput3DWrapper::publishPose( const Sophus::Sim3f &pose )
+{
+  ;
+}
+
 void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
 {
     _gui.updateDepthImage(data);
 }
 
-void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
+void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
 {
     Keyframe * fMsg = new Keyframe;
 
@@ -81,7 +86,7 @@ void PangolinOutput3DWrapper::publishKeyframe(Frame* f)
     _gui.addKeyframe(fMsg);
 }
 
-void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
+void PangolinOutput3DWrapper::publishTrackedFrame(const std::shared_ptr<Frame> &kf)
 {
   // TODO.  Get working again...
 //    lsd_slam_viewer::keyframeMsg fMsg;
@@ -130,7 +135,7 @@ void PangolinOutput3DWrapper::publishTrackedFrame(Frame* kf)
 //    pose_publisher.publish(pMsg);
 }
 
-void PangolinOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
+void PangolinOutput3DWrapper::publishKeyframeGraph(const std::shared_ptr<KeyFrameGraph> &graph)
 {
     graph->keyframesAllMutex.lock_shared();
 
