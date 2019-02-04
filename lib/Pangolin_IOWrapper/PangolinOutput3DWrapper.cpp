@@ -67,18 +67,25 @@ void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
 
     InputPointDense * pc = (InputPointDense*)fMsg->pointData;
 
-    const float* idepth = f->idepth(publishLvl);
-    const float* idepthVar = f->idepthVar(publishLvl);
-    const float* color = f->image(publishLvl);
+    // Handles a pathological case where the frame is a copy that does
+    // not have depth information...
+    if( f->hasIDepthBeenSet() ) {
 
-    for(int idx = 0;idx < w * h; idx++)
-    {
-        pc[idx].idepth = idepth[idx];
-        pc[idx].idepth_var = idepthVar[idx];
-        pc[idx].color[0] = color[idx];
-        pc[idx].color[1] = color[idx];
-        pc[idx].color[2] = color[idx];
-        pc[idx].color[3] = color[idx];
+      const float* idepth = f->idepth(publishLvl);
+      const float* idepthVar = f->idepthVar(publishLvl);
+      const float* color = f->image(publishLvl);
+
+      for(int idx = 0;idx < w * h; idx++)
+      {
+          pc[idx].idepth = idepth[idx];
+          pc[idx].idepth_var = idepthVar[idx];
+          pc[idx].color[0] = color[idx];
+          pc[idx].color[1] = color[idx];
+          pc[idx].color[2] = color[idx];
+          pc[idx].color[3] = color[idx];
+      }
+    } else {
+      LOG(WARNING) << "Frame " << f->id() << "; does not appear to have depth information";
     }
 
     lock.unlock();
