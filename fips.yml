@@ -1,6 +1,7 @@
 imports:
     lsd-slam:
         git: https://github.com/apl-ocean-engineering/lsd-slam.git
+        branch: unstable
     pangolin-fips:
         git: https://github.com/amarburg/Pangolin.git
         branch: fips
