@@ -40,8 +40,12 @@ void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
     _gui.updateDepthImage(data);
 }
 
-void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
+void PangolinOutput3DWrapper::publishKeyframe(const Frame::SharedPtr &f)
 {
+    // LOG(DEBUG) << "Received keyFrame " << f->id() << " at " << std::hex << f.get();
+    // LOG(DEBUG) << "KeyFrame timestamp " << f->timestamp();
+    // LOG(DEBUG) << "Frame::SharedPtr has " << f.use_count() << " references";
+
     Keyframe * fMsg = new Keyframe;
 
     boost::shared_lock<boost::shared_mutex> lock = f->getActiveLock();
@@ -85,7 +89,7 @@ void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
           pc[idx].color[3] = color[idx];
       }
     } else {
-      LOG(WARNING) << "Frame " << f->id() << "; does not appear to have depth information";
+      LOG(WARNING) << "Frame " << f->id() << " does not appear to have depth information";
     }
 
     lock.unlock();
@@ -93,7 +97,7 @@ void PangolinOutput3DWrapper::publishKeyframe(const std::shared_ptr<Frame> &f)
     _gui.addKeyframe(fMsg);
 }
 
-void PangolinOutput3DWrapper::publishTrackedFrame(const std::shared_ptr<Frame> &kf)
+void PangolinOutput3DWrapper::publishTrackedFrame(const Frame::SharedPtr &kf)
 {
   // TODO.  Get working again...
 //    lsd_slam_viewer::keyframeMsg fMsg;
