@@ -55,6 +55,6 @@ class PangolinOutput3DWrapper : public Output3DWrapper
     private:
         const Configuration &_conf;
 
-        GUI & _gui;
+        GUI &_gui;
 };
 }

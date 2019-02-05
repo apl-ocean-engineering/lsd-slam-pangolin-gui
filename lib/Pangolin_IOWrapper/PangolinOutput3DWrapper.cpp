@@ -32,7 +32,7 @@ PangolinOutput3DWrapper::~PangolinOutput3DWrapper()
 
 void PangolinOutput3DWrapper::publishPose( const Sophus::Sim3f &pose )
 {
-  ;
+  _gui.pose.set( pose );
 }
 
 void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
