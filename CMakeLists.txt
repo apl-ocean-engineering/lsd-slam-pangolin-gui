@@ -11,7 +11,7 @@ find_package(Boost COMPONENTS thread filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package( SuiteParse REQUIRED )
+find_package( SuiteSparse REQUIRED )
 find_package( TinyXML2 REQUIRED )
 
 ## This is hackish, needs to be expressed in the conanfile for G2O
