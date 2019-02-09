@@ -90,11 +90,11 @@ int main( int argc, char** argv )
 
   // Load configuration for LSD-SLAM
   lsd_slam::Configuration conf;
-  conf.inputImage = undistorter->inputImageSize();
-  conf.slamImage  = undistorter->outputImageSize();
+  //conf.inputImage = undistorter->inputImageSize();
+  conf.setSlamImageSize( undistorter->outputImageSize() );
   conf.camera     = undistorter->getCamera();
 
-  LOG(INFO) << "Slam image: " << conf.slamImage.width << " x " << conf.slamImage.height;
+  LOG(INFO) << "Slam image: " << conf.slamImageSize.width << " x " << conf.slamImageSize.height;
   CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
 
   std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );

@@ -30,9 +30,9 @@ GUI::GUI( const lsd_slam::Configuration &conf )
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
-    LOG(INFO) << "AR: " << _conf.slamImage.aspectRatio();
-    pangolin::Display("LiveImage").SetAspect( _conf.slamImage.aspectRatio() );
-    pangolin::Display("DepthImage").SetAspect( _conf.slamImage.aspectRatio() );
+    LOG(INFO) << "AR: " << _conf.slamImageSize.aspectRatio();
+    pangolin::Display("LiveImage").SetAspect( _conf.slamImageSize.aspectRatio() );
+    pangolin::Display("DepthImage").SetAspect( _conf.slamImageSize.aspectRatio() );
 
     pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
                               .SetLayout(pangolin::LayoutEqualHorizontal)
@@ -81,11 +81,11 @@ GUI::~GUI()
 
 void GUI::initImages()
 {
-    depthImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-    depthImgBuffer.assignValue(new unsigned char[_conf.slamImage.area() * 3]);
+    depthImg = new pangolin::GlTexture(_conf.slamImageSize.width, _conf.slamImageSize.height, GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    depthImgBuffer.assignValue(new unsigned char[_conf.slamImageSize.area() * 3]);
 
-    liveImg = new pangolin::GlTexture(_conf.slamImage.width, _conf.slamImage.height, GL_LUMINANCE, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-    liveImgBuffer.assignValue(new unsigned char[_conf.slamImage.area()]);
+    liveImg = new pangolin::GlTexture(_conf.slamImageSize.width, _conf.slamImageSize.height, GL_LUMINANCE, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+    liveImgBuffer.assignValue(new unsigned char[_conf.slamImageSize.area()]);
 }
 
 void GUI::update( void )
@@ -101,14 +101,14 @@ void GUI::update( void )
 void GUI::updateDepthImage(unsigned char * data)
 {
   std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
-  memcpy(depthImgBuffer.getReference(), data, _conf.slamImage.area() * 3);
+  memcpy(depthImgBuffer.getReference(), data, _conf.slamImageSize.area() * 3);
 }
 
 // Expects CV_8UC1 data
 void GUI::updateLiveImage(unsigned char * data)
 {
   std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
-  memcpy(liveImgBuffer.getReference(), data, _conf.slamImage.area() );
+  memcpy(liveImgBuffer.getReference(), data, _conf.slamImageSize.area() );
 }
 
 void GUI::updateFrameNumber( int fn )
@@ -204,8 +204,8 @@ void GUI::drawKeyframes()
 
 void GUI::drawFrustum()
 {
-  lsd_slam::Camera c( _conf.camera );
-  lsd_slam::ImageSize img( _conf.slamImage );
+  const lsd_slam::Camera c( _conf.camera );
+  const lsd_slam::ImageSize img( _conf.slamImageSize );
 
   glPushMatrix();
   Sophus::Matrix4f m = pose.getValue().matrix();
