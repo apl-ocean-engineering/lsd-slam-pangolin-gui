@@ -19,6 +19,7 @@
 */
 
 #include <boost/thread.hpp>
+#include <memory>
 
 #include "libg3logger/g3logger.h"
 
@@ -89,33 +90,28 @@ int main( int argc, char** argv )
   logWorker.verbose( verbose );
 
   // Load configuration for LSD-SLAM
-  lsd_slam::Configuration conf;
-  //conf.inputImage = undistorter->inputImageSize();
-  conf.setSlamImageSize( undistorter->outputImageSize() );
-  conf.camera     = undistorter->getCamera();
+  Conf().setSlamImageSize( undistorter->outputImageSize() );
+  Conf().camera     = undistorter->getCamera();
 
-  LOG(INFO) << "Slam image: " << conf.slamImageSize.width << " x " << conf.slamImageSize.height;
-  CHECK( (conf.camera.fx) > 0 && (conf.camera.fy > 0) ) << "Camera focal length is zero";
+  LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
+  CHECK( (Conf().camera.fx) > 0 && (Conf().camera.fy > 0) ) << "Camera focal length cannot be zero";
 
-  std::shared_ptr<SlamSystem> system( new SlamSystem(conf) );
+  std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
   // GUI need to be initialized in main thread on OSX,
   // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
-  std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
-
-  if( !noGui ) {
-    gui.reset( new GUI( system->conf() ) );
-    lsd_slam::PangolinOutput3DWrapper *outputWrapper = new PangolinOutput3DWrapper( system->conf(), *gui );
-    system->set3DOutputWrapper( outputWrapper );
-
-    ioWrapper.reset( new PangolinOutputIOWrapper( system->conf(), *gui ));
-
-  }
+  // std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
 
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, dataSource, undistorter );
-  input.setIOOutputWrapper( ioWrapper );
+
+  if( !noGui ) {
+    gui.reset( new GUI( Conf().slamImageSize, Conf().camera ) );
+    system->set3DOutputWrapper( new PangolinOutput3DWrapper( *gui ) );
+    //ioWrapper.reset( new PangolinOutputIOWrapper( *gui ));
+    input.setIOOutputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
+  }
 
   boost::thread inputThread( boost::ref(input) );
 

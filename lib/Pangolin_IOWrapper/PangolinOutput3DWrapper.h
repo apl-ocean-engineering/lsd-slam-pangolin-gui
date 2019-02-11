@@ -28,7 +28,7 @@ struct GraphConstraint
 class PangolinOutput3DWrapper : public Output3DWrapper
 {
     public:
-        PangolinOutput3DWrapper( const Configuration &conf, GUI & gui);
+        PangolinOutput3DWrapper( GUI & gui);
         virtual ~PangolinOutput3DWrapper();
 
         virtual void publishPose( const Sophus::Sim3f &pose );
@@ -53,8 +53,7 @@ class PangolinOutput3DWrapper : public Output3DWrapper
         int publishLvl;
 
     private:
-        const Configuration &_conf;
-
         GUI &_gui;
 };
+
 }

@@ -5,8 +5,7 @@
  *      Author: thomas
  */
 
-#ifndef GUI_H_
-#define GUI_H_
+#pragma once
 
 #define GLM_FORCE_RADIANS
 
@@ -17,6 +16,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "libvideoio/ImageSize.h"
+#include "libvideoio/Camera.h"
+
 #include "Pangolin_IOWrapper/Keyframe.h"
 #include "util/ThreadMutexObject.h"
 #include "DataStructures/Frame.h"
@@ -26,7 +28,7 @@
 class GUI
 {
     public:
-        GUI( const lsd_slam::Configuration &conf );
+        GUI( const libvideoio::ImageSize &sz, const libvideoio::Camera &camera );
 
         virtual ~GUI();
 
@@ -51,32 +53,30 @@ class GUI
 
         void updateFrameNumber( int frameNumber );
 
-
         // The master roll-up of all of the updating
         void update( void );
 
         ThreadMutexObject<Sophus::Sim3f> pose;
 
     private:
-        const lsd_slam::Configuration &_conf;
 
-        void drawGrid();
+      libvideoio::ImageSize _imageSize;
+      libvideoio::Camera    _camera;
 
-        pangolin::GlTexture *liveImg;
-        pangolin::GlTexture *depthImg;
+      void drawGrid();
 
-        ThreadMutexObject<unsigned char * > liveImgBuffer;
-        ThreadMutexObject<unsigned char * > depthImgBuffer;
+      pangolin::GlTexture *liveImg;
+      pangolin::GlTexture *depthImg;
 
-        pangolin::Var<int> * gpuMem;
-        pangolin::Var<int> * frameNumber;
+      ThreadMutexObject<unsigned char * > liveImgBuffer;
+      ThreadMutexObject<unsigned char * > depthImgBuffer;
 
-        pangolin::Var<std::string> * totalPoints;
+      pangolin::Var<int> * gpuMem;
+      pangolin::Var<int> * frameNumber;
 
-        pangolin::OpenGlRenderState s_cam;
+      pangolin::Var<std::string> * totalPoints;
 
-        ThreadMutexObject<std::map<int, Keyframe *> > keyframes;
+      pangolin::OpenGlRenderState s_cam;
+
+      ThreadMutexObject<std::map<int, Keyframe *> > keyframes;
 };
-
-
-#endif /* GUI_H_ */

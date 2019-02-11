@@ -19,15 +19,13 @@ namespace lsd_slam
 class PangolinOutputIOWrapper : public OutputIOWrapper
 {
     public:
-        PangolinOutputIOWrapper( const Configuration &conf, GUI & gui);
+        PangolinOutputIOWrapper( GUI & gui);
         virtual ~PangolinOutputIOWrapper();
 
       	virtual void updateFrameNumber( int );
       	virtual void updateLiveImage( const cv::Mat &img );
 
     private:
-        const Configuration &_conf;
-
         GUI & _gui;
 };
 }

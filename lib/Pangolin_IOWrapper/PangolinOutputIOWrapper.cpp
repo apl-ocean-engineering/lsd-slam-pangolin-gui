@@ -17,9 +17,8 @@
 namespace lsd_slam
 {
 
-PangolinOutputIOWrapper::PangolinOutputIOWrapper( const Configuration &conf, GUI & gui)
- : _conf( conf ),
-   _gui(gui)
+PangolinOutputIOWrapper::PangolinOutputIOWrapper(  GUI & gui)
+ : _gui(gui)
 {
 
 }
