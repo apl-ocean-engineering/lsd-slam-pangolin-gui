@@ -85,7 +85,10 @@ int main( int argc, char** argv )
   dataSource->setOutputType( CV_8UC1 );
 
   std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
-  CHECK((bool)undistorter) << "Undistorter shouldn't be null";
+  if(!(bool)undistorter) {
+    LOG(WARNING) << "Undistorter shouldn't be NULL";
+    return -1;
+  }
 
   logWorker.verbose( verbose );
 
