@@ -35,6 +35,8 @@ class PangolinOutput3DWrapper : public Output3DWrapper
 
         virtual void publishKeyframeGraph(const std::shared_ptr<KeyFrameGraph> &graph);
 
+	      virtual void publishPointCloud(const std::shared_ptr<lsd_slam::KeyFrameGraph>&) {;}
+
         // publishes a keyframe. if that frame already exists, it is overwritten, otherwise it is added.
         virtual void publishKeyframe(const lsd_slam::Frame::SharedPtr &kf);
 

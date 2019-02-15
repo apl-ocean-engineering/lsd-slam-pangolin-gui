@@ -108,7 +108,7 @@ int main( int argc, char** argv )
 
   if( !noGui ) {
     gui.reset( new GUI( Conf().slamImageSize, Conf().camera ) );
-    system->set3DOutputWrapper( new PangolinOutput3DWrapper( *gui ) );
+    system->set3DOutputWrapper( std::shared_ptr<PangolinOutput3DWrapper>(new PangolinOutput3DWrapper( *gui ) ) );
     //ioWrapper.reset( new PangolinOutputIOWrapper( *gui ));
     input.setIOOutputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
   }
