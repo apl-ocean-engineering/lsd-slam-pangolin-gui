@@ -11,4 +11,3 @@ imports:
 defines:
   FIPS_RTTI: ON
   FIPS_EXCEPTIONS: ON
-  BUILD_PANGOLIN_VIDEO: OFF

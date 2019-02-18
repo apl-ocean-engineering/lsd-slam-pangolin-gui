@@ -36,9 +36,6 @@ find_package( TinyXML2 REQUIRED )
 # endif()
 
 
-## Force Pangolin not to build Video tools
-set( BUILD_PANGOLIN_VIDEO OFF )
-
 set( OPENCV_COMPONENTS core highgui imgproc video)
 find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
 
