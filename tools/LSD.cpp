@@ -39,7 +39,6 @@
 #include "CLI11.hpp"
 
 #include <App/InputThread.h>
-#include <App/App.h>
 
 #include "Input.h"
 
@@ -67,11 +66,10 @@ int main( int argc, char** argv )
   bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
 
-
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
 
-  // Defines the configuration file;  see
+  // Defines the configuration file which can roll up all of the above options
   //    https://cliutils.gitlab.io/CLI11Tutorial/chapters/config.html
   app.set_config("--config");
 
@@ -93,17 +91,14 @@ int main( int argc, char** argv )
 
   // Load configuration for LSD-SLAM
   Conf().setSlamImageSize( undistorter->outputImageSize() );
-  //Conf().camera     = undistorter->getCamera();
 
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
-  //CHECK( (Conf().camera.fx) > 0 && (Conf().camera.fy > 0) ) << "Camera focal length cannot be zero";
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
   // GUI need to be initialized in main thread on OSX,
   // so run GUI elements in the main thread.
   std::shared_ptr<GUI> gui( nullptr );
-  // std::shared_ptr<PangolinOutputIOWrapper> ioWrapper(nullptr);
 
   LOG(INFO) << "Starting input thread.";
   InputThread input( system, dataSource, undistorter );
