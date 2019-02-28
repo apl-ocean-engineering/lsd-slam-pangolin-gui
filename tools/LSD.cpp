@@ -26,7 +26,6 @@
 #include "SlamSystem.h"
 
 #include "util/settings.h"
-#include "util/Parse.h"
 #include "util/globalFuncs.h"
 #include "util/Configuration.h"
 
@@ -94,10 +93,10 @@ int main( int argc, char** argv )
 
   // Load configuration for LSD-SLAM
   Conf().setSlamImageSize( undistorter->outputImageSize() );
-  Conf().camera     = undistorter->getCamera();
+  //Conf().camera     = undistorter->getCamera();
 
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
-  CHECK( (Conf().camera.fx) > 0 && (Conf().camera.fy > 0) ) << "Camera focal length cannot be zero";
+  //CHECK( (Conf().camera.fx) > 0 && (Conf().camera.fy > 0) ) << "Camera focal length cannot be zero";
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
@@ -110,7 +109,7 @@ int main( int argc, char** argv )
   InputThread input( system, dataSource, undistorter );
 
   if( !noGui ) {
-    gui.reset( new GUI( Conf().slamImageSize, Conf().camera ) );
+    gui.reset( new GUI( Conf().slamImageSize, undistorter->getCamera() ) );
     system->set3DOutputWrapper( new PangolinOutput3DWrapper( *gui ) );
     input.setIOOutputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
   }
