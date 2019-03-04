@@ -66,6 +66,9 @@ int main( int argc, char** argv )
   bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
 
+  bool noRealtime = false;
+  app.add_flag("--no-realtime", noRealtime, "Don't display GUI");
+
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
 
@@ -91,8 +94,9 @@ int main( int argc, char** argv )
 
   // Load configuration for LSD-SLAM
   Conf().setSlamImageSize( undistorter->outputImageSize() );
-
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
+
+  Conf().runRealTime = !noRealtime;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
