@@ -99,10 +99,25 @@ void TextOutputIOWrapper::publishKeyframe(const Frame::SharedPtr &f)
 
 void TextOutputIOWrapper::publishTrackedFrame(const Frame::SharedPtr &kf)
 {
-  const auto pose = kf->getCamToWorld();
-  const auto trans = pose.translation();
+  LOG(DEBUG) << "Writing pose for frame " << kf->id();
 
-  _poseFile << kf->id() << "," << trans.x() << "," << trans.y() << "," << trans.z() << endl;
+  _poseFile << kf->id();
+
+  {
+    const auto pose = kf->getCamToWorld();
+    const auto trans = pose.translation();
+
+    _poseFile << "," << trans.x() << "," << trans.y() << "," << trans.z();
+  }
+
+  {
+    const auto pose = kf->pose->thisToParent_raw;
+    const auto trans = pose.translation();
+
+    _poseFile << "," << trans.x() << "," << trans.y() << "," << trans.z();
+  }
+
+  _poseFile << endl;
 
   // TODO.  Get working again...
 //    lsd_slam_viewer::keyframeMsg fMsg;
