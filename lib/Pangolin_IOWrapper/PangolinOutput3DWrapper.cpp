@@ -41,9 +41,7 @@ void PangolinOutput3DWrapper::updateDepthImage(unsigned char * data)
 
 void PangolinOutput3DWrapper::publishKeyframe(const Frame::SharedPtr &f)
 {
-    // LOG(DEBUG) << "Received keyFrame " << f->id() << " at " << std::hex << f.get();
-    // LOG(DEBUG) << "KeyFrame timestamp " << f->timestamp();
-    // LOG(DEBUG) << "Frame::SharedPtr has " << f.use_count() << " references";
+    //LOG(DEBUG) << "Received Frame " << f->id() << " as a keyframe with timestamp " << f->timestamp() << ", and " << f.use_count() << " references";
 
     Keyframe * fMsg = new Keyframe;
 
@@ -158,7 +156,7 @@ void PangolinOutput3DWrapper::publishKeyframeGraph(const std::shared_ptr<KeyFram
     for(unsigned int i = 0; i < graph->keyframesAll.size(); i++)
     {
         framePoseData[i].id = graph->keyframesAll[i]->id();
-        memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getCamToWorld().cast<float>().data(), sizeof(float) * 7);
+        memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->frame()->getCamToWorld().cast<float>().data(), sizeof(float) * 7);
     }
 
     graph->keyframesAllMutex.unlock_shared();
