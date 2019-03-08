@@ -18,13 +18,6 @@ namespace lsd_slam
 class Frame;
 class KeyFrameGraph;
 
-struct GraphConstraint
-{
-    int from;
-    int to;
-    float err;
-};
-
 class PangolinOutput3DWrapper : public Output3DWrapper
 {
     public:
