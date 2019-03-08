@@ -1,0 +1,154 @@
+/*
+ * TextOutputIOWrapper.cpp
+ *
+ *  Created on: 17 Oct 2014
+ *      Author: thomas
+ */
+
+#include "TextOutputIOWrapper.h"
+
+#include "util/SophusUtil.h"
+#include "util/settings.h"
+#include "DataStructures/Frame.h"
+#include "GlobalMapping/KeyFrameGraph.h"
+#include "sophus/sim3.hpp"
+#include "GlobalMapping/g2oTypeSim3Sophus.h"
+
+namespace lsd_slam {
+
+using namespace std;
+
+TextOutputIOWrapper::TextOutputIOWrapper()
+ : _poseFile()
+{
+  _poseFile.open("pose.txt");
+  CHECK( _poseFile.is_open() ) << "Unable to open posefile";
+}
+
+TextOutputIOWrapper::~TextOutputIOWrapper()
+{
+
+}
+
+// void TextOutputIOWrapper::publishPose( const Sophus::Sim3f &pose )
+// {
+//   _gui.pose.set( pose );
+// }
+
+// void TextOutputIOWrapper::updateDepthImage(unsigned char * data)
+// {
+//     _gui.updateDepthImage(data);
+// }
+
+void TextOutputIOWrapper::publishKeyframe(const Frame::SharedPtr &f)
+{
+    // // LOG(DEBUG) << "Received keyFrame " << f->id() << " at " << std::hex << f.get();
+    // // LOG(DEBUG) << "KeyFrame timestamp " << f->timestamp();
+    // // LOG(DEBUG) << "Frame::SharedPtr has " << f.use_count() << " references";
+    //
+    // Keyframe * fMsg = new Keyframe;
+    //
+    // boost::shared_lock<boost::shared_mutex> lock = f->getActiveLock();
+    //
+    // fMsg->id = f->id();
+    // fMsg->time = f->timestamp();
+    // fMsg->isKeyframe = true;
+    //
+    // int w = f->width(publishLvl);
+    // int h = f->height(publishLvl);
+    //
+    // fMsg->camToWorld = f->getCamToWorld().cast<float>();
+    //
+    // fMsg->fx = f->fx(publishLvl);
+    // fMsg->fy = f->fy(publishLvl);
+    // fMsg->cx = f->cx(publishLvl);
+    // fMsg->cy = f->cy(publishLvl);
+    //
+    // fMsg->width = w;
+    // fMsg->height = h;
+    //
+    // fMsg->pointData = new unsigned char[w * h * sizeof(InputPointDense)];
+    //
+    // InputPointDense * pc = (InputPointDense*)fMsg->pointData;
+    //
+    // // Handles a pathological case where the frame is a copy that does
+    // // not have depth information...
+    // if( f->hasIDepthBeenSet() ) {
+    //
+    //   const float* idepth = f->idepth(publishLvl);
+    //   const float* idepthVar = f->idepthVar(publishLvl);
+    //   const float* color = f->image(publishLvl);
+    //
+    //   for(int idx = 0;idx < w * h; idx++)
+    //   {
+    //       pc[idx].idepth = idepth[idx];
+    //       pc[idx].idepth_var = idepthVar[idx];
+    //       pc[idx].color[0] = color[idx];
+    //       pc[idx].color[1] = color[idx];
+    //       pc[idx].color[2] = color[idx];
+    //       pc[idx].color[3] = color[idx];
+    //   }
+    // } else {
+    //   LOG(WARNING) << "Frame " << f->id() << " does not appear to have depth information";
+    // }
+    //
+    // lock.unlock();
+    //
+    // _gui.addKeyframe(fMsg);
+}
+
+void TextOutputIOWrapper::publishTrackedFrame(const Frame::SharedPtr &kf)
+{
+  const auto pose = kf->getCamToWorld();
+  const auto trans = pose.translation();
+
+  _poseFile << kf->id() << "," << trans.x() << "," << trans.y() << "," << trans.z() << endl;
+
+  // TODO.  Get working again...
+//    lsd_slam_viewer::keyframeMsg fMsg;
+//
+//
+//    fMsg.id = kf->id();
+//    fMsg.time = kf->timestamp();
+//    fMsg.isKeyframe = false;
+//
+//
+//    memcpy(fMsg.camToWorld.data(),kf->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
+//    fMsg.fx = kf->fx(publishLvl);
+//    fMsg.fy = kf->fy(publishLvl);
+//    fMsg.cx = kf->cx(publishLvl);
+//    fMsg.cy = kf->cy(publishLvl);
+//    fMsg.width = kf->width(publishLvl);
+//    fMsg.height = kf->height(publishLvl);
+//
+//    fMsg.pointcloud.clear();
+//
+//    liveframe_publisher.publish(fMsg);
+//
+//
+//    SE3 camToWorld = se3FromSim3(kf->getScaledCamToWorld());
+//
+//    geometry_msgs::PoseStamped pMsg;
+//
+//    pMsg.pose.position.x = camToWorld.translation()[0];
+//    pMsg.pose.position.y = camToWorld.translation()[1];
+//    pMsg.pose.position.z = camToWorld.translation()[2];
+//    pMsg.pose.orientation.x = camToWorld.so3().unit_quaternion().x();
+//    pMsg.pose.orientation.y = camToWorld.so3().unit_quaternion().y();
+//    pMsg.pose.orientation.z = camToWorld.so3().unit_quaternion().z();
+//    pMsg.pose.orientation.w = camToWorld.so3().unit_quaternion().w();
+//
+//    if (pMsg.pose.orientation.w < 0)
+//    {
+//        pMsg.pose.orientation.x *= -1;
+//        pMsg.pose.orientation.y *= -1;
+//        pMsg.pose.orientation.z *= -1;
+//        pMsg.pose.orientation.w *= -1;
+//    }
+//
+//    pMsg.header.stamp = ros::Time(kf->timestamp());
+//    pMsg.header.frame_id = "world";
+//    pose_publisher.publish(pMsg);
+}
+
+}
