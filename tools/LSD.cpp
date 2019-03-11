@@ -29,10 +29,6 @@
 #include "util/globalFuncs.h"
 #include "util/Configuration.h"
 
-#include "GUI.h"
-#include "Pangolin_IOWrapper/PangolinOutput3DWrapper.h"
-#include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
-
 #include "libvideoio/ImageSource.h"
 #include "libvideoio/Undistorter.h"
 
@@ -41,6 +37,11 @@
 #include <App/InputThread.h>
 
 #include "Input.h"
+
+#include "GUI.h"
+#include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
+#include "Pangolin_IOWrapper/TextOutputIOWrapper.h"
+
 
 
 using namespace lsd_slam;
@@ -109,9 +110,13 @@ int main( int argc, char** argv )
 
   if( !noGui ) {
     gui.reset( new GUI( Conf().slamImageSize, undistorter->getCamera() ) );
-    system->set3DOutputWrapper( new PangolinOutput3DWrapper( *gui ) );
-    input.setIOOutputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
+    auto outputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
+    system->addOutputWrapper( outputWrapper );
+    input.setIOOutputWrapper( outputWrapper );
   }
+
+  system->addOutputWrapper( std::make_shared<TextOutputIOWrapper>() );
+
 
   boost::thread inputThread( boost::ref(input) );
 
