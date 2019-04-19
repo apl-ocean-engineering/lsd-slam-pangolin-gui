@@ -1,6 +1,7 @@
 
 fips_begin_module( lsdgui )
   fips_files(
+    App/InputThread.cpp
     GUI.cpp
     Input.cpp
    )
