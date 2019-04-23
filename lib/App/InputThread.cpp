@@ -12,7 +12,8 @@ namespace lsd_slam {
     : system( sys ), dataSource( src ), undistorter( und ),
       inputDone( false ),
       inputReady(),
-      output( nullptr )
+      output( nullptr ),
+      _doRotate( false )
     {
       LOG(WARNING) << "InputThread constructor";
     }
@@ -59,7 +60,13 @@ namespace lsd_slam {
             CHECK(image.type() == CV_8UC1);
 
             cv::Mat imageUndist;
-            undistorter->undistort(image, imageUndist);
+            if( _doRotate ) {
+              cv::Mat rotated;
+              cv::rotate( image, rotated, cv::ROTATE_180 );
+              undistorter->undistort( rotated, imageUndist );
+            } else {
+              undistorter->undistort(image, imageUndist);
+            }
 
             CHECK(imageUndist.data != nullptr) << "Undistorted image data is nullptr";
             CHECK(imageUndist.type() == CV_8UC1);

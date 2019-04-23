@@ -34,7 +34,7 @@
 
 #include "CLI11.hpp"
 
-#include <App/InputThread.h>
+#include <App/StereoInputThread.h>
 
 #include "Input.h"
 
@@ -42,12 +42,60 @@
 #include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
 #include "Pangolin_IOWrapper/TextOutputIOWrapper.h"
 
-
+#include <yaml-cpp/yaml.h>
 
 using namespace lsd_slam;
 using namespace libvideoio;
 
 using std::string;
+
+
+/// Quick and dirty
+
+static Sophus::SE3d loadExtrinsics( const std::string &yamlFile )
+{
+  YAML::Node config = YAML::LoadFile(yamlFile);
+
+  if( !config["extrinsics"]) {
+    LOG(FATAL) << "Unable to load extrinsics from " << yamlFile;
+  }
+
+  auto ext = config["extrinsics"]["combined"];
+  const int nrows = ext["rows"].as<int>();
+  const int ncols = ext["cols"].as<int>();
+
+  LOG(WARNING) << ext;
+
+  CHECK(ext["data"].size() == 12 ) << "Expected 12 row-major elements in the extrinsics, got " << ext.size();
+  CHECK(nrows == 3 && ncols == 4) << "Expected 3x4 extrinsics, got " << nrows << " x " << ncols;
+
+  std::vector<double> extVec;
+  // for( size_t i = 0; i < nrows*ncols; ++i ) {
+  //   extVec.push_back(ext["data"][i].as<double>());
+  // }
+
+  for( auto d : ext["data"] ) {
+    extVec.push_back(d.as<double>());
+  }
+
+  if( extVec.size() == 12 ) {
+    extVec.push_back(0.0);
+    extVec.push_back(0.0);
+    extVec.push_back(0.0);
+    extVec.push_back(1.0);
+  }
+
+  CHECK( extVec.size()==16) << "Loaded extrinsics, but it's the wrong length (" << extVec.size();
+
+  // Eigne loads columns-order by default, need to transpose
+  Eigen::Matrix4d mat(extVec.data());
+  auto matt = mat.transpose();
+
+  LOG(WARNING) << "Loaded extrinsics: " << matt;
+
+  return Sophus::SE3( matt );
+}
+
 
 int main( int argc, char** argv )
 {
@@ -58,20 +106,26 @@ int main( int argc, char** argv )
   CLI::App app;
 
   // Add new options/flags here
-  std::string calibFile;
-  app.add_option("-c,--calib", calibFile, "Calibration file" )->required()->check(CLI::ExistingFile);
+  std::string calibLeft;
+  app.add_option("--calib-left", calibLeft, "Left calibration file" )->required()->check(CLI::ExistingFile);
+
+  std::string calibRight;
+  app.add_option("--calib-right", calibRight, "Right calibration file" )->required()->check(CLI::ExistingFile);
+
+  std::string extrinsicsFile;
+  app.add_option("--extrinsics", extrinsicsFile, "Extrinsics file")->required()->check(CLI::ExistingFile);
 
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
 
-  bool noGui;
-  app.add_flag("--no-gui", noGui, "Don't display GUI");
-
   bool doRotate;
   app.add_flag("--rotate", doRotate, "Rotate incoming images 180degrees");
 
+  bool noGui;
+  app.add_flag("--no-gui", noGui, "Don't display GUI");
+
   bool noRealtime = false;
-  app.add_flag("--no-realtime", noRealtime, "Don't display GUI");
+  app.add_flag("--no-realtime", noRealtime, "Don't run in realtime, run only as fast as frames can be processed");
 
   std::vector<std::string> inFiles;
   app.add_option("--input,input", inFiles, "Input files or directories");
@@ -88,19 +142,28 @@ int main( int argc, char** argv )
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
-  std::shared_ptr<Undistorter> undistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibFile ));
-  if(!(bool)undistorter) {
-    LOG(WARNING) << "Undistorter shouldn't be NULL";
+  std::shared_ptr<Undistorter> leftUndistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibLeft ));
+  if(!(bool)leftUndistorter) {
+    LOG(WARNING) << "Left undistorter shouldn't be NULL";
     return -1;
   }
+
+  std::shared_ptr<Undistorter> rightUndistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibRight ));
+  if(!(bool)rightUndistorter) {
+    LOG(WARNING) << "Right undistorter shouldn't be NULL";
+    return -1;
+  }
+
+  Sophus::SE3 extrinsics( loadExtrinsics( extrinsicsFile ) );
 
   logWorker.verbose( verbose );
 
   // Load configuration for LSD-SLAM
-  Conf().setSlamImageSize( undistorter->outputImageSize() );
+  Conf().setSlamImageSize( leftUndistorter->outputImageSize() );
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
 
   Conf().runRealTime = !noRealtime;
+  Conf().doLeftRightStereo = true;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
@@ -109,18 +172,17 @@ int main( int argc, char** argv )
   std::shared_ptr<GUI> gui( nullptr );
 
   LOG(INFO) << "Starting input thread.";
-  InputThread input( system, dataSource, undistorter );
+  StereoInputThread input( system, dataSource, leftUndistorter, rightUndistorter, extrinsics );
   input.setDoRotate( doRotate );
 
   if( !noGui ) {
-    gui.reset( new GUI( Conf().slamImageSize, undistorter->getCamera() ) );
+    gui.reset( new GUI( Conf().slamImageSize, leftUndistorter->getCamera() ) );
     auto outputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
     system->addOutputWrapper( outputWrapper );
     input.setIOOutputWrapper( outputWrapper );
   }
 
   system->addOutputWrapper( std::make_shared<TextOutputIOWrapper>() );
-
 
   boost::thread inputThread( boost::ref(input) );
 

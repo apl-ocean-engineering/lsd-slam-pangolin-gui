@@ -14,7 +14,7 @@ namespace lsd_slam {
     Input() = delete;
     Input(const Input &) = delete;
 
-    static std::shared_ptr<libvideoio::ImageSource> makeInput( const std::vector<std::string> &inputs );
+    static std::shared_ptr<libvideoio::ImageSource> makeImageSource( const std::vector<std::string> &inputs );
 
   };
 

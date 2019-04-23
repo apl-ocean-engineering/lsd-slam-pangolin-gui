@@ -14,6 +14,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package( SuiteSparse REQUIRED )
 find_package( TinyXML2 REQUIRED )
 
+find_package( yaml-cpp REQUIRED )
+
 ## This is hackish, needs to be expressed in the conanfile for G2O
 # find_package(SuiteParse REQUIRED)
 # list( APPEND G2O_LIBRARIES
@@ -67,6 +69,7 @@ fips_include_directories( LSDSLAM_INCLUDE_DIRS
 	${EIGEN3_INCLUDE_DIR}
 	${OpenCV_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
+  ${YAMLCPP_INCLUDE_DIR}
 )
 
 fips_include_directories( third_party/CLI11/ )

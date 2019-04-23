@@ -30,8 +30,12 @@ namespace lsd_slam {
     ThreadMutexObject<bool> inputDone;
     ThreadSynchronizer inputReady;
 
+    bool setDoRotate( bool doRotate ) { _doRotate = doRotate; }
+
   protected:
     std::shared_ptr<lsd_slam::OutputIOWrapper> output;
+
+    bool _doRotate;
 
   };
 }

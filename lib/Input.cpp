@@ -12,7 +12,7 @@ using namespace libvideoio;
 
 namespace lsd_slam {
 
-std::shared_ptr<ImageSource> Input::makeInput( const std::vector<std::string> &inputs ) {
+std::shared_ptr<ImageSource> Input::makeImageSource( const std::vector<std::string> &inputs ) {
 
   if( inputs.size() == 0 ) return nullptr;
 
