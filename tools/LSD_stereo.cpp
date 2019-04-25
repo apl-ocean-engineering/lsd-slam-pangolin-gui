@@ -64,8 +64,6 @@ static Sophus::SE3d loadExtrinsics( const std::string &yamlFile )
   const int nrows = ext["rows"].as<int>();
   const int ncols = ext["cols"].as<int>();
 
-  LOG(WARNING) << ext;
-
   CHECK(ext["data"].size() == 12 ) << "Expected 12 row-major elements in the extrinsics, got " << ext.size();
   CHECK(nrows == 3 && ncols == 4) << "Expected 3x4 extrinsics, got " << nrows << " x " << ncols;
 
@@ -121,6 +119,9 @@ int main( int argc, char** argv )
   bool doRotate;
   app.add_flag("--rotate", doRotate, "Rotate incoming images 180degrees");
 
+  bool noStereo;
+  app.add_flag("--no-stereo", noStereo, "Don't so ImageSetStereo");
+
   bool noGui;
   app.add_flag("--no-gui", noGui, "Don't display GUI");
 
@@ -163,7 +164,7 @@ int main( int argc, char** argv )
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
 
   Conf().runRealTime = !noRealtime;
-  Conf().doLeftRightStereo = true;
+  Conf().doLeftRightStereo = !noStereo;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
