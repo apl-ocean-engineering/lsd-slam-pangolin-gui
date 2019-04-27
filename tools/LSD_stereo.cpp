@@ -91,7 +91,7 @@ static Sophus::SE3d loadExtrinsics( const std::string &yamlFile )
 
   LOG(WARNING) << "Loaded extrinsics: " << matt;
 
-  return Sophus::SE3( matt );
+  return Sophus::SE3d( matt );
 }
 
 
@@ -110,8 +110,8 @@ int main( int argc, char** argv )
   std::string calibRight;
   app.add_option("--calib-right", calibRight, "Right calibration file" )->required()->check(CLI::ExistingFile);
 
-  std::string extrinsicsFile;
-  app.add_option("--extrinsics", extrinsicsFile, "Extrinsics file")->required()->check(CLI::ExistingFile);
+  // std::string extrinsicsFile;
+  // app.add_option("--extrinsics", extrinsicsFile, "Extrinsics file")->required()->check(CLI::ExistingFile);
 
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
@@ -143,19 +143,22 @@ int main( int argc, char** argv )
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
-  std::shared_ptr<Undistorter> leftUndistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibLeft ));
+  const std::shared_ptr<OpenCVUndistorter> leftUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibLeft ));
   if(!(bool)leftUndistorter) {
     LOG(WARNING) << "Left undistorter shouldn't be NULL";
     return -1;
   }
 
-  std::shared_ptr<Undistorter> rightUndistorter(libvideoio::UndistorterFactory::getUndistorterFromFile( calibRight ));
+  const std::shared_ptr<OpenCVUndistorter> rightUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibRight ));
   if(!(bool)rightUndistorter) {
     LOG(WARNING) << "Right undistorter shouldn't be NULL";
     return -1;
   }
 
-  Sophus::SE3 extrinsics( loadExtrinsics( extrinsicsFile ) );
+  //Sophus::SE3d extrinsics( loadExtrinsics( extrinsicsFile ) );
+  cv::Vec3d bl = rightUndistorter->baseline();
+  Eigen::Vector3d baseline( bl[0], bl[1], bl[2] );
+  Sophus::SE3d extrinsics( Eigen::Matrix3d::Identity(), baseline );
 
   logWorker.verbose( verbose );
 
@@ -163,8 +166,13 @@ int main( int argc, char** argv )
   Conf().setSlamImageSize( leftUndistorter->outputImageSize() );
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
 
+
+
   Conf().runRealTime = !noRealtime;
   Conf().doLeftRightStereo = !noStereo;
+
+  Conf().plot.doWaitKey = 0;
+  Conf().plot.debugStereo = true;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
@@ -173,7 +181,9 @@ int main( int argc, char** argv )
   std::shared_ptr<GUI> gui( nullptr );
 
   LOG(INFO) << "Starting input thread.";
-  StereoInputThread input( system, dataSource, leftUndistorter, rightUndistorter, extrinsics );
+  StereoInputThread input( system, dataSource,
+                            std::shared_ptr<libvideoio::Undistorter>(leftUndistorter.get()),
+                            std::shared_ptr<libvideoio::Undistorter>(rightUndistorter.get()), extrinsics );
   input.setDoRotate( doRotate );
 
   if( !noGui ) {

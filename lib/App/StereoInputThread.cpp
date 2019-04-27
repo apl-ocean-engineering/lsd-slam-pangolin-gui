@@ -6,10 +6,10 @@
 namespace lsd_slam {
 
 
-  StereoInputThread::StereoInputThread(  std::shared_ptr<lsd_slam::SlamSystem> &sys,
-                              std::shared_ptr<libvideoio::ImageSource> &src,
-                              std::shared_ptr<libvideoio::Undistorter> &und,
-                              std::shared_ptr<libvideoio::Undistorter> &rightUnd,
+  StereoInputThread::StereoInputThread( const std::shared_ptr<lsd_slam::SlamSystem> &sys,
+                              const std::shared_ptr<libvideoio::ImageSource> &src,
+                              const std::shared_ptr<libvideoio::Undistorter> &und,
+                              const std::shared_ptr<libvideoio::Undistorter> &rightUnd,
                                const Sophus::SE3d &rightToLeft )
     : InputThread( sys, src, und ),
       rightUndistorter( rightUnd ),

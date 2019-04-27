@@ -16,10 +16,10 @@ namespace lsd_slam {
   class StereoInputThread : public InputThread {
   public:
 
-    StereoInputThread(  std::shared_ptr<lsd_slam::SlamSystem> &system,
-                   std::shared_ptr<libvideoio::ImageSource> &dataSource,
-                   std::shared_ptr<libvideoio::Undistorter> &leftUndistorter,
-                   std::shared_ptr<libvideoio::Undistorter> &rightUndistorter,
+    StereoInputThread( const std::shared_ptr<lsd_slam::SlamSystem> &system,
+                   const std::shared_ptr<libvideoio::ImageSource> &dataSource,
+                   const std::shared_ptr<libvideoio::Undistorter> &leftUndistorter,
+                   const std::shared_ptr<libvideoio::Undistorter> &rightUndistorter,
                     const Sophus::SE3d &rightToLeft );
 
     // Entry point for boost::thread
