@@ -41,7 +41,7 @@ void PangolinOutputIOWrapper::updateDepthImage(unsigned char * data)
 
 void PangolinOutputIOWrapper::publishKeyframe(const Frame::SharedPtr &f)
 {
-    LOG(DEBUG) << "Received keyFrame " << f->id() << " at " << std::hex << f.get();
+    LOG(DEBUG) << "Received keyFrame " << f->id() << " at address " << std::hex << f.get();
     // LOG(DEBUG) << "KeyFrame timestamp " << f->timestamp();
     // LOG(DEBUG) << "Frame::SharedPtr has " << f.use_count() << " references";
 
@@ -74,12 +74,16 @@ void PangolinOutputIOWrapper::publishKeyframe(const Frame::SharedPtr &f)
     // not have depth information...
     if( f->hasIDepthBeenSet() ) {
 
+      int validCount = 0;
+
       const float* idepth = f->idepth(publishLvl);
       const float* idepthVar = f->idepthVar(publishLvl);
       const float* color = f->image(publishLvl);
 
       for(int idx = 0;idx < w * h; idx++)
       {
+        if( idepth[idx] > 0.0 ) validCount++;
+
           pc[idx].idepth = idepth[idx];
           pc[idx].idepth_var = idepthVar[idx];
           pc[idx].color[0] = color[idx];
@@ -87,6 +91,8 @@ void PangolinOutputIOWrapper::publishKeyframe(const Frame::SharedPtr &f)
           pc[idx].color[2] = color[idx];
           pc[idx].color[3] = color[idx];
       }
+
+      //LOG(DEBUG) << "  Copied " << validCount << " valid depths";
     } else {
       LOG(WARNING) << "Frame " << f->id() << " does not appear to have depth information";
     }

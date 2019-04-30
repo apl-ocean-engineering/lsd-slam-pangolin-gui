@@ -8,6 +8,8 @@
 #ifndef KEYFRAME_H_
 #define KEYFRAME_H_
 
+#include <g3log/g3log.hpp>
+
 #include <GL/glew.h>
 #include "util/settings.h"
 #include "sophus/sim3.hpp"
@@ -75,7 +77,7 @@ class Keyframe
 
             MyVertex * tmpBuffer = new MyVertex[width * height];
 
-            float my_scaledTH = 1e-3;
+            float my_scaledTH = 1e-1;
             float my_absTH = 1e-1;
             float my_scale = camToWorld.scale();
             int my_minNearSupport = 9;
@@ -88,12 +90,26 @@ class Keyframe
             float cxi = -cx / fx;
             float cyi = -cy / fy;
 
+            // Count failure statistics
+            struct {
+              unsigned int badIdepth;
+              unsigned int largeVar;
+              unsigned int largeAbsVar;
+
+              void init() {
+                badIdepth = largeVar = largeAbsVar = 0;
+              }
+            } stats;
+            stats.init();
+
             for(int y = 1; y < height - 1; y++)
             {
                 for(int x = 1; x < width - 1; x++)
                 {
-                    if(originalInput[x + y * width].idepth <= 0)
+                    if(originalInput[x + y * width].idepth <= 0) {
+                      stats.badIdepth++;
                         continue;
+                    }
 
                     if(my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0)
                         continue;
@@ -101,14 +117,17 @@ class Keyframe
                     float depth = 1 / originalInput[x + y * width].idepth;
 
                     float depth4 = depth * depth;
-
                     depth4 *= depth4;
 
-                    if(originalInput[x + y * width].idepth_var * depth4 > my_scaledTH)
-                        continue;
+                    if(originalInput[x + y * width].idepth_var * depth4 > my_scaledTH) {
+                      stats.largeVar++;
+                      continue;
+                    }
 
-                    if(originalInput[x + y * width].idepth_var * depth4 * my_scale * my_scale > my_absTH)
-                        continue;
+                    if(originalInput[x + y * width].idepth_var * depth4 * my_scale * my_scale > my_absTH) {
+                      stats.largeAbsVar++;
+                      continue;
+                    }
 
                     if(my_minNearSupport > 1)
                     {
@@ -141,6 +160,8 @@ class Keyframe
                     points++;
                 }
             }
+
+            LOG(INFO) << "Updated VBO with " << points << " points.  Bad idepth " << stats.badIdepth << "; Large var: " << stats.largeVar << "; large abs var: " << stats.largeAbsVar;
 
             glGenBuffers(1, &vbo);
             glBindBuffer(GL_ARRAY_BUFFER, vbo);

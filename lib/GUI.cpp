@@ -190,16 +190,16 @@ void GUI::drawKeyframes()
 
     for(std::map<int, Keyframe *>::iterator i = keyframes.getReference().begin(); i != keyframes.getReference().end(); ++i)
     {
-        // Don't render first five, according to original code
-        // if(i->second->initId >= 5)
-        // {
-            if(!i->second->hasVbo || i->second->needsUpdate)
-            {
-                i->second->computeVbo();
-            }
-            i->second->drawPoints();
-            i->second->drawCamera();
-        // }
+      // Don't render first N keyframes, according to original code
+      // if(i->second->initId >= 5)
+      // {
+      if(!i->second->hasVbo || i->second->needsUpdate)
+      {
+          i->second->computeVbo();
+      }
+      i->second->drawPoints();
+      i->second->drawCamera();
+      // }
     }
 
     glDisable(GL_MULTISAMPLE);

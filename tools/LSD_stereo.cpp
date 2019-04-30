@@ -51,48 +51,48 @@ using std::string;
 
 
 /// Quick and dirty
-
-static Sophus::SE3d loadExtrinsics( const std::string &yamlFile )
-{
-  YAML::Node config = YAML::LoadFile(yamlFile);
-
-  if( !config["extrinsics"]) {
-    LOG(FATAL) << "Unable to load extrinsics from " << yamlFile;
-  }
-
-  auto ext = config["extrinsics"]["combined"];
-  const int nrows = ext["rows"].as<int>();
-  const int ncols = ext["cols"].as<int>();
-
-  CHECK(ext["data"].size() == 12 ) << "Expected 12 row-major elements in the extrinsics, got " << ext.size();
-  CHECK(nrows == 3 && ncols == 4) << "Expected 3x4 extrinsics, got " << nrows << " x " << ncols;
-
-  std::vector<double> extVec;
-  // for( size_t i = 0; i < nrows*ncols; ++i ) {
-  //   extVec.push_back(ext["data"][i].as<double>());
-  // }
-
-  for( auto d : ext["data"] ) {
-    extVec.push_back(d.as<double>());
-  }
-
-  if( extVec.size() == 12 ) {
-    extVec.push_back(0.0);
-    extVec.push_back(0.0);
-    extVec.push_back(0.0);
-    extVec.push_back(1.0);
-  }
-
-  CHECK( extVec.size()==16) << "Loaded extrinsics, but it's the wrong length (" << extVec.size();
-
-  // Eigne loads columns-order by default, need to transpose
-  Eigen::Matrix4d mat(extVec.data());
-  auto matt = mat.transpose();
-
-  LOG(WARNING) << "Loaded extrinsics: " << matt;
-
-  return Sophus::SE3d( matt );
-}
+//
+// static Sophus::SE3d loadExtrinsics( const std::string &yamlFile )
+// {
+//   YAML::Node config = YAML::LoadFile(yamlFile);
+//
+//   if( !config["extrinsics"]) {
+//     LOG(FATAL) << "Unable to load extrinsics from " << yamlFile;
+//   }
+//
+//   auto ext = config["extrinsics"]["combined"];
+//   const int nrows = ext["rows"].as<int>();
+//   const int ncols = ext["cols"].as<int>();
+//
+//   CHECK(ext["data"].size() == 12 ) << "Expected 12 row-major elements in the extrinsics, got " << ext.size();
+//   CHECK(nrows == 3 && ncols == 4) << "Expected 3x4 extrinsics, got " << nrows << " x " << ncols;
+//
+//   std::vector<double> extVec;
+//   // for( size_t i = 0; i < nrows*ncols; ++i ) {
+//   //   extVec.push_back(ext["data"][i].as<double>());
+//   // }
+//
+//   for( auto d : ext["data"] ) {
+//     extVec.push_back(d.as<double>());
+//   }
+//
+//   if( extVec.size() == 12 ) {
+//     extVec.push_back(0.0);
+//     extVec.push_back(0.0);
+//     extVec.push_back(0.0);
+//     extVec.push_back(1.0);
+//   }
+//
+//   CHECK( extVec.size()==16) << "Loaded extrinsics, but it's the wrong length (" << extVec.size();
+//
+//   // Eigne loads columns-order by default, need to transpose
+//   Eigen::Matrix4d mat(extVec.data());
+//   auto matt = mat.transpose();
+//
+//   LOG(WARNING) << "Loaded extrinsics: " << matt;
+//
+//   return Sophus::SE3d( matt );
+// }
 
 
 int main( int argc, char** argv )
@@ -112,6 +112,9 @@ int main( int argc, char** argv )
 
   // std::string extrinsicsFile;
   // app.add_option("--extrinsics", extrinsicsFile, "Extrinsics file")->required()->check(CLI::ExistingFile);
+
+  int waitkey = -1;
+  app.add_option("--waitkey", waitkey, "Argument to waitkey");
 
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print DEBUG output to console");
@@ -143,17 +146,13 @@ int main( int argc, char** argv )
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
   dataSource->setOutputType( CV_8UC1 );
 
-  const std::shared_ptr<OpenCVUndistorter> leftUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibLeft ));
-  if(!(bool)leftUndistorter) {
-    LOG(WARNING) << "Left undistorter shouldn't be NULL";
-    return -1;
-  }
+  const std::shared_ptr<OpenCVUndistorter> leftUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibLeft, nullptr ));
+  CHECK( bool(leftUndistorter) ) << "Left undistorter shouldn't be NULL";
+  leftUndistorter->setName("Left");
 
-  const std::shared_ptr<OpenCVUndistorter> rightUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibRight ));
-  if(!(bool)rightUndistorter) {
-    LOG(WARNING) << "Right undistorter shouldn't be NULL";
-    return -1;
-  }
+  const std::shared_ptr<OpenCVUndistorter> rightUndistorter(libvideoio::ROSUndistorterFactory::loadFromFile( calibRight, nullptr ));
+  CHECK( bool(rightUndistorter) ) << "Right undistorter shouldn't be NULL";
+  rightUndistorter->setName("Right");
 
   //Sophus::SE3d extrinsics( loadExtrinsics( extrinsicsFile ) );
   cv::Vec3d bl = rightUndistorter->baseline();
@@ -166,12 +165,17 @@ int main( int argc, char** argv )
   Conf().setSlamImageSize( leftUndistorter->outputImageSize() );
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
 
-
-
   Conf().runRealTime = !noRealtime;
   Conf().doLeftRightStereo = !noStereo;
 
-  Conf().plot.doWaitKey = 0;
+  Conf().print.observeStatistics = true;
+  Conf().print.observePurgeStatistics = true;
+
+  Conf().print.lineStereoStatistics = true;
+  Conf().print.lineStereoFails = true;
+
+
+  Conf().plot.doWaitKey = waitkey;
   Conf().plot.debugStereo = true;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
@@ -204,7 +208,7 @@ int main( int argc, char** argv )
   startAll.notify();
 
   if( gui ) {
-    while(!pangolin::ShouldQuit() && !input.inputDone.getValue() )
+    while(!pangolin::ShouldQuit() ) //&& !input.inputDone.getValue() )
     {
       if( gui ) gui->update();
     }

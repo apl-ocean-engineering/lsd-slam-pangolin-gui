@@ -8,10 +8,10 @@ namespace lsd_slam {
 
   StereoInputThread::StereoInputThread( const std::shared_ptr<lsd_slam::SlamSystem> &sys,
                               const std::shared_ptr<libvideoio::ImageSource> &src,
-                              const std::shared_ptr<libvideoio::Undistorter> &und,
+                              const std::shared_ptr<libvideoio::Undistorter> &leftUnd,
                               const std::shared_ptr<libvideoio::Undistorter> &rightUnd,
                                const Sophus::SE3d &rightToLeft )
-    : InputThread( sys, src, und ),
+    : InputThread( sys, src, leftUnd ),
       rightUndistorter( rightUnd ),
       _rightToLeft( rightToLeft )
     {}
@@ -60,31 +60,31 @@ namespace lsd_slam {
             cv::Mat rightROI( stereoImage, cv::Rect(halfWidth,0, halfWidth, imgSize.height) );
 
 
-            cv::Mat leftUndist;
+            cv::Mat leftUndistorted;
             if( _doRotate ) {
               cv::Mat rotated;
               cv::rotate( leftROI, rotated, cv::ROTATE_180 );
-              undistorter->undistort( rotated, leftUndist );
+              undistorter->undistort( rotated, leftUndistorted );
             } else {
-              undistorter->undistort(leftROI, leftUndist);
+              undistorter->undistort(leftROI, leftUndistorted);
             }
-            CHECK(leftUndist.data != nullptr) << "Undistorted left image is nullptr";
-            CHECK(leftUndist.type() == CV_8UC1);
+            CHECK(leftUndistorted.data != nullptr) << "Undistorted left image is nullptr";
+            CHECK(leftUndistorted.type() == CV_8UC1) << "Undistorted left image is not CV_8UC1";
 
-            cv::Mat rightUndist;
+            cv::Mat rightUndistorted;
             if( _doRotate ) {
               cv::Mat rotated;
               cv::rotate( rightROI, rotated, cv::ROTATE_180 );
-              undistorter->undistort( rotated, rightUndist );
+              rightUndistorter->undistort( rotated, rightUndistorted );
             } else {
-              undistorter->undistort(rightROI, rightUndist);
+              rightUndistorter->undistort(rightROI, rightUndistorted);
             }
-            CHECK(rightUndist.data != nullptr) << "Undistorted right image is nullptr";
-            CHECK(rightUndist.type() == CV_8UC1);
+            CHECK(rightUndistorted.data != nullptr) << "Undistorted right image is nullptr";
+            CHECK(rightUndistorted.type() == CV_8UC1) << "Undistorted right image is not CV_8UC1";
 
 
-            ImageSet::SharedPtr set( new ImageSet(runningIdx, leftUndist, undistorter->getCamera() ) );
-            set->addFrame( rightUndist, rightUndistorter->getCamera(), _rightToLeft );
+            ImageSet::SharedPtr set( new ImageSet(runningIdx, leftUndistorted, undistorter->getCamera() ) );
+            set->addFrame( rightUndistorted, rightUndistorter->getCamera(), _rightToLeft );
 
             // This will block if system->conf().runRealTime is false
             system->nextImageSet( set );
@@ -94,7 +94,7 @@ namespace lsd_slam {
 
             if( output ) {
               output->updateFrameNumber( runningIdx );
-              output->updateLiveImage( leftUndist );
+              output->updateLiveImage( leftUndistorted );
             }
 
           }
