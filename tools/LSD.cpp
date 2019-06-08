@@ -34,13 +34,11 @@
 
 #include "CLI11.hpp"
 
-#include <App/InputThread.h>
-
-#include "Input.h"
-
-#include "GUI.h"
-#include "Pangolin_IOWrapper/PangolinOutputIOWrapper.h"
-#include "Pangolin_IOWrapper/TextOutputIOWrapper.h"
+#include "lsd-slam-pangolin-gui/App/InputThread.h"
+#include "lsd-slam-pangolin-gui/App/MakeInput.h"
+#include "lsd-slam-pangolin-gui/GUI.h"
+#include "lsd-slam-pangolin-gui/PangolinOutputIOWrapper.h"
+#include "lsd-slam-pangolin-gui/TextOutputIOWrapper.h"
 
 
 
@@ -79,7 +77,7 @@ int main( int argc, char** argv )
 
   CLI11_PARSE(app, argc, argv);
 
-  std::shared_ptr<ImageSource> dataSource( Input::makeInput( inFiles ));
+  std::shared_ptr<ImageSource> dataSource( input::MakeInput( inFiles ));
   CHECK((bool)dataSource) << "Data source shouldn't be null";
 
   dataSource->setFPS( 30 ); //fpsArg.getValue() );
@@ -98,6 +96,8 @@ int main( int argc, char** argv )
   LOG(INFO) << "Slam image: " << Conf().slamImageSize.width << " x " << Conf().slamImageSize.height;
 
   Conf().runRealTime = !noRealtime;
+  Conf().useVarianceFiltering = false;
+  Conf().useVoxelFilter = false;
 
   std::shared_ptr<SlamSystem> system( new SlamSystem() );
 
@@ -110,13 +110,11 @@ int main( int argc, char** argv )
 
   if( !noGui ) {
     gui.reset( new GUI( Conf().slamImageSize, undistorter->getCamera() ) );
-    auto outputWrapper( std::make_shared<PangolinOutputIOWrapper>( *gui ) );
-    system->addOutputWrapper( outputWrapper );
-    input.setIOOutputWrapper( outputWrapper );
+    system->addOutputWrapper( gui );
+    input.setIOOutputWrapper( gui );
   }
 
   system->addOutputWrapper( std::make_shared<TextOutputIOWrapper>() );
-
 
   boost::thread inputThread( boost::ref(input) );
 

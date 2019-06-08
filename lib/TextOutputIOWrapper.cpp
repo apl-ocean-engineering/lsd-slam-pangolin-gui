@@ -5,7 +5,7 @@
  *      Author: thomas
  */
 
-#include "TextOutputIOWrapper.h"
+#include "lsd-slam-pangolin-gui/TextOutputIOWrapper.h"
 
 #include "util/SophusUtil.h"
 #include "util/settings.h"

@@ -1,6 +1,6 @@
 
 
-#include "App/InputThread.h"
+#include "lsd-slam-pangolin-gui/App/InputThread.h"
 #include "util/globalFuncs.h"
 
 namespace lsd_slam {
@@ -63,7 +63,8 @@ namespace lsd_slam {
 
             CHECK(imageUndist.data != nullptr) << "Undistorted image data is nullptr";
             CHECK(imageUndist.type() == CV_8UC1);
-            //LOG(DEBUG) << "Image size: " << imageUndist.cols << " x " << imageUndist.rows;
+            auto sz(imageUndist.size());
+            LOG(DEBUG) << "Image size: " << sz.width << " x " << sz.height;
 
 //            Frame::SharedPtr f = std::make_shared<Frame>( runningIdx, system->conf(), fakeTimeStamp, imageUndist.data );
 
@@ -75,7 +76,10 @@ namespace lsd_slam {
 
             if( output ) {
               output->updateFrameNumber( runningIdx );
-              output->updateLiveImage( imageUndist );
+
+              cv::Mat colorLive;
+              cv::cvtColor( imageUndist, colorLive, cv::COLOR_GRAY2RGB );
+              output->updateLiveImage( colorLive );
             }
 
           }

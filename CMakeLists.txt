@@ -14,28 +14,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package( SuiteSparse REQUIRED )
 find_package( TinyXML2 REQUIRED )
 
-## This is hackish, needs to be expressed in the conanfile for G2O
-# find_package(SuiteParse REQUIRED)
-# list( APPEND G2O_LIBRARIES
-#   ${CSPARSE_LIBRARY} )
-# list( APPEND G2O_INCLUDE_DIR
-#   ${CSPARSE_INCLUDE_DIR}
-#   ${CHOLMOD_INCLUDE_DIR} )
-
-##==== Check and define the architecture
-## Architecture-specific optimizations
-## Need this workaround for CUDA 8.0
-# find_package( CUDA )
-# if( CUDA_VERSION )
-# 	message("Found CUDA version ${CUDA_VERSION}")
-# 	if(${CUDA_VERSION} VERSION_EQUAL "8.0")
-# 		message("Disabling CUDA_USE_STATIC_CUDA_RUNTIME")
-# 		set( CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE BOOL "" FORCE  )
-# 	endif()
-# 	find_package( CUDA )
-# endif()
-
-
+#== OpenCV Configuration ==
 set( OPENCV_COMPONENTS core highgui imgproc video)
 find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
 
@@ -67,6 +46,7 @@ fips_include_directories( LSDSLAM_INCLUDE_DIRS
 	${EIGEN3_INCLUDE_DIR}
 	${OpenCV_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIR}
+  include/
 )
 
 fips_include_directories( third_party/CLI11/ )

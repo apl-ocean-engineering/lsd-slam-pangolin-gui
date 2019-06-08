@@ -47,6 +47,12 @@ class TextOutputIOWrapper : public OutputIOWrapper
         virtual void updateFrameNumber( int ) {;}
         virtual void updateLiveImage( const cv::Mat &img ) {;}
 
+        virtual void publishFrame(const Frame::SharedPtr &kf,
+                                  const Eigen::MatrixXf G) {}
+
+        virtual void publishFrame(const Frame::SharedPtr &kf, const Eigen::MatrixXf G,
+                                  const DepthMap::SharedPtr &depthMap) {}
+
 
     private:
 
