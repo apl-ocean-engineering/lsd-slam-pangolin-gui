@@ -58,7 +58,8 @@ public:
   {;}
 
   // Publish pointcloud from graph
-  //virtual void publishPointCloud(const Frame::SharedPtr &kf) {}
+  virtual void publishPointCloud(const lsd_slam::Frame::SharedPtr &kf)
+  {;}
 
   // publishes a keyframe. if that frame already existis, it is overwritten,
   // otherwise it is added.

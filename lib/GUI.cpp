@@ -97,8 +97,8 @@ void GUI::initImages() {
                                      GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
   depthImgBuffer.assignValue(new unsigned char[_imageSize.area() * 3]);
 
-  liveImg = new pangolin::GlTexture(_imageSize.width, _imageSize.height, GL_RGB,
-                                    true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+  liveImg = new pangolin::GlTexture(_imageSize.width, _imageSize.height,
+                                    GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
   liveImgBuffer.assignValue(new unsigned char[_imageSize.area() * 3]);
 }
 
@@ -122,7 +122,9 @@ void GUI::updateLiveImage(const cv::Mat &img) {
   memcpy(liveImgBuffer.getReference(), img.data, _imageSize.area() * 3);
 }
 
-void GUI::updateFrameNumber(int fn) { frameNumber->operator=(fn); }
+void GUI::updateFrameNumber(int fn) {
+  frameNumber->operator=(fn);
+}
 
 
 void GUI::publishKeyframe(const Frame::SharedPtr &kf) {
@@ -174,8 +176,31 @@ void GUI::update(void) {
   postCall();
 }
 
+void GUI::drawKeyframes() {
+  std::lock_guard<std::mutex> lock(keyframes.mutex());
+
+  glEnable(GL_MULTISAMPLE);
+  glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+
+  for( auto &i : keyframes.getReference() ) {
+
+    // Don't render first five, according to original code
+    // if(i->second->initId >= 5)
+    // {
+
+    i.second->drawPoints();
+    i.second->drawCamera();
+
+    // }
+  }
+
+  glDisable(GL_MULTISAMPLE);
+}
+
 void GUI::preCall() {
-  glClearColor(0.05, 0.05, 0.3, 0.0f);
+  // glClearColor(0.05, 0.05, 0.3, 0.0f);
+  glClearColor(0.2, 0.2, 0.8, 0.0f);
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   pangolin::Display("cam").Activate(s_cam);
@@ -184,44 +209,20 @@ void GUI::preCall() {
 }
 
 void GUI::drawImages() {
+
+  pangolin::Display("DepthImage").Activate();
   {
     std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
     depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
   }
-
-  pangolin::Display("DepthImage").Activate();
   depthImg->RenderToViewport(true);
 
+  pangolin::Display("LiveImage").Activate();
   {
     std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
     liveImg->Upload(liveImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
   }
-
-  pangolin::Display("LiveImage").Activate();
   liveImg->RenderToViewport(true);
-}
-
-void GUI::drawKeyframes() {
-  std::lock_guard<std::mutex> lock(keyframes.mutex());
-
-  glEnable(GL_MULTISAMPLE);
-  glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
-
-  for (std::map<int, std::shared_ptr<Keyframe> >::iterator i = keyframes.getReference().begin();
-       i != keyframes.getReference().end(); ++i) {
-    // Don't render first five, according to original code
-    // if(i->second->initId >= 5)
-    // {
-    if (!i->second->hasVbo || i->second->needsUpdate) {
-      i->second->computeVbo();
-    }
-    i->second->drawPoints();
-    i->second->drawCamera();
-
-    // }
-  }
-
-  glDisable(GL_MULTISAMPLE);
 }
 
 void GUI::drawGrid() {
@@ -302,9 +303,7 @@ void GUI::drawGrid() {
 }
 
 void GUI::postCall() {
-
   pangolin::FinishFrame();
-
   glFinish();
 }
 

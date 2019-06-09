@@ -36,7 +36,7 @@ public:
 
   struct PointCloudPoint {
     float xImg, yImg;           // xImg, yImg are pixel point locations.
-    float x, y, z, depth;       // x,y are real world locations
+    float x, y, z;       // x,y are real world locations
     float idepth_var;
     unsigned char color[3];     // R,G,B
   };

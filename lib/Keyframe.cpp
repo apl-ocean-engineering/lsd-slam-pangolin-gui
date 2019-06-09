@@ -12,8 +12,7 @@ Keyframe::Keyframe()
 {;}
 
 Keyframe::~Keyframe() {
-  if (hasVbo)
-    glDeleteBuffers(1, &vbo);
+  if (hasVbo) glDeleteBuffers(1, &vbo);
 }
 
 void Keyframe::update(const Frame::SharedPtr &kf) {
@@ -58,16 +57,16 @@ void Keyframe::update(const Frame::SharedPtr &kf) {
     for (int y = 0; y < height; ++y ) {
     for( int x = 0; x < width; ++x, ++idx  ) {
 
-      // In this version, need to project points...
+      // If all we got is a frame, need to project the points ourselves.
       const float depth = 1.0/idepth[idx];
-      _points[idx].depth = depth;
+      //_points[idx].depth = depth;
 
       _points[idx].xImg = x;
       _points[idx].yImg = y;
 
       _points[idx].x = (x * fxi + cxi) * depth;
       _points[idx].y = (y * fyi + cyi) * depth;
-      _points[idx].z = _points[idx].depth;
+      _points[idx].z = depth;
 
       _points[idx].idepth_var = idepthVar[idx];
       _points[idx].color[0] = color[idx];
@@ -88,7 +87,8 @@ void Keyframe::update(const Frame::SharedPtr &kf) {
 
 
 void Keyframe::computeVbo() {
-  assert(!(hasVbo && !needsUpdate));
+
+  //assert(!(hasVbo && !needsUpdate));
 
   if(hasVbo && needsUpdate) {
     glDeleteBuffers(1, &vbo);
@@ -97,18 +97,19 @@ void Keyframe::computeVbo() {
 
   GLVertexColorStruct *glBuffer = new GLVertexColorStruct[_points.size()];
 
-  float my_scale = lsd_slam::Conf().scale; // camToWorld.scale();
-  float my_scale4 = my_scale * my_scale;
-  my_scale4 *= my_scale4;
-  float my_scaledTH = lsd_slam::Conf().scaledTh;
-  float my_absTH = lsd_slam::Conf().absTh;
-  int my_minNearSupport = lsd_slam::Conf().nearSupport;
-  int my_sparsifyFactor = lsd_slam::Conf().sparisityFactor;
+  const float my_scale = lsd_slam::Conf().scale; // camToWorld.scale();
+  const float my_scale2 = my_scale * my_scale;
+  const float my_scale4 = my_scale2 * my_scale2;
 
-  float fxi = 1 / fx;
-  float fyi = 1 / fy;
-  float cxi = -cx / fx;
-  float cyi = -cy / fy;
+  const float my_scaledTH = lsd_slam::Conf().scaledTh;
+  const float my_absTH = lsd_slam::Conf().absTh;
+  const int my_minNearSupport = lsd_slam::Conf().nearSupport;
+  const int my_sparsifyFactor = lsd_slam::Conf().sparisityFactor;
+
+  const float fxi = 1 / fx;
+  const float fyi = 1 / fy;
+  const float cxi = -cx / fx;
+  const float cyi = -cy / fy;
 
   int runningSparistyFailureCount = 0;
   int runningabsTHFailureCount = 0;
@@ -117,45 +118,33 @@ void Keyframe::computeVbo() {
 
   // PointCloud::Ptr cloud(new PointCloud);
   // PointCloud::Ptr cloud_filtered(new PointCloud);
-  float x;
-  float y;
-  float depth;
 
   int glPoints = 0;
 
   for (int idx = 2; idx < _points.size() - 2; idx++) {
     bool fail = false;
-    x = _points[idx].x;
-    y = _points[idx].y;
-    depth = _points[idx].depth;
+
 
     if (lsd_slam::Conf().useVarianceFiltering) {
-      float depth4 = depth * depth;
 
-      float _x = _points[idx].xImg;
-      float _y = _points[idx].xImg;
+      const float _x = _points[idx].xImg;
+      const float _y = _points[idx].yImg;
 
-      depth4 *= depth4;
+      const float depth = _points[idx].z;
+      const float depth2 = depth * depth;
+      const float depth4 = depth2 * depth2;
 
       if (depth <= 0)
         continue;
 
       if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0) {
-        // std::cout << "failed my_sparsifyFactor: " << std::endl;
-        // continue;
         fail = true;
         runningSparistyFailureCount++;
       }
 
       if (_points[idx].idepth_var * depth4 > my_scaledTH) {
-        // std::cout << "failed my_scaledTH: "
-        //           << originalInput[idx].idepth_var * depth4
-        //           << "scale: " << scale << std::endl;
-        // continue;
         fail = true;
         runningscaledTHFailureCount++;
-      } else {
-        // std::cout << originalInput[idx].idepth_var * depth4 << std::endl;
       }
 
       // if (originalInput[idx].idepth_var * depth4 > my_absTH) {
@@ -167,37 +156,29 @@ void Keyframe::computeVbo() {
 
       if (my_minNearSupport > 1) {
         int nearSupport = 0;
+
         for (int dx = -1; dx < 2; dx++) {
           for (int dy = -1; dy < 2; dy++) {
+
             int _idx = idx + dx + dy;
-            if (_points[_idx].depth > 0) {
-              float diff = 1 / _points[_idx].depth - 1.0f / depth;
+            if (_points[_idx].z > 0) {
+              float diff = 1 / _points[_idx].z - 1.0f / depth;
               if (diff * diff <
                   2 * my_scale * _points[idx].idepth_var) {
                 // if (diff * diff > 1e-15) {
                 nearSupport++;
-              } else {
-                // std::cout << "diff^2 :" << diff * diff << "idepth_var: "
-                //           << 2 * my_scale * originalInput[idx].idepth_var
-                //           << std::endl;
-                // std::cout << "failed nearSupport" << std::endl;
               }
-            } else {
-              // std::cout << "depth: " << originalInput[_idx].depth <<
-              // std::endl;
             }
+
           }
         }
 
         if (nearSupport < my_minNearSupport) {
-          // std::cout << "failed nearSupport: " << nearSupport << std::endl;
-          // continue;
           fail = true;
           runningNearSupportFailureCount++;
         }
       }
     }
-    // std::cout << fail << std::endl;
 
     if (!fail) {
       // if (lsd_slam::Conf().useVoxelFilter) {
@@ -210,9 +191,10 @@ void Keyframe::computeVbo() {
       //   point.b = originalInput[idx].color[2];
       //   cloud->push_back(point);
       // } else {
-        glBuffer[glPoints].point[0] = x;
-        glBuffer[glPoints].point[1] = y;
-        glBuffer[glPoints].point[2] = depth;
+
+        glBuffer[glPoints].point[0] = _points[idx].x;
+        glBuffer[glPoints].point[1] = _points[idx].y;
+        glBuffer[glPoints].point[2] = _points[idx].z;
         glBuffer[glPoints].color[3] = 100;
         glBuffer[glPoints].color[2] = _points[idx].color[0];
         glBuffer[glPoints].color[1] = _points[idx].color[1];
@@ -268,6 +250,8 @@ void Keyframe::drawPoints() {
 
   if( _hidden ) return;
 
+  if (!hasVbo || needsUpdate) computeVbo();
+
   assert(hasVbo);
   GLfloat mi(0.0);
   glPointParameterf(GL_POINT_SIZE_MIN, mi);
@@ -317,10 +301,11 @@ void Keyframe::drawCamera() {
   glVertex3f(0, 0, 0);
   glVertex3f(size * (0 - cx) / fx, size * (height - 1 - cy) / fy, size);
   glVertex3f(0, 0, 0);
-  glVertex3f(size * (width - 1 - cx) / fx, size * (height - 1 - cy) / fy,
-             0.05);
+  glVertex3f(size * (width - 1 - cx) / fx, size * (height - 1 - cy) / fy, size);
   glVertex3f(0, 0, 0);
   glVertex3f(size * (width - 1 - cx) / fx, size * (0 - cy) / fy, size);
+
+  
   glVertex3f(size * (width - 1 - cx) / fx, size * (0 - cy) / fy, size);
   glVertex3f(size * (width - 1 - cx) / fx, size * (height - 1 - cy) / fy,
              size);
