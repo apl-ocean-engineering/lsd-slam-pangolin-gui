@@ -21,6 +21,8 @@ namespace StateSaver {
 
   bool SaveState( const std::string &filename,  const std::map<int, std::shared_ptr<Keyframe> > &keyframes ) {
 
+    LOG(INFO) << "Saving state to " << filename;
+
      std::ofstream outf( filename );
 
      if( !outf.is_open() ) return false;
@@ -49,6 +51,7 @@ namespace StateSaver {
      outf << "DATA ascii" << std::endl;
 
      // iterate a second time
+     int i = 0;
      for( const auto kf_pair : keyframes ) {
        const int kfNum = kf_pair.first;
        const std::shared_ptr<Keyframe> &kf( kf_pair.second );
@@ -59,6 +62,9 @@ namespace StateSaver {
          const float rgbFloat = float(rgb);
 
          outf << point.x << " " << point.y << " " << point.z << " " << rgbFloat << std::endl;
+
+         ++i;
+         if( i % 10000 == 0) LOG(INFO) << "Wrote " << i << " points";
        }
      }
 

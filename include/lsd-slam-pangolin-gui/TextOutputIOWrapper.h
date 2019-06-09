@@ -9,7 +9,6 @@
 
 #include <fstream>
 #include "IOWrapper/OutputIOWrapper.h"
-#include "Keyframe.h"
 #include "GUI.h"
 #include "util/Configuration.h"
 

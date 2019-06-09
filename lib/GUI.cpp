@@ -32,6 +32,15 @@ GUI::GUI(const ImageSize &sz, const Camera &camera)
 
   glEnable(GL_DEPTH_TEST);
 
+  pangolin::View& _depthImgDisplay = pangolin::Display("DepthImage").SetAspect(_imageSize.aspectRatio());
+  pangolin::View& _liveImgDisplay  = pangolin::Display("LiveImage").SetAspect(_imageSize.aspectRatio());
+
+  pangolin::Display("multi")
+      .SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
+      .SetLayout(pangolin::LayoutEqualHorizontal)
+      .AddDisplay(_liveImgDisplay)
+      .AddDisplay(_depthImgDisplay);
+
   s_cam = pangolin::OpenGlRenderState(
       pangolin::ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.1, 1000),
       pangolin::ModelViewLookAt(-1, 0, 0, 0, 0, 0, pangolin::AxisY));
@@ -40,18 +49,7 @@ GUI::GUI(const ImageSize &sz, const Camera &camera)
       .SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
       .SetHandler(new pangolin::Handler3D(s_cam));
 
-  pangolin::Display("LiveImage").SetAspect(_imageSize.aspectRatio());
-  pangolin::Display("DepthImage").SetAspect(_imageSize.aspectRatio());
-
-  pangolin::Display("multi")
-      .SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180),
-                 1.0)
-      .SetLayout(pangolin::LayoutEqualHorizontal)
-      .AddDisplay(pangolin::Display("LiveImage"))
-      .AddDisplay(pangolin::Display("DepthImage"));
-
-  pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0,
-                                        pangolin::Attach::Pix(180));
+  pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
   frameNumber = new pangolin::Var<int>("ui.Frame number", 0);
 
@@ -93,13 +91,13 @@ GUI::~GUI() {
 }
 
 void GUI::initImages() {
-  depthImg = new pangolin::GlTexture(_imageSize.width, _imageSize.height,
-                                     GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
-  depthImgBuffer.assignValue(new unsigned char[_imageSize.area() * 3]);
-
   liveImg = new pangolin::GlTexture(_imageSize.width, _imageSize.height,
                                     GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
   liveImgBuffer.assignValue(new unsigned char[_imageSize.area() * 3]);
+
+  depthImg = new pangolin::GlTexture(_imageSize.width, _imageSize.height,
+                                     GL_RGB, true, 0, GL_RGB, GL_UNSIGNED_BYTE);
+  depthImgBuffer.assignValue(new unsigned char[_imageSize.area() * 3]);
 }
 
 //===== Interfaces to OutputIOWrapper =====
@@ -111,12 +109,7 @@ void GUI::updateDepthImage(unsigned char *data) {
 }
 
 void GUI::updateLiveImage(const cv::Mat &img) {
-  // cv::Mat out;
-  // if( img.channels() == 3 ) {
-  //   out = img;
-  // } else {
-  //   cv::cvtColor( img, out, cv::COLOR_GRAY2RGB);
-  // }
+  CHECK( img.type() == CV_8UC3 );
 
   std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
   memcpy(liveImgBuffer.getReference(), img.data, _imageSize.area() * 3);
@@ -129,6 +122,7 @@ void GUI::updateFrameNumber(int fn) {
 
 void GUI::publishKeyframe(const Frame::SharedPtr &kf) {
   std::lock_guard<std::mutex> lock(keyframes.mutex());
+
   std::map<int, std::shared_ptr<Keyframe> > &kframes( keyframes.getReference() );
 
   if( kframes.find( kf->id() ) != kframes.end() ) {
@@ -139,12 +133,6 @@ void GUI::publishKeyframe(const Frame::SharedPtr &kf) {
 
     kframes.insert( std::make_pair(kf->id(), newKF) );
   }
-
-  //   delete newFrame;
-  // } else {
-  //   newFrame->initId = keyframes.getReference().size();
-  //   keyframes.getReference()[newFrame->id] = newFrame;
-  // }
 }
 
 
@@ -171,12 +159,26 @@ void GUI::updateKeyframePoses(GraphFramePose *framePoseData, int num) {
 
 void GUI::update(void) {
   preCall();
-  drawKeyframes();
   drawImages();
+
+  drawKeyframes();
   postCall();
 }
 
+
+void GUI::preCall() {
+  // glClearColor(0.05, 0.05, 0.3, 0.0f);
+  glClearColor(0.2, 0.2, 0.8, 0.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // pangolin::Display("cam").Activate(s_cam);
+  // drawGrid();
+}
+
 void GUI::drawKeyframes() {
+
+  pangolin::Display("cam").Activate(s_cam);
+
   std::lock_guard<std::mutex> lock(keyframes.mutex());
 
   glEnable(GL_MULTISAMPLE);
@@ -197,32 +199,21 @@ void GUI::drawKeyframes() {
   glDisable(GL_MULTISAMPLE);
 }
 
-void GUI::preCall() {
-  // glClearColor(0.05, 0.05, 0.3, 0.0f);
-  glClearColor(0.2, 0.2, 0.8, 0.0f);
-
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  pangolin::Display("cam").Activate(s_cam);
-
-  //drawGrid();
-}
-
 void GUI::drawImages() {
 
-  pangolin::Display("DepthImage").Activate();
-  {
-    std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
-    depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
-  }
-  depthImg->RenderToViewport(true);
-
-  pangolin::Display("LiveImage").Activate();
   {
     std::lock_guard<std::mutex> lock(liveImgBuffer.mutex());
     liveImg->Upload(liveImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
   }
+  pangolin::Display("LiveImage").Activate();
   liveImg->RenderToViewport(true);
+
+  {
+    std::lock_guard<std::mutex> lock(depthImgBuffer.mutex());
+    depthImg->Upload(depthImgBuffer.getReference(), GL_RGB, GL_UNSIGNED_BYTE);
+  }
+  pangolin::Display("DepthImage").Activate();
+  depthImg->RenderToViewport(true);
 }
 
 void GUI::drawGrid() {
@@ -237,66 +228,66 @@ void GUI::drawGrid() {
 
   glBegin(GL_LINES);
 
-  // Draw a larger grid around the outside..
-  double dGridInterval = 0.1;
+    // Draw a larger grid around the outside..
+    double dGridInterval = 0.1;
 
-  double dMin = -100.0 * dGridInterval;
-  double dMax = 100.0 * dGridInterval;
+    double dMin = -100.0 * dGridInterval;
+    double dMax = 100.0 * dGridInterval;
 
-  double height = -4;
+    double height = -4;
 
-  for (int x = -10; x <= 10; x += 1) {
-    if (x == 0)
-      glColor3f(1, 1, 1);
-    else
-      glColor3f(0.3, 0.3, 0.3);
-    glVertex3d((double)x * 10 * dGridInterval, dMin, height);
-    glVertex3d((double)x * 10 * dGridInterval, dMax, height);
-  }
+    for (int x = -10; x <= 10; x += 1) {
+      if (x == 0)
+        glColor3f(1, 1, 1);
+      else
+        glColor3f(0.3, 0.3, 0.3);
+      glVertex3d((double)x * 10 * dGridInterval, dMin, height);
+      glVertex3d((double)x * 10 * dGridInterval, dMax, height);
+    }
 
-  for (int y = -10; y <= 10; y += 1) {
-    if (y == 0)
-      glColor3f(1, 1, 1);
-    else
-      glColor3f(0.3, 0.3, 0.3);
-    glVertex3d(dMin, (double)y * 10 * dGridInterval, height);
-    glVertex3d(dMax, (double)y * 10 * dGridInterval, height);
-  }
+    for (int y = -10; y <= 10; y += 1) {
+      if (y == 0)
+        glColor3f(1, 1, 1);
+      else
+        glColor3f(0.3, 0.3, 0.3);
+      glVertex3d(dMin, (double)y * 10 * dGridInterval, height);
+      glVertex3d(dMax, (double)y * 10 * dGridInterval, height);
+    }
 
   glEnd();
 
   glBegin(GL_LINES);
-  dMin = -10.0 * dGridInterval;
-  dMax = 10.0 * dGridInterval;
+    dMin = -10.0 * dGridInterval;
+    dMax = 10.0 * dGridInterval;
 
-  for (int x = -10; x <= 10; x++) {
-    if (x == 0)
-      glColor3f(1, 1, 1);
-    else
-      glColor3f(0.5, 0.5, 0.5);
+    for (int x = -10; x <= 10; x++) {
+      if (x == 0)
+        glColor3f(1, 1, 1);
+      else
+        glColor3f(0.5, 0.5, 0.5);
 
-    glVertex3d((double)x * dGridInterval, dMin, height);
-    glVertex3d((double)x * dGridInterval, dMax, height);
-  }
+      glVertex3d((double)x * dGridInterval, dMin, height);
+      glVertex3d((double)x * dGridInterval, dMax, height);
+    }
 
-  for (int y = -10; y <= 10; y++) {
-    if (y == 0)
-      glColor3f(1, 1, 1);
-    else
-      glColor3f(0.5, 0.5, 0.5);
-    glVertex3d(dMin, (double)y * dGridInterval, height);
-    glVertex3d(dMax, (double)y * dGridInterval, height);
-  }
+    for (int y = -10; y <= 10; y++) {
+      if (y == 0)
+        glColor3f(1, 1, 1);
+      else
+        glColor3f(0.5, 0.5, 0.5);
+      glVertex3d(dMin, (double)y * dGridInterval, height);
+      glVertex3d(dMax, (double)y * dGridInterval, height);
+    }
 
-  glColor3f(1, 0, 0);
-  glVertex3d(0, 0, height);
-  glVertex3d(1, 0, height);
-  glColor3f(0, 1, 0);
-  glVertex3d(0, 0, height);
-  glVertex3d(0, 1, height);
-  glColor3f(1, 1, 1);
-  glVertex3d(0, 0, height);
-  glVertex3d(0, 0, height + 1);
+    glColor3f(1, 0, 0);
+    glVertex3d(0, 0, height);
+    glVertex3d(1, 0, height);
+    glColor3f(0, 1, 0);
+    glVertex3d(0, 0, height);
+    glVertex3d(0, 1, height);
+    glColor3f(1, 1, 1);
+    glVertex3d(0, 0, height);
+    glVertex3d(0, 0, height + 1);
   glEnd();
 
   glPopMatrix();

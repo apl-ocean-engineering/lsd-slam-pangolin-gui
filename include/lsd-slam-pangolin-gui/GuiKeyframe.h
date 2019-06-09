@@ -42,8 +42,11 @@ public:
   };
 
   struct GLVertexColorStruct {
-    float point[3];
-    unsigned char color[4];
+    static const int NumPoints = 3;
+    static const int NumColors = 4;
+
+    float point[NumPoints];
+    unsigned char color[NumColors];
   };
 
   Keyframe( const Keyframe & ) = delete;

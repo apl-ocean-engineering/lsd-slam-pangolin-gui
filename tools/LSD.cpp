@@ -37,7 +37,6 @@
 #include "lsd-slam-pangolin-gui/App/InputThread.h"
 #include "lsd-slam-pangolin-gui/App/MakeInput.h"
 #include "lsd-slam-pangolin-gui/GUI.h"
-#include "lsd-slam-pangolin-gui/PangolinOutputIOWrapper.h"
 #include "lsd-slam-pangolin-gui/TextOutputIOWrapper.h"
 
 

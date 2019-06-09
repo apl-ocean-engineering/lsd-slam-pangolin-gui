@@ -1,5 +1,5 @@
 
-#include "lsd-slam-pangolin-gui/Keyframe.h"
+#include "lsd-slam-pangolin-gui/GuiKeyframe.h"
 
 
 using namespace lsd_slam;
@@ -42,8 +42,8 @@ void Keyframe::update(const Frame::SharedPtr &kf) {
   const float cxi = -cx * fxi;
   const float cyi = -cy * fyi;
 
-
-  _points.resize( width*height );
+  _points.reserve( width*height );
+  _points.clear();
 
   // Handles a pathological case where the frame is a copy that does
   // not have depth information...
@@ -55,26 +55,29 @@ void Keyframe::update(const Frame::SharedPtr &kf) {
 
     int idx = 0;
     for (int y = 0; y < height; ++y ) {
-    for( int x = 0; x < width; ++x, ++idx  ) {
+      for( int x = 0; x < width; ++x, ++idx  ) {
+        // If iDepth is not defined
+        if( idepth[idx] <= 0 ) continue;
 
-      // If all we got is a frame, need to project the points ourselves.
-      const float depth = 1.0/idepth[idx];
-      //_points[idx].depth = depth;
+        // If all we got is a frame, need to project the points ourselves.
+        const float depth = 1.0/idepth[idx];
 
-      _points[idx].xImg = x;
-      _points[idx].yImg = y;
+        PointCloudPoint pt;
+        pt.xImg = x;
+        pt.yImg = y;
 
-      _points[idx].x = (x * fxi + cxi) * depth;
-      _points[idx].y = (y * fyi + cyi) * depth;
-      _points[idx].z = depth;
+        pt.x = (x * fxi + cxi) * depth;
+        pt.y = (y * fyi + cyi) * depth;
+        pt.z = depth;
 
-      _points[idx].idepth_var = idepthVar[idx];
-      _points[idx].color[0] = color[idx];
-      _points[idx].color[1] = color[idx];
-      _points[idx].color[2] = color[idx];
-      //pc[idx].color[3] = color[idx];
+        pt.idepth_var = idepthVar[idx];
+        pt.color[0] = color[idx];
+        pt.color[1] = color[idx];
+        pt.color[2] = color[idx];
+
+        _points.push_back( pt );
+      }
     }
-  }
   } else {
     LOG(WARNING) << "Frame " << kf->id()
                  << " does not appear to have depth information";
@@ -95,6 +98,7 @@ void Keyframe::computeVbo() {
     _glPointCount = 0;
   }
 
+  LOG(INFO) << "Creating glBuffer of size " << _points.size();
   GLVertexColorStruct *glBuffer = new GLVertexColorStruct[_points.size()];
 
   const float my_scale = lsd_slam::Conf().scale; // camToWorld.scale();
@@ -122,6 +126,9 @@ void Keyframe::computeVbo() {
   int glPoints = 0;
 
   for (int idx = 2; idx < _points.size() - 2; idx++) {
+
+    if( glPoints >= _points.size() ) break;
+
     bool fail = false;
 
 
@@ -233,9 +240,9 @@ void Keyframe::computeVbo() {
 
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertexColorStruct) * glPoints, glBuffer,
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertexColorStruct) * glPoints, glBuffer, GL_STATIC_DRAW);
   _glPointCount = glPoints;
+  LOG(INFO) << "Final VBO buffer had " << _glPointCount << " (" << glPoints << ") points";
 
   delete[] glBuffer;
 
@@ -268,9 +275,9 @@ void Keyframe::drawPoints() {
   glMultMatrixf((GLfloat *)m.data());
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glVertexPointer(3, GL_FLOAT, sizeof(GLVertexColorStruct), 0);
-  glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GLVertexColorStruct),
-                 (const void *)(3 * sizeof(float)));
+  glVertexPointer(GLVertexColorStruct::NumPoints, GL_FLOAT, sizeof(GLVertexColorStruct), 0);
+  glColorPointer(GLVertexColorStruct::NumColors, GL_UNSIGNED_BYTE, sizeof(GLVertexColorStruct),
+                 (const void *)(GLVertexColorStruct::NumPoints * sizeof(float)));
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
@@ -305,7 +312,7 @@ void Keyframe::drawCamera() {
   glVertex3f(0, 0, 0);
   glVertex3f(size * (width - 1 - cx) / fx, size * (0 - cy) / fy, size);
 
-  
+
   glVertex3f(size * (width - 1 - cx) / fx, size * (0 - cy) / fy, size);
   glVertex3f(size * (width - 1 - cx) / fx, size * (height - 1 - cy) / fy,
              size);

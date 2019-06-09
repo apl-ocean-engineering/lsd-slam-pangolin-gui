@@ -6,7 +6,7 @@ fips_begin_module( lsdgui )
     GUI.cpp
     TextOutputIOWrapper.cpp
     StateSaver.cpp
-    Keyframe.cpp
+    GuiKeyframe.cpp
   )
 
   fips_deps( lsdslam pangolin videoio ${FIPS_DEPS} )

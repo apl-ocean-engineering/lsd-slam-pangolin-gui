@@ -20,7 +20,7 @@
 #include "libvideoio/types/ImageSize.h"
 
 #include "DataStructures/Frame.h"
-#include "Keyframe.h"
+#include "lsd-slam-pangolin-gui/GuiKeyframe.h"
 #include "util/ThreadMutexObject.h"
 
 #include "IOWrapper/OutputIOWrapper.h"

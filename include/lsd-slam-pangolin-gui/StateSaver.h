@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "lsd-slam-pangolin-gui/Keyframe.h"
+#include "lsd-slam-pangolin-gui/GuiKeyframe.h"
 #include "util/ThreadMutexObject.h"
 
 namespace PangolinGui {
