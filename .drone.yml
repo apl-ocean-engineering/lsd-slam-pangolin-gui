@@ -13,7 +13,7 @@ steps:
     - ./fips set config linux-make-unittest
     - ./fips build
 
-- name: build-fips-unittest
+- name: build-fips-release-unittest
   image: amarburg/lsdslam-dev-host
   commands:
     - ./fips set config linux-make-release-unittest
